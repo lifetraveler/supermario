@@ -1,0 +1,540 @@
+# 自动架构初始化脚本
+
+$ErrorActionPreference = "Stop"
+
+Write-Host "========================================="
+Write-Host " 奔奔王国自动化架构初始化"
+Write-Host "========================================="
+
+# -----------------------------------------
+# 1. 目录
+# -----------------------------------------
+
+$directories = @(
+    "docs",
+
+    "src\sg",
+    "src\sg\scene",
+    "src\sg\navigation",
+    "src\sg\actions",
+
+    "src\sg\tasks",
+    "src\sg\tasks\city",
+    "src\sg\tasks\world",
+    "src\sg\tasks\battle",
+    "src\sg\tasks\hero",
+    "src\sg\tasks\tech",
+    "src\sg\tasks\alliance",
+    "src\sg\tasks\quest",
+    "src\sg\tasks\common",
+
+    "src\sg\resources",
+    "src\sg\resources\city",
+    "src\sg\resources\world",
+    "src\sg\resources\battle",
+    "src\sg\resources\hero",
+    "src\sg\resources\alliance",
+    "src\sg\resources\common"
+)
+
+foreach ($dir in $directories) {
+
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Write-Host "[CREATE] $dir"
+    }
+    else {
+        Write-Host "[EXISTS] $dir"
+    }
+}
+
+# -----------------------------------------
+# 2. Python __init__.py
+# -----------------------------------------
+
+$pythonPackages = @(
+    "src\sg",
+    "src\sg\scene",
+    "src\sg\navigation",
+    "src\sg\actions",
+    "src\sg\tasks",
+    "src\sg\tasks\city",
+    "src\sg\tasks\world",
+    "src\sg\tasks\battle",
+    "src\sg\tasks\hero",
+    "src\sg\tasks\tech",
+    "src\sg\tasks\alliance",
+    "src\sg\tasks\quest",
+    "src\sg\tasks\common"
+)
+
+foreach ($package in $pythonPackages) {
+
+    $file = Join-Path $package "__init__.py"
+
+    if (-not (Test-Path $file)) {
+        New-Item -ItemType File -Path $file -Force | Out-Null
+        Write-Host "[CREATE] $file"
+    }
+}
+
+# -----------------------------------------
+# 3. SceneType
+# -----------------------------------------
+
+@'
+from enum import Enum
+
+
+class SceneType(str, Enum):
+    UNKNOWN = "unknown"
+
+    LOGIN = "login"
+
+    CITY = "city"
+
+    WORLD_MAP = "world_map"
+
+    TOWER_DEFENSE = "tower_defense"
+
+    MARCH = "march"
+
+    HERO = "hero"
+
+    TROOP = "troop"
+
+    TECH = "tech"
+
+    ALLIANCE = "alliance"
+
+    QUEST = "quest"
+
+    ACTIVITY = "activity"
+
+    MAIL = "mail"
+
+    SHOP = "shop"
+
+    REWARD = "reward"
+'@ | Set-Content "src\sg\scene\scene_type.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\scene\scene_type.py"
+
+
+# -----------------------------------------
+# 4. SceneState
+# -----------------------------------------
+
+@'
+from enum import Enum
+
+
+class SceneState(str, Enum):
+
+    NORMAL = "normal"
+
+    LOADING = "loading"
+
+    PREPARE = "prepare"
+
+    FIGHTING = "fighting"
+
+    WIN = "win"
+
+    LOSE = "lose"
+
+    BUILDING = "building"
+
+    UPGRADING = "upgrading"
+
+    SEARCHING = "searching"
+
+    MARCHING = "marching"
+
+    GATHERING = "gathering"
+
+    REWARD = "reward"
+
+    ERROR = "error"
+'@ | Set-Content "src\sg\scene\scene_state.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\scene\scene_state.py"
+
+
+# -----------------------------------------
+# 5. Scene
+# -----------------------------------------
+
+@'
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
+
+from .scene_type import SceneType
+from .scene_state import SceneState
+
+
+@dataclass
+class Scene:
+    """
+    当前游戏场景。
+
+    Scene 只负责描述当前状态，
+    不负责执行具体业务任务。
+    """
+
+    type: SceneType = SceneType.UNKNOWN
+
+    state: SceneState = SceneState.NORMAL
+
+    confidence: float = 0.0
+
+    elements: Dict[str, Any] = field(default_factory=dict)
+
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    def is_scene(self, scene_type: SceneType) -> bool:
+        return self.type == scene_type
+
+    def is_state(self, state: SceneState) -> bool:
+        return self.state == state
+
+    def has(self, element: str) -> bool:
+        return element in self.elements
+
+    def get(self, element: str, default: Optional[Any] = None):
+        return self.elements.get(element, default)
+
+    def is_confident(self, threshold: float = 0.90) -> bool:
+        return self.confidence >= threshold
+'@ | Set-Content "src\sg\scene\scene.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\scene\scene.py"
+
+
+# -----------------------------------------
+# 6. Elements
+# -----------------------------------------
+
+@'
+from dataclasses import dataclass
+from typing import Optional, Tuple
+
+
+@dataclass
+class Element:
+    """
+    游戏中的可交互/可识别元素。
+    """
+
+    name: str
+
+    bounds: Optional[Tuple[int, int, int, int]] = None
+
+    confidence: float = 0.0
+
+    element_type: str = "unknown"
+
+    visible: bool = True
+
+    def center(self):
+        if not self.bounds:
+            return None
+
+        x1, y1, x2, y2 = self.bounds
+
+        return (
+            (x1 + x2) // 2,
+            (y1 + y2) // 2,
+        )
+'@ | Set-Content "src\sg\scene\elements.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\scene\elements.py"
+
+
+# -----------------------------------------
+# 7. SceneDetector
+# -----------------------------------------
+
+@'
+from typing import Optional
+
+from .scene import Scene
+from .scene_type import SceneType
+from .scene_state import SceneState
+
+
+class SceneDetector:
+    """
+    游戏场景检测器。
+
+    第一版只建立接口，
+    后续再接入模板匹配 / OCR / CV。
+    """
+
+    def __init__(self):
+        self.last_scene: Optional[Scene] = None
+
+    def detect(self, image=None) -> Scene:
+        """
+        根据当前截图识别 Scene。
+
+        TODO:
+            1. Popup 检测
+            2. Loading 检测
+            3. Battle 检测
+            4. March 检测
+            5. Page 检测
+            6. Confidence 计算
+        """
+
+        scene = Scene(
+            type=SceneType.UNKNOWN,
+            state=SceneState.NORMAL,
+            confidence=0.0,
+        )
+
+        self.last_scene = scene
+
+        return scene
+'@ | Set-Content "src\sg\scene\scene_detector.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\scene\scene_detector.py"
+
+
+# -----------------------------------------
+# 8. Navigator
+# -----------------------------------------
+
+@'
+from src.sg.scene.scene_type import SceneType
+
+
+class Navigator:
+    """
+    负责不同 Scene 之间的导航。
+
+    Navigator 不负责业务任务。
+    """
+
+    def __init__(self, scene_detector=None):
+        self.scene_detector = scene_detector
+
+    def current_scene(self):
+        if self.scene_detector is None:
+            return None
+
+        return self.scene_detector.last_scene
+
+    def go_to(self, target: SceneType) -> bool:
+        """
+        导航到目标 Scene。
+
+        TODO:
+            根据当前 Scene 选择最短导航路径。
+        """
+
+        return False
+'@ | Set-Content "src\sg\navigation\navigator.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\navigation\navigator.py"
+
+
+# -----------------------------------------
+# 9. Actions
+# -----------------------------------------
+
+@'
+def click(x, y):
+    """
+    TODO: 接入 OK-Script 点击 API。
+    """
+    pass
+
+
+def swipe(start, end, duration=0.3):
+    """
+    TODO: 接入 OK-Script 滑动 API。
+    """
+    pass
+
+
+def wait(seconds):
+    """
+    TODO: 接入 OK-Script 等待 API。
+    """
+    pass
+'@ | Set-Content "src\sg\actions\common.py" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\actions\common.py"
+
+
+# -----------------------------------------
+# 10. Resource README
+# -----------------------------------------
+
+@'
+# Resources
+
+奔奔王国自动化识别资源。
+
+## 目录
+
+- city
+- world
+- battle
+- hero
+- alliance
+- common
+
+## 命名规范
+
+推荐：
+
+    scene_element_state.png
+
+例如：
+
+    city_world_button.png
+    city_quest_button.png
+    world_resource_wood.png
+    world_monster.png
+    battle_skill_button.png
+
+不要使用：
+
+    1.png
+    test.png
+    xxx.png
+
+资源名称必须能够表达用途。
+'@ | Set-Content "src\sg\resources\README.md" -Encoding UTF8
+
+Write-Host "[CREATE] src\sg\resources\README.md"
+
+
+# -----------------------------------------
+# 11. Documentation
+# -----------------------------------------
+
+@'
+# 奔奔王国自动化架构
+
+## 核心层次
+
+Task
+↓
+Navigator
+↓
+Scene
+↓
+Element
+↓
+Action
+↓
+OK-Script
+
+## Scene
+
+负责：
+
+- 当前场景
+- 当前状态
+- 场景元素
+- confidence
+
+不负责：
+
+- 具体业务
+- 自动任务
+- 游戏策略
+
+## Element
+
+负责描述：
+
+- 位置
+- 大小
+- 类型
+- confidence
+
+## Action
+
+负责：
+
+- Click
+- Swipe
+- Wait
+- OCR
+- Template Match
+
+## Navigator
+
+负责：
+
+- 页面跳转
+- Scene 切换
+- 返回
+- 打开入口
+
+## Task
+
+负责：
+
+- 完整业务流程
+- 验证
+- 重试
+- 失败恢复
+
+## 第一阶段 Scene
+
+- CITY
+- WORLD_MAP
+- TOWER_DEFENSE
+- MARCH
+- HERO
+- TECH
+- ALLIANCE
+- QUEST
+- REWARD
+- UNKNOWN
+
+## 设计原则
+
+1. Scene != Task
+2. Element != Action
+3. Navigator != Task
+4. UNKNOWN 是合法结果
+5. Action 后必须 Verify
+6. 尽量状态驱动
+7. 资源、Scene、Task 分离
+'@ | Set-Content "docs\SCENE_ARCHITECTURE.md" -Encoding UTF8
+
+Write-Host "[CREATE] docs\SCENE_ARCHITECTURE.md"
+
+
+# -----------------------------------------
+# 12. 完成
+# -----------------------------------------
+
+Write-Host ""
+Write-Host "========================================="
+Write-Host " 初始化完成"
+Write-Host "========================================="
+Write-Host ""
+
+Write-Host "目录："
+Write-Host ""
+
+tree /F src
+Write-Host ""
+
+Write-Host "文档："
+Write-Host "  docs\SCENE_ARCHITECTURE.md"
+Write-Host "  docs\BENBEN_RESOURCES.md"
+Write-Host ""
+
+Write-Host "下一步："
+Write-Host "  1. 完善 SceneDetector"
+Write-Host "  2. 准备 CITY 场景截图"
+Write-Host "  3. 建立 CITY 模板资源"
+Write-Host "  4. 实现 Scene 识别"
