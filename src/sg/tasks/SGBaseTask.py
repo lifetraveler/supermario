@@ -55,7 +55,6 @@ class SGBaseTask(MyBaseTask):
         self.next_retry_time = 0.0             # 下次可重试时间戳
         self.finished_at = None                # 实际完成时间戳
         self.last_error = None                 # 最后一次失败原因
-
         # ====================================================
         # 通用等待参数
         # ====================================================
@@ -75,6 +74,27 @@ class SGBaseTask(MyBaseTask):
         # 只做很短的等待，真正的"等待完成"交给后续的 _wait_* 处理。
         self.after_click_wait = 0.3
 
+        # 计划开始时间戳。>0 且 now >= 该值时，SCHEDULED 才可激活。
+        # 由 TaskQueue 在任务进 IN_PROGRESS 时自动赋值。
+        self.scheduled_start_time = 0.0
+        # ====================================================
+        # 触发调度字段
+        # ====================================================
+        # 最早可开始交互的时间戳（硬约束）：
+        #   - now < trigger_time  → 绝对不能执行
+        #   - now >= trigger_time → 可以执行（参与排队）
+        # 0 表示立即可以执行。
+        # 由 TaskQueue 在建立后续任务时写入。
+        self.trigger_time = 0.0
+
+        # 下一个同类任务的触发延迟（秒）。
+        # 本任务 SUCCESS 后，TaskQueue 会建立下一个同类任务，
+        # 其 trigger_time = 本任务的完成时间 + next_trigger_delay。
+        #   - 0      → 立即触发（巨兽占军队队列用）
+        #   - 86400  → 24h 后触发（宝箱 / 宠物等每日任务用）
+        # 任务类可在 __init__ 里定义默认值，
+        # 也可由 TaskFactory 的 next_trigger_delay 覆盖。
+        self.next_trigger_delay = 0.0
     # ========================================================
     # 协议方法：由 TaskQueue 调用
     # ========================================================

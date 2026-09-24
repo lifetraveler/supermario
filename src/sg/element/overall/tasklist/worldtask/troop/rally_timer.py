@@ -16,6 +16,9 @@ class RallyTimer:
 
         # 集结上限 1分30秒（满集结会立刻行军）
         self.rally_max_wait = 90
+        # 集结上限 1分30秒（满集结会立刻行军）
+        self.rally_default_wait = 90
+        
 
         # 行军时间缓冲
         self.march_time_buffer = 10
@@ -82,9 +85,9 @@ class RallyTimer:
         """
         try:
             results = self.task.ocr(
-                box=confirm_box,
-                match=r"(\d{1,2}:\d{2}(:\d{2})?|\d+\s*[时小分秒]+)",
+                box=confirm_box
             )
+            match=r"\d{1,2}\s*[:：]\s*\d{1,2}\s*[:：]\s*\d{1,2}"
         except Exception as e:
             self.task.log_info(f"OCR 行军时间异常: {e}")
             results = None
@@ -101,14 +104,14 @@ class RallyTimer:
         self.task.log_info(f"OCR 行军时间原文: {text}")
         seconds = self.parse_time_text(text)
         if seconds is not None and seconds > 0:
-            self.last_march_seconds = float(seconds)
-            self.task.log_info(f"识别到行军时间: {seconds}s")
+            self.last_march_seconds = float(seconds*2)
+            self.task.log_info(f"识别到行军时间: {seconds*2}s")
         else:
             self.last_march_seconds = float(self.default_march_seconds)
             self.task.log_info(
                 f"解析失败，使用默认值: {self.default_march_seconds}s"
             )
-        return seconds
+        return seconds*2
 
     # --------------------------------------------------------
     # 计算总等待
@@ -121,9 +124,10 @@ class RallyTimer:
                 float(self.last_rally_seconds),
                 float(self.rally_max_wait),
             )
-
+        if(rally==0.0):
+            rally = self.rally_default_wait
         march = max(0.0, float(self.last_march_seconds))
-        total = rally + march + float(self.march_time_buffer)
+        total = rally + (march*2) + float(self.march_time_buffer)
 
         self.task.log_info(
             f"等待计算: 集结={rally}s, 行军={march}s, "

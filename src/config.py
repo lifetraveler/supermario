@@ -126,7 +126,7 @@ config = {
     'onetime_tasks': [  # 用户点击触发的任务
         # ["src.tasks.BbwgDaye", "BbwgDaye"],
         ["src.sg.tasks.test.SGTestTask", "SGTestTask"],
-    ["src.sg.tasks.queue.UnifiedQueue", "UnifiedQueue"],
-        ["src.tasks.MyOneTimeTask", "MyOneTimeTask"],
+        ["src.sg.tasks.queue.UnifiedQueue", "UnifiedQueue"], # ["src.tasks.MyOneTimeTask", "MyOneTimeTask"]
+       
     ],
 }

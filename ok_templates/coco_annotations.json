@@ -413,6 +413,54 @@
       "file_name": "68.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 71,
+      "file_name": "69.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 72,
+      "file_name": "70.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 73,
+      "file_name": "71.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 74,
+      "file_name": "72.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 75,
+      "file_name": "73.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 76,
+      "file_name": "74.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 77,
+      "file_name": "75.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 78,
+      "file_name": "76.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -474,11 +522,11 @@
       "category_id": 6,
       "bbox": [
         450,
-        1083,
-        94,
+        1087,
+        88,
         88
       ],
-      "area": 8272,
+      "area": 7744,
       "iscrowd": 0
     },
     {
@@ -1325,6 +1373,149 @@
       ],
       "area": 4026,
       "iscrowd": 0
+    },
+    {
+      "id": 71,
+      "image_id": 5,
+      "category_id": 71,
+      "bbox": [
+        649,
+        1422,
+        120,
+        37
+      ],
+      "area": 4440,
+      "iscrowd": 0
+    },
+    {
+      "id": 72,
+      "image_id": 1,
+      "category_id": 72,
+      "bbox": [
+        10,
+        92,
+        92,
+        21
+      ],
+      "area": 1932,
+      "iscrowd": 0
+    },
+    {
+      "id": 73,
+      "image_id": 71,
+      "category_id": 73,
+      "bbox": [
+        109,
+        1375,
+        135,
+        35
+      ],
+      "area": 4725,
+      "iscrowd": 0
+    },
+    {
+      "id": 74,
+      "image_id": 72,
+      "category_id": 74,
+      "bbox": [
+        152,
+        839,
+        72,
+        57
+      ],
+      "area": 4104,
+      "iscrowd": 0
+    },
+    {
+      "id": 75,
+      "image_id": 73,
+      "category_id": 75,
+      "bbox": [
+        63,
+        1300,
+        149,
+        106
+      ],
+      "area": 15794,
+      "iscrowd": 0
+    },
+    {
+      "id": 76,
+      "image_id": 74,
+      "category_id": 78,
+      "bbox": [
+        745,
+        124,
+        92,
+        55
+      ],
+      "area": 5060,
+      "iscrowd": 0
+    },
+    {
+      "id": 77,
+      "image_id": 74,
+      "category_id": 77,
+      "bbox": [
+        583,
+        132,
+        82,
+        43
+      ],
+      "area": 3526,
+      "iscrowd": 0
+    },
+    {
+      "id": 78,
+      "image_id": 75,
+      "category_id": 76,
+      "bbox": [
+        386,
+        1432,
+        139,
+        61
+      ],
+      "area": 8479,
+      "iscrowd": 0
+    },
+    {
+      "id": 79,
+      "image_id": 76,
+      "category_id": 79,
+      "bbox": [
+        314,
+        630,
+        238,
+        139
+      ],
+      "area": 33082,
+      "iscrowd": 0
+    },
+    {
+      "id": 80,
+      "image_id": 77,
+      "category_id": 80,
+      "bbox": [
+        497,
+        666,
+        130,
+        94
+      ],
+      "area": 12220,
+      "iscrowd": 0
+    },
+    {
+      "id": 81,
+      "image_id": 78,
+      "category_id": 81,
+      "bbox": [
+        120,
+        711,
+        305,
+        102
+      ],
+      "area": 31110,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -1676,6 +1867,61 @@
     {
       "id": 70,
       "name": "world_event_icon_citygatherwater",
+      "supercategory": ""
+    },
+    {
+      "id": 71,
+      "name": "team_time_on_the_way",
+      "supercategory": ""
+    },
+    {
+      "id": 72,
+      "name": "overall_stamina",
+      "supercategory": ""
+    },
+    {
+      "id": 73,
+      "name": "overall_stamina_current",
+      "supercategory": ""
+    },
+    {
+      "id": 74,
+      "name": "world_event_conq_3",
+      "supercategory": ""
+    },
+    {
+      "id": 75,
+      "name": "item_scare_wolf_claw",
+      "supercategory": ""
+    },
+    {
+      "id": 76,
+      "name": "item_scare_wolf_claw_button_use",
+      "supercategory": ""
+    },
+    {
+      "id": 77,
+      "name": "gobal_tag_bag_equipment",
+      "supercategory": ""
+    },
+    {
+      "id": 78,
+      "name": "gobal_tag_bag_other",
+      "supercategory": ""
+    },
+    {
+      "id": 79,
+      "name": "world_resource_scare_wolf",
+      "supercategory": ""
+    },
+    {
+      "id": 80,
+      "name": "world_resource_scare_wolf_1",
+      "supercategory": ""
+    },
+    {
+      "id": 81,
+      "name": "global_quit_game",
       "supercategory": ""
     }
   ]

@@ -12,6 +12,9 @@ from src.sg.scene.elements import (
     BUTTON_RALLY_GIANT_BEAST,
     BUTTON_STARTRALLY,
     BUTTON_HUNT_EXPEDITION,
+    TEAM_TIME_ON_THE_WAY,
+    OVERALL_STAMINA_CURRENT,
+    OVERALL_STAMINA
 )
 
 
@@ -31,6 +34,8 @@ class Rally:
         self.config = RallyConfig(task)
         self.queue = MarchQueue(task)
         self.timer = RallyTimer(task)
+        
+        self.default_stamina = 200
 
     # --------------------------------------------------------
     # 队列准备
@@ -101,9 +106,9 @@ class Rally:
         box = task._wait_element(BUTTON_HUNT_EXPEDITION, timeout=8.0)
         if box is None:
             return False
-
+        time_box = task.get_box_by_name(TEAM_TIME_ON_THE_WAY.resource_id)
         # 点击前读一次行军时间
-        self.timer.read_march_time(box)
+        self.timer.read_march_time(time_box)
 
         task.log_info("点击元素: 发起巨兽远征")
         return task.click(box, name="发起巨兽远征")
@@ -124,11 +129,27 @@ class Rally:
         读取当前体力值。返回 None 表示未实现。
 
         TODO: 用户根据实际 OCR / 特征读取实现。
+        
         例如：
             results = self.task.ocr(match=r"\\d+/\\d+")
             ...
         返回 int 或 None。
         """
+        box=self.task.get_box_by_name(OVERALL_STAMINA_CURRENT.resource_id)
+        try:
+            results=self.task.ocr(box)
+        except Exception as e:
+            self.task.log_info(f"OCR 体力异常: {e}")
+            results = None
+
+        if not results:
+            self.task.log_info(
+                f"未识别到体力，使用默认值满体力值: "
+                f"{self.default_stamina}s"
+            )
+            return self.default_stamina
+        text = results[0].name
+        self.task.log_info(f"OCR 体力值原始文本为: {text}")
         return None
 
     def has_enough_stamina(self, min_stamina: int) -> bool:

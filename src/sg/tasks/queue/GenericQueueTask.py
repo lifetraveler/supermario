@@ -48,6 +48,8 @@ class GenericQueueTask(QueueTaskBase):
         name_prefix: str = None,
         default_count: int = 1,
         default_max_active: int = 1,
+        default_requires_march_queue: bool = False,   # ← 新增
+        default_next_trigger_delay: float = 0.0,      # ← 新增
         default_kwargs: dict = None,
         extra_config: dict = None,
         description: str = "",
@@ -85,6 +87,8 @@ class GenericQueueTask(QueueTaskBase):
             "name_prefix": name_prefix or key,
             "default_count": default_count,
             "default_max_active": default_max_active,
+            "default_requires_march_queue": default_requires_march_queue,
+            "default_next_trigger_delay": default_next_trigger_delay,
             "default_kwargs": dict(default_kwargs or {}),
             "extra_config": extra_config or {},
             "description": description or key,
@@ -166,13 +170,25 @@ class GenericQueueTask(QueueTaskBase):
 
             # 先把固定参数拷一份，再把用户的额外配置合并进去。
             kwargs = dict(meta["default_kwargs"])
-            for extra_key in meta["extra_config"]:
-                kwargs[extra_key] = self.config.get(f"{key}: {extra_key}")
+            for extra_key, extra in meta["extra_config"].items():
+                # extra 里声明了 attr 就用 attr，没声明就退回原 key（保持兼容）
+                attr = extra.get("attr", extra_key)
+                kwargs[attr] = self.config.get(f"{key}: {extra_key}")
+                
+            self.log_info(
+                f"[Factory] key={key}, count={count}, max_active={max_active}"
+            )
 
             self._factories.append(TaskFactory(
                 task_class=meta["task_class"],
                 count=count,
-                max_active=max_active,
+                max_active=max_active, 
+                requires_march_queue=meta.get(
+                    "default_requires_march_queue", False
+                ),
+                next_trigger_delay=meta.get(
+                    "default_next_trigger_delay", 0.0
+                ),
                 kwargs=kwargs,
                 name_prefix=meta["name_prefix"],
             ))

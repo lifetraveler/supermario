@@ -8,9 +8,9 @@ from src.sg.scene.elements import (
 )
 
 
-class MonsterSearcher(BaseResourceSearcher):
+class ScareWolfSearcher(BaseResourceSearcher):
     """
-    巨兽搜索。
+    恐狼搜索。
 
     =========================================================
     在父类基础上增加了"滑动查找"能力
@@ -144,68 +144,4 @@ class MonsterSearcher(BaseResourceSearcher):
 
         return False
 
-    # ========================================================
-    # 内部方法
-    # ========================================================
-
-    def _find_right_edge_anchor(self):
-        """
-        查找资源栏右端锚点（石头 / 铁矿）。
-        找到就返回那个 Box，找不到返回 None。
-        """
-        for element in self.right_edge_elements:
-            box = self.task._find(element)
-            if box is not None:
-                return box
-        return None
-
-    def _get_scroll_y(self) -> float:
-        """
-        获取滑动线的 y 坐标（屏幕相对 0~1）。
-
-        规则：
-          1. 优先用石头/铁矿锚点的中心 y。
-             锚点就在资源栏上，用它作为滑动线最准确。
-          2. 找不到锚点 → 用兜底值 self.scroll_default_y
-             （屏幕底部 1/3 处）。
-
-        之所以不用固定 y，是因为资源栏位置可能随设备分辨率/UI 缩放变化，
-        用实际识别到的锚点更稳。
-        """
-        box = self._find_right_edge_anchor()
-        if box is not None:
-            screen_h = self.task.height
-            center_y = (box.y + box.height / 2) / screen_h
-            self.task.log_info(
-                f"搜索: 使用锚点 y={center_y:.3f} 作为滑动线"
-            )
-            return center_y
-
-        self.task.log_info(
-            f"搜索: 未找到锚点，使用兜底滑动线 y="
-            f"{self.scroll_default_y}"
-        )
-        return self.scroll_default_y
-
-    def _scroll_right(self):
-        """
-        手指从屏幕中间滑向右侧，让内容右移、露出左侧内容。
-
-        用锚点 y 作为滑动线，配合短时长的快速滑动触发惯性。
-        """
-        y = self._get_scroll_y()
-
-        self.task.log_info(
-            f"搜索: 滑动 y={y:.3f}, "
-            f"x: {self.scroll_from_x} -> {self.scroll_to_x}, "
-            f"duration={self.scroll_duration}"
-        )
-
-        self.task.swipe_relative(
-            from_x=self.scroll_from_x,
-            from_y=y,
-            to_x=self.scroll_to_x,
-            to_y=y,
-            duration=self.scroll_duration,
-            settle_time=self.scroll_settle_time,
-        )
+    #
