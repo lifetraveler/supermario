@@ -46,11 +46,10 @@
    - 全不选：提示最少选 1 个，或明确选择"跳过硬过滤"。
 5. 保存画像：`~/.omp/agent/skills/session-bootstrap/profiles/<项目名>.yml`，内容 `project_path` + `skills` 列表。项目名取 cwd 目录名；与已有画像的 project_path 冲突时追加短哈希后缀。
 6. 硬过滤（仅 Pi 且用户未跳过）：写入 `<cwd>/.omp/config.yml` 的 `skills.includeSkills: [选中的名字...]`。文件已存在则只合并该键（保留其他键）；不存在则创建（含 `.omp/` 目录）。
-7. 软加载（当前 session 立即生效）：对本 session 中选中的每个技能执行 `read skill://<name>`，其余技能不读。
+7. 软加载（当前 session 立即生效，在第 6 步配置写入完成后执行）：对本 session 中选中的每个技能执行 `read skill://<name>`，其余技能不读。
 8. 收尾提示：告知用户新开 session 后硬过滤生效；`/skill:session-bootstrap` 可随时重新进入本流程调整。
 
 ## 错误与边界
-
 - `includeSkills` 写入后空数组等价于"包含全部" → 禁止写空数组；全不选走"跳过"分支。
 - 数组整体替换 → 写入前必须读出项目配置文件现有内容，只改 `skills` 子树的 `includeSkills` 键。
 - 画像文件损坏/缺失 → 视为无画像，走全新询问。
