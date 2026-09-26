@@ -125,7 +125,7 @@ config = {
     'my_app': ['src.globals', 'Globals'], #可选. 全局单例对象, 可以存放加载的模型, 使用og.my_app调用
     'onetime_tasks': [  # 用户点击触发的任务
         # ["src.tasks.BbwgDaye", "BbwgDaye"],
-        ["src.sg.tasks.test.SGTestTask", "SGTestTask"],
+        # ["src.sg.tasks.test.SGTestTask", "SGTestTask"],
         ["src.sg.tasks.queue.UnifiedQueue", "UnifiedQueue"], # ["src.tasks.MyOneTimeTask", "MyOneTimeTask"]
        
     ],

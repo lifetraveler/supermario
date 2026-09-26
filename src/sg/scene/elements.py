@@ -184,12 +184,6 @@ WORLD_ICON_RESOURCE_MONSTER = SceneElement(
     desc="世界资源图标：怪物",
 )
 
-# id: 7
-WILDERNESS_TARGET = SceneElement(
-    name="wildernesstarget",
-    resource_id="wildernesstarget",
-    desc="荒野目标",
-)
 
 # id: 8
 WORLD_ICON_RESOURCE_BEAST = SceneElement(
@@ -436,12 +430,6 @@ LEAGUE_HELP_ENTRY = SceneElement(
     desc="联盟帮助入口",
 )
 # id: 53
-LEAGUE_TECH_ENTRY = SceneElement(
-    name="league_tech_entry",
-    resource_id="league_tech_entry",
-    desc="联盟科技升级",
-)
-# id: 53
 LEAGUE_TECH_UPDATE = SceneElement(
     name="league_tech_update",
     resource_id="league_tech_update",
@@ -477,6 +465,13 @@ WORLD_EVENT_FIRED = SceneElement(
     name="world_event_fired",
     resource_id="world_event_fired",
     desc="世界事件：火焰",
+)
+
+# id: 56
+WORLD_EVENT_REWARD = SceneElement(
+    name="world_event_reward",
+    resource_id="world_event_reward",
+    desc="世界事件：奖励",
 )
 
 # id: 57
@@ -628,6 +623,53 @@ BUTTON_RALLY_GIANT_BEAST_1 = SceneElement(
     name="button_rally_giant_beast_1",
     resource_id="button_rally_giant_beast_1",
     desc="世界资源：稻草狼1",
+)
+
+
+# ============================================================
+# 瞭望塔事件（Watch Tower Events）
+# ============================================================
+
+# 世界主界面：体力数值区（OCR 读取当前体力）
+WORLD_EVENT_STAMINA = SceneElement(
+    name="world_event_stamina",
+    resource_id="world_event_stamina",
+    desc="世界主界面：体力数值区",
+)
+
+# 瞭望塔面板：前进/前往查看按钮（对话框弹出后全屏检索）
+WORLD_EVENT_BUTTON_FORWARD = SceneElement(
+    name="world_event_button_forward",
+    resource_id="world_event_button_forward",
+    desc="瞭望塔对话框：前往查看按钮",
+)
+
+# 事件对象页：可处理区域（bbox 定位，决定后续分支）
+WORLD_EVENT_OBJECT_HANDLEAREA = SceneElement(
+    name="world_event_object_handlearea",
+    resource_id="world_event_object_handlearea",
+    desc="事件对象页：可处理区域",
+)
+
+# 讨伐流程：讨伐按钮
+WORLD_EVENT_FIGHT = SceneElement(
+    name="wolrd_event_fight",
+    resource_id="wolrd_event_fight",
+    desc="讨伐界面：讨伐按钮",
+)
+
+# 讨伐流程：讨伐成功标志
+WORLD_EVENT_FIGHT_SUCCESS = SceneElement(
+    name="world_event_fight_success",
+    resource_id="world_event_fight_success",
+    desc="讨伐界面：讨伐成功标志",
+)
+
+# 挑战流程：击杀/挑战按钮
+WORLD_EVENT_BEAST_KILL = SceneElement(
+    name="world_event_beast_kill",
+    resource_id="world_event_beast_kill",
+    desc="挑战界面：击杀按钮",
 )
 
 

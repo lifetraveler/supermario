@@ -444,6 +444,27 @@ class SGBaseTask(MyBaseTask):
 
         return success
 
+    def _wait_and_click_all_screen(self,
+        element,
+        name=None,
+        timeout=None,
+        interval=None,
+        threshold=0.8,
+        after_click_wait=None,
+        with_recovery=True,
+        box=None
+    ) -> bool:
+      box=self.box_of_screen(0, 0, 1, 1)
+      return self._wait_and_click(element,
+        name=None,
+        timeout=None,
+        interval=None,
+        threshold=0.8,
+        after_click_wait=None,
+        with_recovery=True,
+        box=box)
+      
+
     # ========================================================
     # 等待场景
     # ========================================================
