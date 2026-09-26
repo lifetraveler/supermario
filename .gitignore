@@ -1,4 +1,7 @@
 my_key.txt
+.omp/
+ark_test.json
+
 # ok_templates/
 updates/
 working/
