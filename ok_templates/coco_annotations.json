@@ -67,12 +67,6 @@
       "height": 1600
     },
     {
-      "id": 12,
-      "file_name": "11.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 13,
       "file_name": "12.png",
       "width": 900,
@@ -507,6 +501,24 @@
     {
       "id": 87,
       "file_name": "85.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 88,
+      "file_name": "83.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 89,
+      "file_name": "86.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 90,
+      "file_name": "11.png",
       "width": 900,
       "height": 1600
     }
@@ -1694,6 +1706,123 @@
       ],
       "area": 10728,
       "iscrowd": 0
+    },
+    {
+      "id": 92,
+      "image_id": 88,
+      "category_id": 92,
+      "bbox": [
+        558,
+        969,
+        189,
+        65
+      ],
+      "area": 12285,
+      "iscrowd": 0
+    },
+    {
+      "id": 93,
+      "image_id": 89,
+      "category_id": 93,
+      "bbox": [
+        178,
+        1523,
+        202,
+        61
+      ],
+      "area": 12322,
+      "iscrowd": 0
+    },
+    {
+      "id": 94,
+      "image_id": 89,
+      "category_id": 94,
+      "bbox": [
+        605,
+        1531,
+        153,
+        47
+      ],
+      "area": 7191,
+      "iscrowd": 0
+    },
+    {
+      "id": 95,
+      "image_id": 89,
+      "category_id": 95,
+      "bbox": [
+        71,
+        126,
+        84,
+        49
+      ],
+      "area": 4116,
+      "iscrowd": 0
+    },
+    {
+      "id": 96,
+      "image_id": 89,
+      "category_id": 96,
+      "bbox": [
+        243,
+        132,
+        76,
+        47
+      ],
+      "area": 3572,
+      "iscrowd": 0
+    },
+    {
+      "id": 97,
+      "image_id": 89,
+      "category_id": 97,
+      "bbox": [
+        410,
+        132,
+        86,
+        45
+      ],
+      "area": 3870,
+      "iscrowd": 0
+    },
+    {
+      "id": 98,
+      "image_id": 89,
+      "category_id": 98,
+      "bbox": [
+        580,
+        132,
+        86,
+        45
+      ],
+      "area": 3870,
+      "iscrowd": 0
+    },
+    {
+      "id": 99,
+      "image_id": 80,
+      "category_id": 99,
+      "bbox": [
+        798,
+        1284,
+        68,
+        59
+      ],
+      "area": 4012,
+      "iscrowd": 0
+    },
+    {
+      "id": 100,
+      "image_id": 90,
+      "category_id": 100,
+      "bbox": [
+        347,
+        366,
+        208,
+        70
+      ],
+      "area": 14560,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -2150,6 +2279,51 @@
     {
       "id": 91,
       "name": "world_event_stamina",
+      "supercategory": ""
+    },
+    {
+      "id": 92,
+      "name": "global_button_reconnect",
+      "supercategory": ""
+    },
+    {
+      "id": 93,
+      "name": "message_button_del",
+      "supercategory": ""
+    },
+    {
+      "id": 94,
+      "name": "message_button_rec",
+      "supercategory": ""
+    },
+    {
+      "id": 95,
+      "name": "message_tag_war",
+      "supercategory": ""
+    },
+    {
+      "id": 96,
+      "name": "message_tag_league",
+      "supercategory": ""
+    },
+    {
+      "id": 97,
+      "name": "message_tag_sys",
+      "supercategory": ""
+    },
+    {
+      "id": 98,
+      "name": "message_tag_report",
+      "supercategory": ""
+    },
+    {
+      "id": 99,
+      "name": "global_icon_message_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 100,
+      "name": "message_reward",
       "supercategory": ""
     }
   ]

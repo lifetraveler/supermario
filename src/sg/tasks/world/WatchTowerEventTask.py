@@ -53,6 +53,7 @@ from src.sg.scene.elements import (
     WORLD_EVENT_CONQ_2,
     WORLD_EVENT_CONQ_3,
     WORLD_EVENT_FIRED,
+    WORLD_EVENT_REWARD,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -141,22 +142,27 @@ class WatchTowerEventTask(SGBaseTask):
     # 步骤包装：失败 → 恢复 → 重试
     # ========================================================
 
-    def _step(self, step_func, step_name) -> bool:
-        for attempt in range(self.max_recover_attempts + 1):
-            if attempt > 0:
-                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                if not self.recovery.full_recover():
-                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                    return False
-                self._sleep(self.recovery.recover_wait)
+    def _step(self, step_func, step_name,with_recovery=True) -> bool:
+        if with_recovery:
+            for attempt in range(self.max_recover_attempts + 1):
+                if attempt > 0:
+                    self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
+                    if not self.recovery.full_recover():
+                        self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
+                        return False
+                    self._sleep(self.recovery.recover_wait)
 
+                if step_func():
+                    return True
+
+                self.log_info(f"步骤 [{step_name}] 失败")
+
+            return False
+        else:
             if step_func():
-                return True
-
+                    return True
             self.log_info(f"步骤 [{step_name}] 失败")
-
-        return False
-
+            return False
     # ========================================================
     # 安全 bbox 定位：ok 框架 get_box_by_name 找不到会抛 ValueError
     # ========================================================
@@ -323,7 +329,8 @@ class WatchTowerEventTask(SGBaseTask):
             if not self._wait_and_click(WORLD_EVENT_FIRED,box=self.box_of_screen(0, 0, 1, 1),with_recovery=False,timeout=2):
                 break
             else:
-                self._wait_and_click(WORLD_EVENT_FIRED,box=self.box_of_screen(0, 0, 1, 1),with_recovery=False,timeout=2)
+                self._sleep(1.0)
+                self._wait_and_click(WORLD_EVENT_REWARD,box=self.box_of_screen(0, 0, 1, 1),with_recovery=False,timeout=2)
                 self._sleep(2.0)
         
         for element in _EVENT_SEARCH_ORDER:
@@ -514,7 +521,7 @@ class WatchTowerEventTask(SGBaseTask):
             return (InteractionResult.FAILED, 0)
         
         # ---- 搜索事件 ----
-        if not self._step(self._search_event, "搜索事件"):
+        if not self._step(self._search_event, "搜索事件",with_recovery=False):
             self.last_error = "瞭望塔内无可处理事件"
             self.log_info(self.last_error)            
             return (InteractionResult.SUCCESS, 0)
