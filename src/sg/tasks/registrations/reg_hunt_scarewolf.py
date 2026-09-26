@@ -7,12 +7,13 @@ GenericQueueTask.register_task_type(
     task_class=HuntScareWolfTask,
     name_prefix="Hunt Scare Wolf",
     # 游戏限制：同一时刻只能打一只恐狼，所以不需要并行/多补
-    default_count=1,
+    default_count=0,
     default_requires_march_queue=True,      # 占军队队列
     default_next_trigger_delay=0.0,         # 本任务完成时立即触发下一个
     default_kwargs={
         "auto_recall": False,
         "min_stamina": 0,
+        "rally_config_wait":0
     },
     description="恐狼出击部队。Use scare-wolf claw and rally the scare wolf.",
     extra_config={
@@ -25,6 +26,11 @@ GenericQueueTask.register_task_type(
             "attr": "min_stamina",
             "default": 0,
             "desc": "体力下限，低于则停止补任务。0 表示不检查。",
+        },
+        "Rally Config Wait": {
+            "attr": "rally_config_wait",
+            "default": 0,
+            "desc": "集结时间",
         },
     },
 )

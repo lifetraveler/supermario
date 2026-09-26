@@ -29,10 +29,12 @@ from src.sg.element.overall.tasklist.worldtask.troop.rally import Rally
 from src.sg.scene.elements import (
     GOBAL_TAG_BAG,                    # 打开背包
     GOBAL_TAG_BAG_OTHER,          # 背包"其他"标签
+    GOBAL_TAG_BAG_OTHER_1,
     ITEM_SCARE_WOLF_CLAW,               # 狼爪道具图标
     ITEM_SCARE_WOLF_CLAW_BUTTON_USE,    # 狼爪"使用"按钮
     WORLD_RESOURCE_SCARE_WOLF,
     WORLD_RESOURCE_SCARE_WOLF_1,
+    WORLD_RESOURCE_SCARE_WOLF_0,
 )
 
 
@@ -72,7 +74,7 @@ class HuntScareWolfTask(SGBaseTask):
         # 恢复配置
         # ====================================================
         self.max_recover_attempts = 2
-        self.recover_interval = 3.0
+        # self.recover_interval = 3.0
 
         # ====================================================
         # 领域对象
@@ -83,7 +85,6 @@ class HuntScareWolfTask(SGBaseTask):
         # 集结复用
         self.rally = Rally(self)
         self.rally.config.team_element = TEAM_HUNTING
-
     # ========================================================
     # 步骤包装：失败 → 恢复 → 重试
     # ========================================================
@@ -123,7 +124,7 @@ class HuntScareWolfTask(SGBaseTask):
 
             self.log_info("不在主界面，按 ESC 返回")
             # 说明：具体按键 API 以基类为准，例如 self._press_key(KeyCode.ESC)
-            self._press_esc()
+            self.recovery._try_press_esc()
             self._sleep(1.0)
 
         self.log_error("无法返回主界面")
@@ -147,14 +148,15 @@ class HuntScareWolfTask(SGBaseTask):
 
         # 切换到"其他"标签
         if not self._wait_and_click(
-            GOBAL_TAG_BAG_OTHER, name="背包-其他标签", timeout=6.0
+            [GOBAL_TAG_BAG_OTHER,GOBAL_TAG_BAG_OTHER_1] ,name="背包-其他标签", timeout=6.0
         ):
             return False
         self._sleep(0.5)
 
         # 找到并点击狼爪
         if not self._wait_and_click(
-            ITEM_SCARE_WOLF_CLAW, name="狼爪道具", timeout=6.0
+            ITEM_SCARE_WOLF_CLAW, name="狼爪道具", timeout=6.0,
+            box=self.box_of_screen(0, 0, 1, 1)
         ):
             return False
         self._sleep(0.5)
@@ -184,19 +186,20 @@ class HuntScareWolfTask(SGBaseTask):
         优先按特征值匹配；匹配不到时，因为上一步（使用狼爪）会把当前资源
         居中显示，所以直接按 coco 文件中记录的 bbox 坐标点击。
         """
-        for element in (
-            WORLD_RESOURCE_SCARE_WOLF,
-            WORLD_RESOURCE_SCARE_WOLF_1,
-        ):
-            if self._wait_and_click(element, name="恐狼", timeout=3.0):
-                self.log_info("已点击恐狼资源（特征匹配）")
-                self._sleep(0.8)
-                return True
+        # for element in (
+        #     WORLD_RESOURCE_SCARE_WOLF_0,
+        #     WORLD_RESOURCE_SCARE_WOLF,
+        #     WORLD_RESOURCE_SCARE_WOLF_1,
+        # ):
+        #     if self._wait_and_click(element, name="恐狼", timeout=3.0):
+        #         self.log_info("已点击恐狼资源（特征匹配）")
+        #         self._sleep(0.8)
+        #         return True
 
-        # 特征匹配失败：按 bbox 坐标直接点击
-        # 说明：使用狼爪后当前资源已被游戏自动居中，
-        # 因此 coco 文件里记录的 bbox 就是屏幕上的实际位置。
-        self.log_info("未匹配到恐狼特征，改用 bbox 坐标点击")
+        # # 特征匹配失败：按 bbox 坐标直接点击
+        # # 说明：使用狼爪后当前资源已被游戏自动居中，
+        # # 因此 coco 文件里记录的 bbox 就是屏幕上的实际位置。
+        # self.log_info("未匹配到恐狼特征，改用 bbox 坐标点击")
         box = self.get_box_by_name(WORLD_RESOURCE_SCARE_WOLF.resource_id)
         if not box:
             self.log_error("未找到恐狼 bbox 坐标")
@@ -253,7 +256,7 @@ class HuntScareWolfTask(SGBaseTask):
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
 
-        wait_seconds = self.rally.estimate_wait()
+        wait_seconds = self.rally.estimate_wait(self.extra_config)
         self.log_info(
             f"========== 恐狼集结完成，"
             f"预计 {wait_seconds:.1f}s 后完成 =========="

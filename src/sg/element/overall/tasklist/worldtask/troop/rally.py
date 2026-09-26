@@ -10,6 +10,7 @@ from src.sg.element.overall.tasklist.worldtask.troop.rally_timer import (
 
 from src.sg.scene.elements import (
     BUTTON_RALLY_GIANT_BEAST,
+    BUTTON_RALLY_GIANT_BEAST_1,
     BUTTON_STARTRALLY,
     BUTTON_HUNT_EXPEDITION,
     TEAM_TIME_ON_THE_WAY,
@@ -75,13 +76,28 @@ class Rally:
 
     def execute(self) -> bool:
         task = self.task
-
-        # 1. 进入集结页面
-        if not task._wait_and_click(
+        
+        for element in (
             BUTTON_RALLY_GIANT_BEAST,
-            name="集结巨兽",
+            BUTTON_RALLY_GIANT_BEAST_1,
         ):
-            return False
+            if not task._wait_and_click(
+                element, 
+                name="恐狼", 
+                timeout=3.0,
+                with_recovery=False,
+                box=task.box_of_screen(0, 0, 1, 1),
+                ):
+                return False
+            else:
+                break
+        # 1. 进入集结页面
+        # if not task._wait_and_click(
+        #     BUTTON_RALLY_GIANT_BEAST,
+        #     name="集结巨兽",
+        #     threshold=0.5,
+        # ):
+        #     return False
 
         # 2. 确认集结
         if not task._wait_and_click(
@@ -117,8 +133,8 @@ class Rally:
     # 等待时间
     # --------------------------------------------------------
 
-    def estimate_wait(self) -> float:
-        return self.timer.total_wait()
+    def estimate_wait(self,extra_config) -> float:
+        return self.timer.total_wait(extra_config)
 
     # --------------------------------------------------------
     # 体力检查

@@ -8,6 +8,10 @@ from src.scheduler.task_status import (
     TaskStatus,
 )
 
+# TaskRestartRequested 定义在 SGBaseTask 所在模块，
+# 只做异常类型的引用，不会形成循环 import。
+from src.sg.tasks.SGBaseTask import TaskRestartRequested
+
 logger = Logger.get_logger(__name__)
 
 
@@ -77,8 +81,10 @@ class TaskFactory:
         task = self.task_class(executor=executor, app=app)
         task.after_init(executor=executor, scene=scene)
 
+
         for k, v in self.kwargs.items():
             setattr(task, k, v)
+            setattr(task.extra_config, k, v)
 
         # 工厂级别的 next_trigger_delay 覆盖任务默认值，
         # 但如果用户通过 kwargs 显式设了就不覆盖
@@ -142,6 +148,21 @@ class TaskQueue:
         self.started = False
         self.paused = False
 
+        # ====================================================
+        # 任务重排参数
+        # ====================================================
+        # 单个任务因 TaskRestartRequested 被重排的次数上限。
+        # 超过后不再重排，直接标记 FAILED 推进到下一个任务，
+        # 避免环境问题让同一个任务无限循环。
+        # 目前是队列级默认值，后续可下沉到 TaskFactory
+        # 做成 per-factory 配置。
+        self.max_restart_count = 2
+
+        # 重排后到下次执行的等待秒数。
+        # 退出游戏弹窗刚被 ESC 关掉，界面可能还没稳定；
+        # 短暂等待避免下一轮立刻在旧帧上误判。
+        self.restart_delay = 1.0
+
     # --------------------------------------------------------
     # 生命周期
     # --------------------------------------------------------
@@ -194,6 +215,10 @@ class TaskQueue:
         if not hasattr(task, "paused"):
             task.paused = False
 
+        # 重排计数器：从 0 起算，只在 _handle_restart_requested 里 +1。
+        # 每次进入队列都重置，follower 是全新实例自然从 0 开始。
+        task.restart_count = 0
+        
         self.tasks.append(task)
         logger.info(
             f"TaskQueue add: {task.name} ({task.task_id}) "
@@ -387,8 +412,9 @@ class TaskQueue:
           - 调 task.run_interaction() 拿 (InteractionResult, wait_seconds)
           - 按结果更新状态
           - SUCCESS 时立即建立同类的下一个任务
-
-        异常安全：任务内抛异常统一记 FAILED，不拖垮整个 tick。
+        异常处理：
+        - TaskRestartRequested → 走重排流程（见 _handle_restart_requested）
+        - 其它异常            → 记 FAILED，不拖垮整个 tick
         """
         self.current_interaction = task
         task.status = TaskStatus.RUNNING
@@ -396,6 +422,12 @@ class TaskQueue:
 
         try:
             result, wait_seconds = task.run_interaction()
+        except TaskRestartRequested as e:
+            # 现场已不可信（例如恢复层 ESC 误触发退出游戏弹窗）。
+            # 交给 _handle_restart_requested 决定重排还是失败。
+            self.current_interaction = None
+            self._handle_restart_requested(task, e)
+            return
         except Exception as e:
             logger.error(f"TaskQueue exception: {task.name}", e)
             task.status = TaskStatus.FAILED
@@ -428,7 +460,49 @@ class TaskQueue:
 
         task.status = TaskStatus.FAILED
         logger.info(f"TaskQueue failed: {task.name} {task.last_error}")
+        
+    def _handle_restart_requested(self, task, exc):
+        """
+        处理 TaskRestartRequested：决定重排还是标记失败。
 
+        =========================================================
+        为什么不用通用 except 统一判 FAILED
+        =========================================================
+        TaskRestartRequested 表达的是"现场不可信，从头再来"，
+        与"这次没做成"不同：
+        - 前者值得有限次重排，游戏可能只是弹了个错框；
+        - 后者应该遵循任务自身的 RETRY / FAILED 策略。
+        混在一起会丢掉重排能力，也会让临时环境问题误判为终态失败。
+
+        =========================================================
+        重排策略（当前）
+        =========================================================
+        - task.restart_count 累计（从 0 起算，本方法入口 +1）
+        - ≤ max_restart_count → 状态回到 PENDING，
+                                next_retry_time = now + restart_delay
+        - > max_restart_count → 状态 FAILED，调度推进到下一个任务
+
+        restart_count 在任务实例上累计，不会因中途 RETRY 清零。
+        如果需要"成功一次后再重置"，那是 SUCCESS 路径的事，不在这里动。
+        """
+        task.restart_count = getattr(task, "restart_count", 0) + 1
+
+        if task.restart_count > self.max_restart_count:
+            task.status = TaskStatus.FAILED
+            logger.info(
+                f"TaskQueue restart exceeded: {task.name} "
+                f"已重排 {self.max_restart_count} 次仍失败，标记 FAILED: {exc}"
+            )
+            return
+
+        task.status = TaskStatus.PENDING
+        task.next_retry_time = time.time() + self.restart_delay
+        logger.info(
+            f"TaskQueue restart: {task.name} "
+            f"({task.restart_count}/{self.max_restart_count}) "
+            f"in {self.restart_delay:.1f}s: {exc}"
+        )
+        
     def _create_follower(self, finished_task):
         """
         任务 SUCCESS 后立即建立同类的下一个任务。

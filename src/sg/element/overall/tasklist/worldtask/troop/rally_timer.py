@@ -11,7 +11,7 @@ class RallyTimer:
     状态：last_march_seconds / last_rally_seconds
     """
 
-    def __init__(self, task):
+    def __init__(self, task,**key):
         self.task = task
 
         # 集结上限 1分30秒（满集结会立刻行军）
@@ -117,7 +117,7 @@ class RallyTimer:
     # 计算总等待
     # --------------------------------------------------------
 
-    def total_wait(self) -> float:
+    def total_wait(self,extra_config) -> float:
         rally = 0.0
         if self.last_rally_seconds > 0:
             rally = min(
@@ -125,9 +125,10 @@ class RallyTimer:
                 float(self.rally_max_wait),
             )
         if(rally==0.0):
-            rally = self.rally_default_wait
+            rally_wait = getattr(extra_config, 'rally_config_wait', self.rally_default_wait)
+            rally = max(float(self.rally_default_wait), float(rally_wait))
         march = max(0.0, float(self.last_march_seconds))
-        total = rally + (march*2) + float(self.march_time_buffer)
+        total = rally + (march) + float(self.march_time_buffer)
 
         self.task.log_info(
             f"等待计算: 集结={rally}s, 行军={march}s, "

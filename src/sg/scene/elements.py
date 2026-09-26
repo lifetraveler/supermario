@@ -435,7 +435,12 @@ LEAGUE_HELP_ENTRY = SceneElement(
     resource_id="league_help_entry",
     desc="联盟帮助入口",
 )
-
+# id: 53
+LEAGUE_TECH_ENTRY = SceneElement(
+    name="league_tech_entry",
+    resource_id="league_tech_entry",
+    desc="联盟科技升级",
+)
 # id: 53
 LEAGUE_TECH_UPDATE = SceneElement(
     name="league_tech_update",
@@ -449,6 +454,16 @@ LEAGUE_TECH_UPDATE_DONATE = SceneElement(
     resource_id="league_tech_update_donate",
     desc="联盟科技升级：捐赠",
 )
+
+# id: 82
+LEAGUE_TECH_UPDATE_REMAIN_TIMES = SceneElement(
+    name="league_tech_update_remain_times",
+    resource_id="league_tech_update_remain_times",
+    desc="联盟科技捐献次数",
+)
+
+
+
 
 # id: 55
 PET_SYMBOL_TREASURE_HUNT = SceneElement(
@@ -582,6 +597,12 @@ GOBAL_TAG_BAG_OTHER = SceneElement(
     resource_id="gobal_tag_bag_other",
     desc="全局标签：背包-其他",
 )
+# id: 78
+GOBAL_TAG_BAG_OTHER_1 = SceneElement(
+    name="gobal_tag_bag_other_1",
+    resource_id="gobal_tag_bag_other_1",
+    desc="全局标签：背包-其他_1",
+)
 
 # id: 79
 WORLD_RESOURCE_SCARE_WOLF = SceneElement(
@@ -596,3 +617,17 @@ WORLD_RESOURCE_SCARE_WOLF_1 = SceneElement(
     resource_id="world_resource_scare_wolf_1",
     desc="世界资源：稻草狼1",
 )
+# id: 80
+WORLD_RESOURCE_SCARE_WOLF_0 = SceneElement(
+    name="world_resource_scare_wolf_0",
+    resource_id="world_resource_scare_wolf_0",
+    desc="世界资源：稻草狼1",
+)
+# id: 80
+BUTTON_RALLY_GIANT_BEAST_1 = SceneElement(
+    name="button_rally_giant_beast_1",
+    resource_id="button_rally_giant_beast_1",
+    desc="世界资源：稻草狼1",
+)
+
+

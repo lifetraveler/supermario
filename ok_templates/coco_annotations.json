@@ -461,6 +461,24 @@
       "file_name": "76.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 79,
+      "file_name": "77.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 80,
+      "file_name": "78.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 81,
+      "file_name": "79.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -560,12 +578,12 @@
       "image_id": 3,
       "category_id": 5,
       "bbox": [
-        345,
-        583,
-        206,
-        68
+        418,
+        582,
+        65,
+        32
       ],
-      "area": 14008,
+      "area": 2080,
       "iscrowd": 0
     },
     {
@@ -1159,11 +1177,11 @@
       "category_id": 54,
       "bbox": [
         591,
-        1233,
+        1245,
         96,
-        53
+        41
       ],
-      "area": 5088,
+      "area": 3936,
       "iscrowd": 0
     },
     {
@@ -1428,15 +1446,15 @@
     },
     {
       "id": 75,
-      "image_id": 73,
+      "image_id": 79,
       "category_id": 75,
       "bbox": [
-        63,
-        1300,
-        149,
-        106
+        286,
+        1304,
+        130,
+        98
       ],
-      "area": 15794,
+      "area": 12740,
       "iscrowd": 0
     },
     {
@@ -1515,6 +1533,58 @@
         102
       ],
       "area": 31110,
+      "iscrowd": 0
+    },
+    {
+      "id": 82,
+      "image_id": 77,
+      "category_id": 83,
+      "bbox": [
+        365,
+        736,
+        44,
+        26
+      ],
+      "area": 1144,
+      "iscrowd": 0
+    },
+    {
+      "id": 83,
+      "image_id": 80,
+      "category_id": 84,
+      "bbox": [
+        410,
+        1373,
+        82,
+        33
+      ],
+      "area": 2706,
+      "iscrowd": 0
+    },
+    {
+      "id": 84,
+      "image_id": 81,
+      "category_id": 85,
+      "bbox": [
+        749,
+        124,
+        86,
+        49
+      ],
+      "area": 4214,
+      "iscrowd": 0
+    },
+    {
+      "id": 85,
+      "image_id": 36,
+      "category_id": 82,
+      "bbox": [
+        544,
+        1176,
+        195,
+        43
+      ],
+      "area": 8385,
       "iscrowd": 0
     }
   ],
@@ -1922,6 +1992,26 @@
     {
       "id": 81,
       "name": "global_quit_game",
+      "supercategory": ""
+    },
+    {
+      "id": 82,
+      "name": "league_tech_update_remain_times",
+      "supercategory": ""
+    },
+    {
+      "id": 83,
+      "name": "world_resource_scare_wolf_0",
+      "supercategory": ""
+    },
+    {
+      "id": 84,
+      "name": "button_rally_giant_beast_1",
+      "supercategory": ""
+    },
+    {
+      "id": 85,
+      "name": "gobal_tag_bag_other_1",
       "supercategory": ""
     }
   ]

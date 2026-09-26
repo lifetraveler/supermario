@@ -46,7 +46,7 @@ class GenericQueueTask(QueueTaskBase):
         task_class,
         *,
         name_prefix: str = None,
-        default_count: int = 1,
+        default_count: int = 0,
         default_max_active: int = 1,
         default_requires_march_queue: bool = False,   # ← 新增
         default_next_trigger_delay: float = 0.0,      # ← 新增
@@ -132,12 +132,14 @@ class GenericQueueTask(QueueTaskBase):
             self.default_config[f"{prefix}: Enabled"] = False
             self.default_config[f"{prefix}: Count"] = meta["default_count"]
             self.default_config[f"{prefix}: Max Active"] = meta["default_max_active"]
+            self.default_config[f"{prefix}: Next Trigger Delay"] = meta["default_next_trigger_delay"]
 
             self.config_description[f"{prefix}: Enabled"] = (
                 f"启用「{meta['description']}」"
             )
             self.config_description[f"{prefix}: Count"] = "执行次数，0 = 无限"
             self.config_description[f"{prefix}: Max Active"] = "并发上限"
+            self.config_description[f"{prefix}: Next Trigger Delay"] = "任务间隔时间"
 
             # ---- 业务特有配置 ----
             for extra_key, extra in meta["extra_config"].items():

@@ -1,6 +1,20 @@
 import time
 
 
+class RecoveryAbort(Exception):
+    """
+    恢复过程中界面状态已不可信，需要上层中断当前任务。
+
+    当前唯一触发场景：轻/重恢复按 ESC 误触发了「退出游戏」弹窗。
+    RecoveryHelper 已做力所能及的善后（补按一次 ESC 关闭弹窗），
+    但本次任务的上下文已不可信，交给调用方决定：
+      - 重新从头跑这个任务
+      - 还是判定失败推进到下一个任务
+
+    RecoveryHelper 不关心调度，只负责发出这个信号。
+    """
+
+
 class RecoveryHelper:
     """
     界面异常恢复助手。
@@ -14,7 +28,6 @@ class RecoveryHelper:
       - 停留在某个不认识的界面，导致下一步的特征永远识别不到
     这时如果什么都不做，任务会一直等到超时然后失败。
     RecoveryHelper 的作用就是：卡住时尝试安全动作，把界面拉回来。
-
     =========================================================
     两个级别的恢复
     =========================================================
@@ -48,6 +61,18 @@ class RecoveryHelper:
     RecoveryHelper 不继承任何框架类，通过 task 引用调用：
         task._find / task.click / task.click_relative /
         task.send_key / task.ocr / task._sleep / task.log_info
+    =========================================================
+    新增：退出游戏弹窗保护
+    =========================================================
+    light_recover / full_recover 都会按 ESC。ESC 有概率误触发
+    「退出游戏」确认框，一旦出现必须立刻补按一次 ESC 关闭它，
+    否则游戏可能被真正关闭，后续所有识别全部错位。
+
+    处理流程：
+      1. ESC 之后检测 quit_game_feature 特征
+      2. 命中 → 等 quit_game_after_esc_wait 秒
+      3. 补按一次 ESC（绕过 esc_cooldown）
+      4. 抛 RecoveryAbort，让上层中断并重新调度本任务
     """
 
     def __init__(self, task, popup=None):
@@ -98,6 +123,17 @@ class RecoveryHelper:
         self.close_elements = []
 
         # ====================================================
+        # 退出游戏弹窗保护
+        # ====================================================
+        # 退出游戏弹窗特征名。不同渠道/皮肤可能不同，做成字段便于覆盖。
+        self.quit_game_feature = "global_quit_game"
+        self.quit_game_threshold = 0.8
+
+        # 命中弹窗后，补按 ESC 前的等待秒数。
+        # 让弹窗动画稳定，避免连续 ESC 被吞掉。
+        self.quit_game_after_esc_wait = 1.0
+
+        # ====================================================
         # 内部状态
         # ====================================================
 
@@ -138,6 +174,10 @@ class RecoveryHelper:
         # ESC 次之：能关掉大多数浮层，但有冷却限制。
         if self._try_press_esc():
             did = True
+            # ESC 后立刻检查是否误触发退出游戏弹窗。
+            # 命中会补按 ESC 并抛 RecoveryAbort，不会走到下面 return。
+            if self._detect_quit_game_popup():
+                self._handle_quit_game_popup()
 
         return did
 
@@ -149,6 +189,7 @@ class RecoveryHelper:
         """
         重恢复：失败兜底，动作范围更大。
 
+        可能抛 RecoveryAbort：ESC 误触发退出游戏弹窗时。
         按顺序尝试（命中一个就返回，不再尝试后面的）：
           1. 关已知弹窗
           2. 按 ESC
@@ -167,6 +208,8 @@ class RecoveryHelper:
             return True
 
         if self._try_press_esc():
+            if self._detect_quit_game_popup():
+                self._handle_quit_game_popup()
             return True
 
         if self._try_click_confirm():
@@ -195,9 +238,8 @@ class RecoveryHelper:
         """
         按 ESC 关闭当前浮层。
 
-        受 esc_cooldown 限制：距离上次 ESC 不足冷却时间则跳过，
-        避免连续 ESC 把正常界面也逐层关掉。
-
+        受 esc_cooldown 限制。实际的按键动作委托给 _press_esc_raw，
+        后者也被"补按 ESC 关闭退出游戏弹窗"复用。
         返回：
           True  —— 真的按下去了
           False —— 还在冷却中，或按键发送异常
@@ -205,14 +247,23 @@ class RecoveryHelper:
         now = time.time()
         if now - self._last_esc_time < self.esc_cooldown:
             return False
+        return self._press_esc_raw()
 
+    def _press_esc_raw(self) -> bool:
+        """
+        不带冷却地按一次 ESC，并更新 _last_esc_time。
+
+        用于两处：
+          - _try_press_esc 通过冷却检查后调用
+          - 命中退出游戏弹窗后的补按（需要绕过冷却立即发出）
+        """
         try:
             self.task.send_key("esc")
         except Exception as e:
             self.task.log_info(f"恢复: 按 ESC 失败 {e}")
             return False
 
-        self._last_esc_time = now
+        self._last_esc_time = time.time()
         self.task.log_info("恢复: 按下 ESC")
         self.task._sleep(self.recover_wait)
         return True
@@ -271,3 +322,47 @@ class RecoveryHelper:
 
         self.task._sleep(self.recover_wait)
         return True
+
+    # ========================================================
+    # 退出游戏弹窗：检测 / 补按 ESC / 中断
+    # ========================================================
+
+    def _detect_quit_game_popup(self) -> bool:
+        """
+        检测当前画面是否出现「退出游戏」弹窗。
+
+        检测本身失败（例如 find_one 抛异常）时返回 False，
+        不把"检测动作"变成新的故障点。
+        """
+        try:
+            box = self.task.find_one(
+                feature_name=self.quit_game_feature,
+                threshold=self.quit_game_threshold,
+            )
+        except Exception as e:
+            self.task.log_info(f"恢复: 检测退出游戏弹窗失败 {e}")
+            return False
+        return box is not None
+
+    def _handle_quit_game_popup(self):
+        """
+        处理误触发的退出游戏弹窗。
+
+        流程：
+          1. 等 quit_game_after_esc_wait 秒（弹窗动画稳定）
+          2. 再按一次 ESC（关闭弹窗）
+          3. 抛 RecoveryAbort，通知上层中断本任务
+
+        不做"ESC 是否真的关掉弹窗"的二次验证：
+        弹窗是否又弹回来属于上层重新调度的自然检测点，
+        避免在这里陷入无限重试。
+        """
+        self.task.log_info(
+            f"恢复: 检测到退出游戏弹窗 ({self.quit_game_feature})，"
+            f"{self.quit_game_after_esc_wait}s 后补按 ESC 并中断任务"
+        )
+        self.task._sleep(self.quit_game_after_esc_wait)
+        self._press_esc_raw()
+        raise RecoveryAbort(
+            "恢复过程中误触发退出游戏弹窗，需要重新执行本任务"
+        )
