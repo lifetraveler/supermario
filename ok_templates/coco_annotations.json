@@ -521,6 +521,30 @@
       "file_name": "11.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 91,
+      "file_name": "87.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 92,
+      "file_name": "88.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 93,
+      "file_name": "89.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 94,
+      "file_name": "90.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -942,15 +966,15 @@
     },
     {
       "id": 33,
-      "image_id": 10,
+      "image_id": 93,
       "category_id": 31,
       "bbox": [
-        800,
-        1274,
-        68,
-        76
+        796,
+        307,
+        66,
+        65
       ],
-      "area": 5168,
+      "area": 4290,
       "iscrowd": 0
     },
     {
@@ -1790,8 +1814,8 @@
       "image_id": 89,
       "category_id": 98,
       "bbox": [
-        580,
-        132,
+        578,
+        134,
         86,
         45
       ],
@@ -1822,6 +1846,32 @@
         70
       ],
       "area": 14560,
+      "iscrowd": 0
+    },
+    {
+      "id": 101,
+      "image_id": 91,
+      "category_id": 101,
+      "bbox": [
+        664,
+        1290,
+        68,
+        51
+      ],
+      "area": 3468,
+      "iscrowd": 0
+    },
+    {
+      "id": 102,
+      "image_id": 94,
+      "category_id": 103,
+      "bbox": [
+        585,
+        955,
+        116,
+        59
+      ],
+      "area": 6844,
       "iscrowd": 0
     }
   ],
@@ -1978,7 +2028,7 @@
     },
     {
       "id": 31,
-      "name": "city_button_sms",
+      "name": "message_tag_reward_icon",
       "supercategory": ""
     },
     {
@@ -2324,6 +2374,16 @@
     {
       "id": 100,
       "name": "message_reward",
+      "supercategory": ""
+    },
+    {
+      "id": 101,
+      "name": "hunt_bear_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 103,
+      "name": "message_button_del_confirm",
       "supercategory": ""
     }
   ]

@@ -673,3 +673,78 @@ WORLD_EVENT_BEAST_KILL = SceneElement(
 )
 
 
+
+
+# ============================================================
+# Message Center（消息中心）
+# ============================================================
+
+# 消息中心：全局入口图标
+GLOBAL_ICON_MESSAGE_ENTRY = SceneElement(
+    name="global_icon_message_entry",
+    resource_id="global_icon_message_entry",
+    desc="消息中心：全局入口图标",
+)
+
+# 消息面板：领取按钮（逐条消息上的"领取"）
+MESSAGE_BUTTON_REC = SceneElement(
+    name="message_button_rec",
+    resource_id="message_button_rec",
+    desc="消息面板：领取按钮",
+)
+
+# 消息面板：删除按钮
+MESSAGE_BUTTON_DEL = SceneElement(
+    name="message_button_del",
+    resource_id="message_button_del",
+    desc="消息面板：删除按钮",
+)
+
+# 消息面板：删除确认按钮
+MESSAGE_BUTTON_DEL_CONFIRM = SceneElement(
+    name="message_button_del_confirm",
+    resource_id="message_button_del_confirm",
+    desc="消息面板：删除按钮确定",
+)
+
+# 消息面板：战斗标签
+MESSAGE_TAG_WAR = SceneElement(
+    name="消息面板：战斗标签",
+    resource_id="message_tag_war",
+    desc="消息面板：战斗标签",
+)
+
+# 消息面板：联盟标签
+MESSAGE_TAG_LEAGUE = SceneElement(
+    name="消息面板：联盟标签",
+    resource_id="message_tag_league",
+    desc="消息面板：联盟标签",
+)
+
+# 消息面板：系统标签
+MESSAGE_TAG_SYS = SceneElement(
+    name="消息面板：系统标签",
+    resource_id="message_tag_sys",
+    desc="消息面板：系统标签",
+)
+
+# 消息面板：报告标签
+MESSAGE_TAG_REPORT = SceneElement(
+    name="消息面板：报告标签",
+    resource_id="message_tag_report",
+    desc="消息面板：报告标签",
+)
+
+# 消息面板：领取奖励后标识（单条消息上的奖励图标）
+MESSAGE_REWARD = SceneElement(
+    name="消息面板：领取奖励后标识",
+    resource_id="message_reward",
+    desc="消息面板：领取奖励后标识",
+)
+
+# 消息面板：奖励标记（标签页上的"有可领奖励"角标，用于跳过无奖励标签）
+MESSAGE_TAG_REWARD_ICON = SceneElement(
+    name="消息面板：奖励标记",
+    resource_id="message_tag_reward_icon",
+    desc="消息面板：奖励标记（有可领奖励）",
+)

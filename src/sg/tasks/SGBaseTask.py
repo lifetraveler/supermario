@@ -425,7 +425,7 @@ class SGBaseTask(MyBaseTask):
             self.log_info(f"未找到元素，无法点击: {element.name}")
             return False
 
-        click_name = name or element.name
+        click_name = name or box.name
         self.log_info(f"点击元素: {click_name}")
 
         success = self.click(
