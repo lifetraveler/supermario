@@ -24,7 +24,7 @@ trigger_keywords:
 ## 一、开发流程总览
 
 ```
-1. 明确业务场景 → 决定任务的三个核心参数
+1. 明确业务场景→ 决定任务的三个核心参数 → 补充描述清楚需求，需要确认
 2. 拆解流程 → 列出步骤序列
 3. 识别可复用领域对象 → 决定哪些新写、哪些复用
 4. 编写领域对象（Searcher / 交互领域）
@@ -32,7 +32,10 @@ trigger_keywords:
 6. 编写注册文件
 7. 挂载到 registrations/__init__.py
 8. 测试：独立模式 → 队列模式
+9. 收尾：归档需求 / 变更点 / 修复点到项目需求文档，并提示是否 git commit & push
 ```
+### 开
+
 
 ---
 
@@ -53,6 +56,9 @@ trigger_keywords:
 | 一次性任务 | `False` | `0`（count=1） |
 
 ---
+
+### 补充描述清楚需求，需要确认
+
 
 ## 三、流程拆解：从业务到步骤
 
@@ -435,17 +441,42 @@ from src.sg.tasks.registrations import xxx_task
 | `self._find(element, threshold=0.8, box=None)` | 按 SceneElement 查找 | Box / None |
 | `self._wait_element(element, timeout, interval, threshold, with_recovery, box)` | 等待单/多元素 | Box / None |
 | `self.get_box_by_name(resource_id)` | 按名字取 bbox | Box / None |
+| 
+### 7.1.1 全屏检索约定
+
+所有“全屏扫描”语义的调用点，显式传：
+
+```python
+box=self.box_of_screen(0, 0, 1, 1)
+```
+适用位置：
+
+_find(element, box=...) 事件搜索
+
+fired / reward 循环
+
+_go_to_event_object 的 forward 检索
+
+配套：SGBaseTask 已新增 _wait_and_click_all_screen 助手，优先使用该助手，避免每处手写全屏 box。
+
 
 ### 7.2 点击 / 滑动 / 按键
 
 | 方法 | 用途 |
 |---|---|
-| `self.click(box, name)` | 点 Box |
+| `self.click(box)` | 点 Box；**一律不传 name** |
 | `self.click_relative(x, y, name)` | 相对坐标点击 |
 | `self.click_box(box, ...)` / `self._click_box(box)` | 点 Box |
-| `self._wait_and_click(element, name, timeout, ...)` | 等待并点击单/多元素 |
+| `self._wait_and_click(element, timeout=..., with_recovery=..., box=...)` | 等待并点击单/多元素；**不传 name**，保留 timeout / with_recovery / box |
 | `self.swipe_relative(from_x, from_y, to_x, to_y, duration, settle_time)` | 相对滑动 |
 | `self.send_key(key)` | 发送按键 |
+
+调用约定：
+
+- `self.click(box)` 一律不传 `name`。ok 框架 `click()` 收到 `Box` 时直接走 `click_box` 分支（task.py:158-159），`name` 在 Box 路径不参与日志；只有相对坐标 / 像素路径才用它写日志。
+- `_wait_and_click` 不传 `name`。`name` 在基类里只影响日志文案，缺省回退 `element.name`，而元素自带 `name` 足够定位日志。
+- `_wait_and_click` 保留语义参数：`timeout`、`with_recovery`、`box`。
+- 全屏扫描见 7.1.1，优先用 `_wait_and_click_all_screen`。
 
 ### 7.3 OCR
 
@@ -485,6 +516,7 @@ from src.sg.tasks.registrations import xxx_task
 | 等文字出现 | `wait_ocr` |
 | 长等待（行军几分钟） | `_sleep` |
 | 特征匹配失败，游戏强制居中 | `get_box_by_name` + `_click_box`（业务特例） |
+| 全屏扫描并点击 | `_wait_and_click_all_screen(...)`，或显式 `box=self.box_of_screen(0, 0, 1, 1)` |
 
 ---
 
@@ -583,7 +615,11 @@ def _click_scare_wolf(self) -> bool:
 - [ ] 不可并行时删 `default_max_active`，`count=1`
 - [ ] `registrations/__init__.py` 已 import
 - [ ] 先测独立模式 `run()`，再测队列模式
-
+- [ ] `self.click(box)` 未传 `name`
+- [ ] `_wait_and_click` 未传 `name`，按需传 `timeout / with_recovery / box`
+- [ ] 全屏扫描显式 `box=self.box_of_screen(0, 0, 1, 1)`，优先 `_wait_and_click_all_screen`
+- [ ] 流程结束已归档本次需求 / 变更点 / 修复点到项目需求文档
+- [ ] 已提示用户是否 `git commit & push`，未确认不执行
 ---
 
 ## 十、给 AI 的指令模板
@@ -620,3 +656,54 @@ def _click_scare_wolf(self) -> bool:
 8. default_kwargs 与 Task 注入字段一致
 9. 领域对象不反向 import 聚合任务类
 ```
+
+## 十一、流程收尾：需求归档与 Git 提示
+
+触发时机：
+
+- Skill B 第 8 步测试完成后；
+- 或用户说“完成 / 结束 / 收尾”。
+
+收尾拆成两个逻辑：
+
+1. 自动总结本次需求、变更点、修复点，写入项目需求文档；
+2. 提示用户是否需要 `git commit & push`。
+
+### 11.1 归档到项目需求文档
+
+1. 从本次会话、任务描述、`git diff`、注册文件、测试结果中提取：
+   - 原始需求
+   - 变更点
+   - 修复点
+   - 涉及文件
+   - 测试结果
+   - 遗留 / 风险
+
+2. 定位需求文档：
+   - 优先项目已有需求文档，如 `docs/需求文档.md`、`docs/PROJECT_REQUIREMENTS.md`、`REQUIREMENTS.md`；
+   - 找不到则创建 `docs/PROJECT_REQUIREMENTS.md`；
+   - 只追加，不覆盖历史。
+
+3. 追加格式：
+
+```markdown
+## [YYYY-MM-DD] <任务名>
+
+### 原始需求
+...
+
+### 变更点
+- ...
+
+### 修复点
+- ...
+
+### 涉及文件
+- ...
+
+### 测试
+- 独立模式：...
+- 队列模式：...
+
+### 遗留 / 风险
+- ...

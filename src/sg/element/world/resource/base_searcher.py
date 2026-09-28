@@ -72,6 +72,7 @@ class BaseResourceSearcher:
         return self.task._wait_and_click(
             element,
             name=f"选择资源: {element.name}",
+            box=self.task.box_of_screen(0, 0, 1, 1),
             timeout=8.0,
             threshold=self.get_resource_threshold(),
         )

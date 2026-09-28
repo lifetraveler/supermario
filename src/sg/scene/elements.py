@@ -193,10 +193,16 @@ WORLD_ICON_RESOURCE_BEAST = SceneElement(
 )
 
 # id: 9
-MARCH_TEAM_NUM = SceneElement(
-    name="march_team_num",
-    resource_id="march_team_num",
+TROOP_MARCH_TEAM_NUM = SceneElement(
+    name="troop_march_team_num",
+    resource_id="troop_march_team_num",
     desc="行军队伍数量",
+)
+
+BEAST_TIME_WAY = SceneElement(
+    name="beast_time_way",
+    resource_id="beast_time_way",
+    desc="野兽挑战弹窗：单程行军时间",
 )
 
 # id: 10

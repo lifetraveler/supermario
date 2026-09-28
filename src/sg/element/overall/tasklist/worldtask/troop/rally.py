@@ -78,12 +78,10 @@ class Rally:
         task = self.task
         
         for element in (
-            BUTTON_RALLY_GIANT_BEAST,
             BUTTON_RALLY_GIANT_BEAST_1,
         ):
             if not task._wait_and_click(
                 element, 
-                name="恐狼", 
                 timeout=3.0,
                 with_recovery=False,
                 box=task.box_of_screen(0, 0, 1, 1),

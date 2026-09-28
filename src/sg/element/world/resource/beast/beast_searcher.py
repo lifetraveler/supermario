@@ -2,22 +2,23 @@ from src.sg.element.world.resource.base_searcher import (
     BaseResourceSearcher,
 )
 from src.sg.scene.elements import (
-    GIANT_BEAST,
+    WORLD_ICON_RESOURCE_BEAST,
     WORLD_ICON_RESOURCE_STONE,
     WORLD_ICON_RESOURCE_IRON,
 )
 
 
-class MonsterSearcher(BaseResourceSearcher):
+class BeastSearcher(BaseResourceSearcher):
     """
-    巨兽搜索。
+    野兽搜索。
 
     =========================================================
+    与 MonsterSearcher / ScareWolfSearcher 同构：
     在父类基础上增加了"滑动查找"能力
     =========================================================
-    资源栏是横向排列的，巨兽不一定总在初始视图中。
+    资源栏是横向排列的，野兽图标不一定总在初始视图中。
     流程：
-      1. 先尝试在当前视图中找巨兽
+      1. 先尝试在当前视图中找野兽图标
       2. 找到 → 点击
       3. 找不到 → 用石头/铁矿锚点判断是否已在资源栏右端
       4. 用锚点的 y 坐标作为滑动线，从屏幕中间向右滑一小段
@@ -28,7 +29,7 @@ class MonsterSearcher(BaseResourceSearcher):
     滑动方向说明
     =========================================================
     当前能看到石头/铁矿 = 视图已经在资源栏最右端，
-    需要让内容右移、露出左侧的巨兽。
+    需要让内容右移、露出左侧的野兽图标。
     即手指从屏幕中间滑向右侧，from_x < to_x。
     =========================================================
     """
@@ -36,7 +37,7 @@ class MonsterSearcher(BaseResourceSearcher):
     def __init__(self, task):
         super().__init__(task)
 
-        # {级别: SceneElement}，由用户在外部注入
+        # 无级别概念，保持空 dict（父类 select_level 会跳过）
         self.level_elements = {}
 
         # ====================================================
@@ -78,7 +79,7 @@ class MonsterSearcher(BaseResourceSearcher):
     # ========================================================
 
     def get_resource_element(self):
-        return GIANT_BEAST
+        return WORLD_ICON_RESOURCE_BEAST
 
     def get_level_elements(self):
         return self.level_elements
@@ -89,7 +90,7 @@ class MonsterSearcher(BaseResourceSearcher):
 
     def select_resource(self) -> bool:
         """
-        选择巨兽。
+        选择野兽图标。
 
         策略：
           1. 第一次先等 2 秒，避免界面刚打开动画未完成
@@ -111,6 +112,7 @@ class MonsterSearcher(BaseResourceSearcher):
             else:
                 box = self.task._find(
                     element,
+                    box=self.task.box_of_screen(0, 0, 1, 1),
                     threshold=self.get_resource_threshold(),
                 )
 
@@ -138,7 +140,7 @@ class MonsterSearcher(BaseResourceSearcher):
                 )
             else:
                 self.task.log_info(
-                    "搜索: 未匹配到巨兽，尝试向右滑动查找"
+                    "搜索: 未匹配到野兽图标，尝试向右滑动查找"
                 )
 
             self._scroll_right()
