@@ -210,3 +210,30 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 ### 遗留 / 风险
 - 已启用类型的配置在 UI 上是展开状态；若要"每个类型折叠成卡片、点开才见配置"，需动 TaskTab 列表层（ExpandSettingCard 卡片级），改动面大，本期不做。
 - `GenericQueueTask._build_config` 里 `name_prefix=meta['name_prefix']` 局部变量为既有遗留（未使用），本次未清理。
+
+## [2026-09-30] 队列快照展示任务明细（get_snapshot）
+
+### 原始需求
+队列任务界面（`QueueTaskBase._update_info` 铺 `TaskQueue.get_snapshot()`）目前只显示各状态计数与倒计时（`next_finish_in` / `next_trigger_in`），看不出具体是哪些任务在排队。要求：各状态展示具体任务名；等待触发的任务按触发顺序展示，并显示预计执行时刻（绝对时间）；不再展示倒计时。
+
+### 变更点
+- `TaskQueue.get_snapshot()` 重写：新增 `scheduled_tasks` / `pending_tasks` / `in_progress_tasks` / `failed_tasks` 四组明细列表；空列表不放进快照（UI 无空行），`_update_info` 的 key 自动展开逻辑零改动兼容。
+- `scheduled_tasks` 按 `trigger_time` 升序（= 触发顺序；插入序跨工厂时可能偏离触发序，显式排序），每项 `任务名 预计执行时刻`；时刻今天显示 `HH:MM`，跨天 `MM-DD HH:MM`（新增静态方法 `_fmt_clock`）。
+- `in_progress_tasks` 每项 `任务名 预计完成时刻`（`estimated_finish_time` 为 None 时只显示任务名），替代原 `next_finish_in` 的信息量。
+- 删除 `next_finish_in` / `next_trigger_in` 两个倒计时字段（唯一消费方就是 UI 展示，无其他调用点）。
+- DONE 只计数不出明细列表：任务对象不会被移除，无限 count 下列表会无限增长。
+- UI 渲染链路复用 ok-script 现有能力：`TaskTab.update_task_info` → `value_to_string` 对 list 自动 `', '` join 成一行，快照值直接放 list 即可。
+
+### 修复点
+- 无。
+
+### 涉及文件
+- `src/scheduler/task_queue.py`（`get_snapshot` 重写 + `_fmt_clock` 新增）
+
+### 测试
+- 冒烟通过：模拟乱序插入 4 任务（SCHEDULED×3 / PENDING / IN_PROGRESS 混合），`scheduled_tasks` 按触发时刻升序输出（`Hunt Monster #2 21:48` → `Hunt Monster #1 22:47` → `League Reward Box #1 10-01 21:47`），跨天带日期前缀；空状态（pending/failed=0）不出行。
+- 实机 UI 渲染未验证：list 经 `value_to_string` join 单行后，长列表在 `task_info_table` 中的显示宽度需真机确认。
+
+### 遗留 / 风险
+- PENDING 列表按插入序（FIFO）展示，未考虑 `next_retry_time` 未到的任务实际会被 `_pick_next` 跳过，展示顺序与真实执行顺序在重试场景下可能有偏差。
+- RUNNING 任务无明细列表（同时最多 1 个，`current` 字段已覆盖）。
