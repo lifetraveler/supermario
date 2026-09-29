@@ -754,3 +754,49 @@ MESSAGE_TAG_REWARD_ICON = SceneElement(
     resource_id="message_tag_reward_icon",
     desc="消息面板：奖励标记（有可领奖励）",
 )
+
+# ============================================================
+# 岛屿采水（Gather Island Water）
+# ============================================================
+
+
+GLOBAL_EVENT_TASK_LIST_ISLAND_ENTRY=SceneElement(
+    name="global_event_task_list_island_entry",
+    resource_id="global_event_task_list_island_entry",
+    desc="岛屿采水：产水建筑1",
+)
+
+# 岛屿采水：产水建筑 1（缩放最小后全屏检索点击）
+ISLAND_GATHER_WATER_BUILD_1 = SceneElement(
+    name="island_gather_water_build_1",
+    resource_id="island_gather_water_build_1",
+    desc="岛屿采水：产水建筑1",
+)
+
+# 岛屿采水：产水建筑 2
+ISLAND_GATHER_WATER_BUILD_2 = SceneElement(
+    name="island_gather_water_build_2",
+    resource_id="island_gather_water_build_2",
+    desc="岛屿采水：产水建筑2",
+)
+
+# 岛屿采水：奖励入口按钮（切换到领取界面）
+ISLAND_BUTTON_GATHER_REWARD = SceneElement(
+    name="island_button_gather_reward",
+    resource_id="island_button_gather_reward",
+    desc="岛屿采水：奖励入口按钮",
+)
+
+# 岛屿采水：领取奖励按钮
+ISLAND_BUTTON_REWARD_GET = SceneElement(
+    name="island_button_reward_get",
+    resource_id="island_button_reward_get",
+    desc="岛屿采水：领取奖励按钮",
+)
+
+# 获得奖励提示（弹出后点击退出）
+GLOBAL_MASK_REWWARD_GETED_QUIT_TIP = SceneElement(
+    name="global_mask_rewward_geted_quit_tip",
+    resource_id="global_mask_rewward_geted_quit_tip",
+    desc="获得奖励提示：退出提示",
+)

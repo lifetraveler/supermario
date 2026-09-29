@@ -67,12 +67,6 @@
       "height": 1600
     },
     {
-      "id": 13,
-      "file_name": "12.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 14,
       "file_name": "13.png",
       "width": 900,
@@ -115,74 +109,8 @@
       "height": 1600
     },
     {
-      "id": 22,
-      "file_name": "21.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 23,
       "file_name": "20.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 24,
-      "file_name": "22.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 25,
-      "file_name": "23.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 26,
-      "file_name": "24.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 27,
-      "file_name": "25.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 28,
-      "file_name": "26.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 29,
-      "file_name": "27.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 30,
-      "file_name": "28.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 31,
-      "file_name": "29.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 32,
-      "file_name": "30.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 33,
-      "file_name": "31.png",
       "width": 900,
       "height": 1600
     },
@@ -205,62 +133,14 @@
       "height": 1600
     },
     {
-      "id": 37,
-      "file_name": "35.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 38,
-      "file_name": "36.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 39,
-      "file_name": "37.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 40,
-      "file_name": "38.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 41,
-      "file_name": "39.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 42,
       "file_name": "40.png",
       "width": 900,
       "height": 1600
     },
     {
-      "id": 43,
-      "file_name": "41.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 44,
       "file_name": "42.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 45,
-      "file_name": "43.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 46,
-      "file_name": "44.png",
       "width": 900,
       "height": 1600
     },
@@ -283,78 +163,6 @@
       "height": 1600
     },
     {
-      "id": 50,
-      "file_name": "48.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 51,
-      "file_name": "49.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 52,
-      "file_name": "50.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 53,
-      "file_name": "51.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 54,
-      "file_name": "52.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 55,
-      "file_name": "53.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 56,
-      "file_name": "54.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 57,
-      "file_name": "55.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 58,
-      "file_name": "56.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 59,
-      "file_name": "57.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 60,
-      "file_name": "58.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 61,
-      "file_name": "59.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 62,
       "file_name": "60.png",
       "width": 900,
@@ -369,24 +177,6 @@
     {
       "id": 64,
       "file_name": "62.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 65,
-      "file_name": "63.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 66,
-      "file_name": "64.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 67,
-      "file_name": "65.png",
       "width": 900,
       "height": 1600
     },
@@ -417,12 +207,6 @@
     {
       "id": 72,
       "file_name": "70.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 73,
-      "file_name": "71.png",
       "width": 900,
       "height": 1600
     },
@@ -529,12 +313,6 @@
       "height": 1600
     },
     {
-      "id": 92,
-      "file_name": "88.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 93,
       "file_name": "89.png",
       "width": 900,
@@ -543,30 +321,6 @@
     {
       "id": 94,
       "file_name": "90.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 95,
-      "file_name": "91.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 96,
-      "file_name": "92.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 97,
-      "file_name": "93.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
-      "id": 98,
-      "file_name": "94.png",
       "width": 900,
       "height": 1600
     },
@@ -603,6 +357,48 @@
     {
       "id": 105,
       "file_name": "99.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 106,
+      "file_name": "101.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 107,
+      "file_name": "102.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 108,
+      "file_name": "103.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 109,
+      "file_name": "12.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 110,
+      "file_name": "21.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 111,
+      "file_name": "22.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 112,
+      "file_name": "23.png",
       "width": 900,
       "height": 1600
     }
@@ -927,10 +723,10 @@
       "bbox": [
         0,
         622,
-        51,
+        43,
         143
       ],
-      "area": 7293,
+      "area": 6149,
       "iscrowd": 0
     },
     {
@@ -1104,28 +900,28 @@
     },
     {
       "id": 39,
-      "image_id": 13,
-      "category_id": 45,
+      "image_id": 107,
+      "category_id": 124,
       "bbox": [
-        422,
-        532,
-        63,
-        57
+        325,
+        632,
+        214,
+        135
       ],
-      "area": 3591,
+      "area": 28890,
       "iscrowd": 0
     },
     {
       "id": 40,
-      "image_id": 13,
-      "category_id": 39,
+      "image_id": 107,
+      "category_id": 125,
       "bbox": [
-        22,
-        9,
-        244,
-        66
+        280,
+        943,
+        104,
+        114
       ],
-      "area": 16104,
+      "area": 11856,
       "iscrowd": 0
     },
     {
@@ -2193,6 +1989,292 @@
       ],
       "area": 9075,
       "iscrowd": 0
+    },
+    {
+      "id": 123,
+      "image_id": 106,
+      "category_id": 123,
+      "bbox": [
+        32,
+        963,
+        356,
+        39
+      ],
+      "area": 13884,
+      "iscrowd": 0
+    },
+    {
+      "id": 124,
+      "image_id": 107,
+      "category_id": 126,
+      "bbox": [
+        552,
+        796,
+        39,
+        41
+      ],
+      "area": 1599,
+      "iscrowd": 0
+    },
+    {
+      "id": 125,
+      "image_id": 107,
+      "category_id": 39,
+      "bbox": [
+        113,
+        13,
+        157,
+        59
+      ],
+      "area": 9263,
+      "iscrowd": 0
+    },
+    {
+      "id": 126,
+      "image_id": 34,
+      "category_id": 45,
+      "bbox": [
+        479,
+        792,
+        323,
+        90
+      ],
+      "area": 29070,
+      "iscrowd": 0
+    },
+    {
+      "id": 127,
+      "image_id": 48,
+      "category_id": 127,
+      "bbox": [
+        388,
+        1103,
+        133,
+        63
+      ],
+      "area": 8379,
+      "iscrowd": 0
+    },
+    {
+      "id": 128,
+      "image_id": 108,
+      "category_id": 143,
+      "bbox": [
+        308,
+        1442,
+        289,
+        76
+      ],
+      "area": 21964,
+      "iscrowd": 0
+    },
+    {
+      "id": 129,
+      "image_id": 49,
+      "category_id": 129,
+      "bbox": [
+        396,
+        1422,
+        118,
+        66
+      ],
+      "area": 7788,
+      "iscrowd": 0
+    },
+    {
+      "id": 130,
+      "image_id": 49,
+      "category_id": 130,
+      "bbox": [
+        298,
+        1328,
+        260,
+        51
+      ],
+      "area": 13260,
+      "iscrowd": 0
+    },
+    {
+      "id": 131,
+      "image_id": 47,
+      "category_id": 131,
+      "bbox": [
+        361,
+        1213,
+        189,
+        86
+      ],
+      "area": 16254,
+      "iscrowd": 0
+    },
+    {
+      "id": 132,
+      "image_id": 42,
+      "category_id": 132,
+      "bbox": [
+        168,
+        1018,
+        145,
+        78
+      ],
+      "area": 11310,
+      "iscrowd": 0
+    },
+    {
+      "id": 133,
+      "image_id": 42,
+      "category_id": 133,
+      "bbox": [
+        180,
+        1464,
+        130,
+        86
+      ],
+      "area": 11180,
+      "iscrowd": 0
+    },
+    {
+      "id": 134,
+      "image_id": 109,
+      "category_id": 134,
+      "bbox": [
+        339,
+        1473,
+        230,
+        68
+      ],
+      "area": 15640,
+      "iscrowd": 0
+    },
+    {
+      "id": 135,
+      "image_id": 109,
+      "category_id": 135,
+      "bbox": [
+        708,
+        772,
+        104,
+        51
+      ],
+      "area": 5304,
+      "iscrowd": 0
+    },
+    {
+      "id": 136,
+      "image_id": 110,
+      "category_id": 136,
+      "bbox": [
+        674,
+        1454,
+        165,
+        63
+      ],
+      "area": 10395,
+      "iscrowd": 0
+    },
+    {
+      "id": 137,
+      "image_id": 110,
+      "category_id": 139,
+      "bbox": [
+        582,
+        474,
+        163,
+        57
+      ],
+      "area": 9291,
+      "iscrowd": 0
+    },
+    {
+      "id": 138,
+      "image_id": 110,
+      "category_id": 138,
+      "bbox": [
+        142,
+        472,
+        208,
+        57
+      ],
+      "area": 11856,
+      "iscrowd": 0
+    },
+    {
+      "id": 139,
+      "image_id": 111,
+      "category_id": 137,
+      "bbox": [
+        20,
+        535,
+        161,
+        49
+      ],
+      "area": 7889,
+      "iscrowd": 0
+    },
+    {
+      "id": 140,
+      "image_id": 111,
+      "category_id": 140,
+      "bbox": [
+        32,
+        589,
+        516,
+        86
+      ],
+      "area": 44376,
+      "iscrowd": 0
+    },
+    {
+      "id": 141,
+      "image_id": 111,
+      "category_id": 141,
+      "bbox": [
+        24,
+        683,
+        520,
+        84
+      ],
+      "area": 43680,
+      "iscrowd": 0
+    },
+    {
+      "id": 142,
+      "image_id": 111,
+      "category_id": 142,
+      "bbox": [
+        513,
+        599,
+        21,
+        19
+      ],
+      "area": 399,
+      "iscrowd": 0
+    },
+    {
+      "id": 143,
+      "image_id": 112,
+      "category_id": 128,
+      "bbox": [
+        576,
+        1491,
+        191,
+        49
+      ],
+      "area": 9359,
+      "iscrowd": 0
+    },
+    {
+      "id": 144,
+      "image_id": 112,
+      "category_id": 144,
+      "bbox": [
+        162,
+        1483,
+        147,
+        61
+      ],
+      "area": 8967,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -2418,7 +2500,7 @@
     },
     {
       "id": 45,
-      "name": "island_button_gather_water",
+      "name": "league_reward_box_entry",
       "supercategory": ""
     },
     {
@@ -2804,6 +2886,116 @@
     {
       "id": 122,
       "name": "pet_symbol_treasure_friend_tag_send",
+      "supercategory": ""
+    },
+    {
+      "id": 123,
+      "name": "global_event_task_list_island_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 124,
+      "name": "island_gather_water_build_1",
+      "supercategory": ""
+    },
+    {
+      "id": 125,
+      "name": "island_gather_water_build_2",
+      "supercategory": ""
+    },
+    {
+      "id": 126,
+      "name": "island_button_gather_reward",
+      "supercategory": ""
+    },
+    {
+      "id": 127,
+      "name": "island_button_reward_get",
+      "supercategory": ""
+    },
+    {
+      "id": 128,
+      "name": "hero_tag_enlist_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 129,
+      "name": "city_daily_task_button_golden_get",
+      "supercategory": ""
+    },
+    {
+      "id": 130,
+      "name": "city_daily_task_button_golden_get_times",
+      "supercategory": ""
+    },
+    {
+      "id": 131,
+      "name": "pet_button_search_treasure",
+      "supercategory": ""
+    },
+    {
+      "id": 132,
+      "name": "city_hero_button_enlist_1",
+      "supercategory": ""
+    },
+    {
+      "id": 133,
+      "name": "city_hero_button_enlist_2",
+      "supercategory": ""
+    },
+    {
+      "id": 134,
+      "name": "league_reward_box_button_get",
+      "supercategory": ""
+    },
+    {
+      "id": 135,
+      "name": "league_reward_box_button_get_item",
+      "supercategory": ""
+    },
+    {
+      "id": 136,
+      "name": "league_friend_reward_box_button_get",
+      "supercategory": ""
+    },
+    {
+      "id": 137,
+      "name": "city_task_list_hero_enlist_icon",
+      "supercategory": ""
+    },
+    {
+      "id": 138,
+      "name": "league_reward_box_tag",
+      "supercategory": ""
+    },
+    {
+      "id": 139,
+      "name": "league_friend_reward_box_tag",
+      "supercategory": ""
+    },
+    {
+      "id": 140,
+      "name": "city_task_list_hero_enlist_entry_1",
+      "supercategory": ""
+    },
+    {
+      "id": 141,
+      "name": "city_task_list_hero_enlist_entry_2",
+      "supercategory": ""
+    },
+    {
+      "id": 142,
+      "name": "global_mark_task_to_do_tip",
+      "supercategory": ""
+    },
+    {
+      "id": 143,
+      "name": "global_mark_rewward_geted_quit_tip",
+      "supercategory": ""
+    },
+    {
+      "id": 144,
+      "name": "hero_tag_special_training_camp_entry",
       "supercategory": ""
     }
   ]

@@ -118,3 +118,33 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - 兜底 300s 是拍估值，真机跑一轮后建议按实际分布调整。
 
 ---
+
+## [2026-09-29] 岛屿采水任务（Gather Island Water）
+
+### 原始需求
+海岛采集任务：进入自己的海岛采集水资源（生命之泉产水，最多积累 10 小时 → 每 10 小时触发一次），并在同一界面领取采水奖励。不占军队队列、不可并发（count=1）。跳转别人海岛采集本期不做。
+
+### 变更点
+- `elements.py` 新增 6 个元素：`ISLAND_GATHER_WATER_BUILD_1/2`（产水建筑）、`ISLAND_BUTTON_GATHER_REWARD`（奖励入口）、`ISLAND_BUTTON_REWARD_GET`（领取按钮）、`GLOBAL_REWARD_GETED_QUIT_TIP`（获得奖励退出提示，resource_id 按用户口述保留 rewward 双写）；复用已有 `ISLAND_AREA_SYMBOL` / `ISLAND_BUTTON_GATHER_WATER` / `GLOBAL_EVENT_TASK_NEED_HANDLE`。
+- 新增 `GatherIslandWaterTask`（继承 `SGBaseTask`）：业务编排 回主界面（ESC 兜底）→ 点 `GLOBAL_EVENT_TASK_NEED_HANDLE` 展开任务列表 → 滚轮下滑（每次 1/4 屏，最多 8 次）+ 全屏检索循环找海岛入口 → ctrl+滚轮缩到最小（`send_key_down/up('ctrl')` + `scroll_relative`）→ 全屏循环点击两个产水建筑采水（至少采到一处即成功）→ 领奖流程（切领取界面 → 点领取 → 等 `global_rewward_geted_quit_tip` 出现点击退出）。全部业务步骤用 `_step` 包裹；领奖失败不阻塞采水结果。
+- 新增注册 `reg_gather_island_water.py`：`key="Gather Island Water"`，`default_count=1`，`requires_march_queue=False`，`next_trigger_delay=36000.0`（10 小时），无 `default_max_active`，无 extra_config。
+
+### 修复点
+- 任务列表滚动无效 → `GatherIslandWaterTask._scroll_find_island_entry` 改用 `swipe_relative` 手指向上滑 1/4 屏（0.75→0.5，duration=0.3，settle=1.0），滚轮在该列表不生效。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（追加元素）
+- `src/sg/tasks/island/GatherIslandWaterTask.py`（新增；后由用户从 `world/` 移至 `island/` 目录，注册导入路径同步修正）
+- `src/sg/tasks/registrations/reg_gather_island_water.py`（新增）
+
+### 测试
+- 独立模式：未跑（需游戏前台与真实画面）。
+- 队列模式：未跑（同上）。
+- `py_compile` 通过；导入/注册验证通过：`TASK_REGISTRY['Gather Island Water']` 注册成功（count=1 / delay=36000 / 无 max_active），8 个元素 resource_id 全部正确，任务类 `run_interaction` / `_run_once` / `run` / `_step` / `check_completed` 接口齐全。
+
+### 遗留 / 风险
+- [TODO] 采集界面缩放暂缓：框架当前不支持缩放操作（ctrl+滚轮组合/捏合手势），`_zoom_out_island` 的 ctrl+scroll_relative 实现暂定；需先整改框架支持缩放手势，再回来实现采集界面的缩放到最小，然后采水步骤才能稳定全屏检索到产水建筑。
+- 新增元素的特征图已录入（ok_templates 重录，coco_annotations 同步更新），但实机识别率未验证。
+- 进岛判据用 `ISLAND_AREA_SYMBOL`（threshold=0.7 全屏）；若海岛界面实际不显示该标志，需换 `ISLAND_BUTTON_GATHER_WATER` 或 OCR 判据。
+
+---
