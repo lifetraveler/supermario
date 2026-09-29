@@ -185,3 +185,28 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - 实机识别率未验证，需独立模式跑一次确认全流程。
 
 ---
+
+## [2026-09-30] 队列配置按启用状态收起展开（GenericQueueTask）
+
+### 原始需求
+统一任务调度面板把所有注册类型的全部配置（Enabled / Count / Max Active / Next Trigger Delay / extra_config）平铺渲染，未启用的类型也占大量视觉空间。要求：未启用时只显示 Enabled 开关（收起其余配置），勾选后才展开该类型的其余配置。
+
+### 变更点
+- `GenericQueueTask._build_config`：利用 ok-script 原生 `config_type[key]["sub_configs"]` 机制（Qt 端 `ConfigCard.__setup_sub_configs` 监听 bool 开关 `checkedChanged`；Web 端 `ok/core/config_schema.py:config_visibility` 同语义），把 `Count` / `Max Active` / `Next Trigger Delay` 与全部 `extra_config` 项挂到 `"{key}: Enabled"` 下：`{True: [子配置列表]}`。未启用 → 规则查 `False` 无命中 → 全部收起；勾选 → 全部展开。Enabled 开关本身始终可见可勾选。
+- 注册文件零改动：机制集中在 `_build_config`，未来新增注册类型自动获得收起行为；新增 extra_config 项自动进收起列表。
+- 纯展示层联动：配置值始终持久化（`configs/GenericQueueTask.json`），`_build_factories` 读取不受收起影响。
+
+### 修复点
+- 无。
+
+### 涉及文件
+- `src/sg/tasks/queue/GenericQueueTask.py`（`_build_config` 挂 sub_configs + 文档注释更新）
+- `tests/TestGenericQueueConfig.py`（新增回归测试）
+
+### 测试
+- 离屏 QT + ok-script 测试环境实测：9 个注册类型全部挂上 sub_configs；未启用类型 Enabled 可见、其余全部隐藏；已启用类型（持久化配置 Hunt Monster Troop=enabled）6 项全展开；动态切换 Gather Troop Enabled 后子配置变可见；`_build_factories` 正常（count=6 / max_active=2 / kwargs 完整）。
+- 回归测试 3 用例全过：所有类型声明 sub_configs、禁用类型除开关外全部收起、启用类型全展开。
+
+### 遗留 / 风险
+- 已启用类型的配置在 UI 上是展开状态；若要"每个类型折叠成卡片、点开才见配置"，需动 TaskTab 列表层（ExpandSettingCard 卡片级），改动面大，本期不做。
+- `GenericQueueTask._build_config` 里 `name_prefix=meta['name_prefix']` 局部变量为既有遗留（未使用），本次未清理。
