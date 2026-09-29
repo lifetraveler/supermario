@@ -148,3 +148,40 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - 进岛判据用 `ISLAND_AREA_SYMBOL`（threshold=0.7 全屏）；若海岛界面实际不显示该标志，需换 `ISLAND_BUTTON_GATHER_WATER` 或 OCR 判据。
 
 ---
+
+## [2026-09-29] 联盟宝箱领取（League Reward Box）
+
+### 原始需求
+联盟日常奖励宝箱领取：主界面进入联盟页，点击 league_reward_box_entry 进入领取宝箱页面。页面有两个 tag（战利品宝箱 / 盟友赠礼），先点击 tag 头，再在对应 tag 下根据 get_item（绿色领取按钮）判断是否有可领取条目，然后点击 get 一键领取；第二个 tag 相同逻辑。领取后出现"获得奖励"通用界面，按通用退出标志 tip 点击任意位置退出。不占军队队列、每日一次、不可并行。
+
+### 变更点
+- `src/sg/scene/elements.py`：新增联盟宝箱 6 个元素（LEAGUE_REWARD_BOX_ENTRY / LEAGUE_REWARD_BOX_TAG / LEAGUE_FRIEND_REWARD_BOX_TAG / LEAGUE_REWARD_BOX_BUTTON_GET / LEAGUE_FRIEND_REWARD_BOX_BUTTON_GET / LEAGUE_REWARD_BOX_BUTTON_GET_ITEM）。
+- 新增 `src/sg/tasks/league/LeagueRewardBoxTask.py`：编排 回主界面 → 进联盟 → 进宝箱页 → 战利品 tag（检测可领取 → 一键领取 → 退出 tip）→ 切盟友赠礼 tag（同逻辑）→ ESC 回主界面。全部业务步骤 `_step` 包裹；领取失败不阻塞整体结果。
+- 新增 `src/sg/tasks/registrations/reg_league_reward_box.py`：`key="League Reward Box"`，`default_count=1`，`requires_march_queue=False`，`next_trigger_delay=86400`，无 max_active / extra_config / default_kwargs。
+
+### 修复点
+- 退出 tip 元素拼写 bug：`GLOBAL_MASK_REWWARD_GETED_QUIT_TIP`（resource_id=`global_mask_...`）与 coco 标注不符。ok 框架对未知特征 find_feature 直接抛 ValueError、get_box_by_name 返回 None，导致岛屿采水任务的"点击退出"步骤从未真正匹配成功。已改名为 `GLOBAL_MARK_REWARD_GETED_QUIT_TIP` 并同步迁移 `GatherIslandWaterTask.py` 的 2 处引用。提交前 coco 由标注工具重导出，tip 类别最终定名 `global_mark_reward_geted_quit_tip`（单 w，id=145），代码已对齐并实测 confidence=1.0 命中。
+
+### 关键实现结论（实测，勿回退）
+- tag 切换必须用 `get_box_by_name` 静态 bbox：tag 特征模板只匹配截图时状态（战利品=未选中棕底、盟友=选中白底），在另一态上最高 0.32 分，特征匹配无法完成切换。
+- 可领取检测用 `find_one(league_reward_box_button_get_item)`：绿色按钮模板命中=有可领取；"已领取"灰色文本天然不命中。战利品页实测命中 (708,772)，盟友已领取页 0 命中。
+- 盟友赠礼一键领取按钮模板是灰色禁用态（永远无法命中绿色启用态），故盟友 tab 由 get_item 检测通过后，用 `[GET, FRIEND_GET]` 多候选等待点击（实测 FRIEND_GET 模板在其截图上 confidence=1.0，禁用态可点出提示或无害）。
+- 退出 tip `global_mark_reward_geted_quit_tip`（单 w）实测在其截图 103.png 上 confidence=1.0 命中 (308,1442)。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（新增 6 元素 + tip 改名修复）
+- `src/sg/tasks/island/GatherIslandWaterTask.py`（引用迁移到新常量名）
+- `src/sg/tasks/league/LeagueRewardBoxTask.py`（新增）
+- `src/sg/tasks/registrations/reg_league_reward_box.py`(新增)
+
+### 测试
+- 独立模式：未跑（需游戏前台与真实画面）。
+- 队列模式：未跑（同上）。
+- `py_compile` 通过；`import src.sg.tasks.registrations` 后 `TASK_REGISTRY['League Reward Box']` 注册成功（count=1 / delay=86400 / 无 march_queue）；7 个 resource_id 与 coco 标注逐一核对一致；模板匹配实测：可领取检测/一键按钮/退出 tip 在对应截图上均 confidence≈1.0 命中；旧常量名 git grep 无残留。
+
+### 遗留 / 风险
+- 盟友赠礼 tab 有可领取条目时的绿色按钮样式按与战利品一致处理（现有截图全部已领取，无样本验证）；若有差异，get_item 检测不到会安全跳过（no-op），日志可见。
+- 盟友赠礼一键领取按钮（灰色禁用态模板）语义与战利品绿色启用态不同：若点击禁用按钮无效果，一键领取退化为逐条目点击 get_item 的需求，待实机验证后补充。
+- 实机识别率未验证，需独立模式跑一次确认全流程。
+
+---

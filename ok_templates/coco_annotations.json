@@ -2058,7 +2058,7 @@
     {
       "id": 128,
       "image_id": 108,
-      "category_id": 143,
+      "category_id": 145,
       "bbox": [
         308,
         1442,
@@ -2989,13 +2989,13 @@
       "supercategory": ""
     },
     {
-      "id": 143,
-      "name": "global_mark_rewward_geted_quit_tip",
+      "id": 144,
+      "name": "hero_tag_special_training_camp_entry",
       "supercategory": ""
     },
     {
-      "id": 144,
-      "name": "hero_tag_special_training_camp_entry",
+      "id": 145,
+      "name": "global_mark_reward_geted_quit_tip",
       "supercategory": ""
     }
   ]

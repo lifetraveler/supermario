@@ -34,7 +34,7 @@ from src.sg.scene.elements import (
     ISLAND_GATHER_WATER_BUILD_2,
     ISLAND_BUTTON_GATHER_REWARD,
     ISLAND_BUTTON_REWARD_GET,
-    GLOBAL_MASK_REWWARD_GETED_QUIT_TIP,
+    GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
     GLOBAL_EVENT_TASK_LIST_ISLAND_ENTRY,
 )
 from src.sg.scene.scene_type import SceneType
@@ -273,7 +273,7 @@ class GatherIslandWaterTask(SGBaseTask):
 
         # 等待"获得奖励"提示出现后点击退出
         quit_box = self._wait_element(
-            GLOBAL_MASK_REWWARD_GETED_QUIT_TIP,
+            GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
             timeout=6.0,
             box=self.box_of_screen(0, 0, 1, 1),
             with_recovery=False

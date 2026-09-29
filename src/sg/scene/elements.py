@@ -795,8 +795,54 @@ ISLAND_BUTTON_REWARD_GET = SceneElement(
 )
 
 # 获得奖励提示（弹出后点击退出）
-GLOBAL_MASK_REWWARD_GETED_QUIT_TIP = SceneElement(
-    name="global_mask_rewward_geted_quit_tip",
-    resource_id="global_mask_rewward_geted_quit_tip",
-    desc="获得奖励提示：退出提示",
+GLOBAL_MARK_REWARD_GETED_QUIT_TIP = SceneElement(
+    name="global_mark_reward_geted_quit_tip",
+    resource_id="global_mark_reward_geted_quit_tip",
+    desc="获得奖励提示：点击任意位置退出",
+)
+
+# ============================================================
+# 联盟宝箱（League Reward Box）
+# ============================================================
+
+# 联盟页：宝箱入口横幅
+LEAGUE_REWARD_BOX_ENTRY = SceneElement(
+    name="league_reward_box_entry",
+    resource_id="league_reward_box_entry",
+    desc="联盟宝箱：入口横幅",
+)
+
+# 宝箱页：战利品宝箱 tag（未选中态模板；命中=未选中）
+LEAGUE_REWARD_BOX_TAG = SceneElement(
+    name="league_reward_box_tag",
+    resource_id="league_reward_box_tag",
+    desc="联盟宝箱：战利品宝箱标签（未选中态）",
+)
+
+# 宝箱页：盟友赠礼 tag（未选中态模板；命中=未选中）
+LEAGUE_FRIEND_REWARD_BOX_TAG = SceneElement(
+    name="league_friend_reward_box_tag",
+    resource_id="league_friend_reward_box_tag",
+    desc="联盟宝箱：盟友赠礼标签（未选中态）",
+)
+
+# 宝箱页：战利品一键领取按钮（绿色启用态）
+LEAGUE_REWARD_BOX_BUTTON_GET = SceneElement(
+    name="league_reward_box_button_get",
+    resource_id="league_reward_box_button_get",
+    desc="联盟宝箱：战利品一键领取按钮",
+)
+
+# 宝箱页：盟友赠礼一键领取按钮（灰色禁用态模板）
+LEAGUE_FRIEND_REWARD_BOX_BUTTON_GET = SceneElement(
+    name="league_friend_reward_box_button_get",
+    resource_id="league_friend_reward_box_button_get",
+    desc="联盟宝箱：盟友赠礼一键领取按钮",
+)
+
+# 宝箱页：条目级"领取"按钮（绿色，可领取标志；无匹配=无可领取）
+LEAGUE_REWARD_BOX_BUTTON_GET_ITEM = SceneElement(
+    name="league_reward_box_button_get_item",
+    resource_id="league_reward_box_button_get_item",
+    desc="联盟宝箱：条目领取按钮（可领取标志）",
 )
