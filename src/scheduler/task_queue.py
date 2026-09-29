@@ -622,7 +622,9 @@ class TaskQueue:
 
     def get_snapshot(self):
         """
-        返回队列当前状态快照，用于 UI / 日志展示：
+        返回队列当前状态快照，用于 UI / 日志展示。
+
+        计数字段：
           - total            任务总数
           - scheduled        等待触发时间
           - pending          等待交互
@@ -631,38 +633,58 @@ class TaskQueue:
           - done             已完成
           - failed           失败
           - current          当前正在交互的任务名
-          - next_finish_in   最近的预计完成剩余时间（字符串）
-          - next_trigger_in  最近的预计触发剩余时间（字符串）
+
+        任务明细列表（空列表不放进快照，避免 UI 空行）：
+          - scheduled_tasks   等待触发的任务，按 trigger_time 升序 = 触发顺序，
+                              每项 "任务名 预计执行时刻"
+          - pending_tasks     等待交互的任务名，按执行顺序（FIFO）
+          - in_progress_tasks 已交互完成、等待游戏内确认的任务，
+                              每项 "任务名 预计完成时刻"
+          - failed_tasks      失败任务名
+
+        DONE 不出明细列表：任务对象不会被移除，无限 count 下列表会无限增长。
         """
         now = time.time()
         scheduled = pending = running = in_progress = 0
         done = failed = 0
-        next_finish_in = None
-        next_trigger_in = None
+
+        scheduled_items = []
+        pending_tasks = []
+        in_progress_items = []
+        failed_tasks = []
 
         for t in self.tasks:
+            name = t.name
             if t.status == TaskStatus.SCHEDULED:
                 scheduled += 1
-                if t.trigger_time > now:
-                    remain = t.trigger_time - now
-                    if next_trigger_in is None or remain < next_trigger_in:
-                        next_trigger_in = remain
+                scheduled_items.append(
+                    (t.trigger_time,
+                     f"{name} {self._fmt_clock(t.trigger_time, now)}")
+                )
             elif t.status == TaskStatus.PENDING:
                 pending += 1
+                pending_tasks.append(name)
             elif t.status == TaskStatus.RUNNING:
                 running += 1
             elif t.status == TaskStatus.IN_PROGRESS:
                 in_progress += 1
                 if t.estimated_finish_time is not None:
-                    remain = max(0, t.estimated_finish_time - now)
-                    if next_finish_in is None or remain < next_finish_in:
-                        next_finish_in = remain
+                    in_progress_items.append(
+                        (t.estimated_finish_time,
+                         f"{name} {self._fmt_clock(t.estimated_finish_time, now)}")
+                    )
+                else:
+                    in_progress_items.append((now, name))
             elif t.status == TaskStatus.DONE:
                 done += 1
             elif t.status == TaskStatus.FAILED:
                 failed += 1
+                failed_tasks.append(name)
 
-        return {
+        # 插入序跨工厂时可能偏离触发序，这里显式按 trigger_time 排。
+        scheduled_items.sort(key=lambda item: item[0])
+
+        snapshot = {
             "total": len(self.tasks),
             "scheduled": scheduled,
             "pending": pending,
@@ -674,15 +696,28 @@ class TaskQueue:
                 self.current_interaction.name
                 if self.current_interaction else "-"
             ),
-            "next_finish_in": (
-                f"{next_finish_in:.0f}s"
-                if next_finish_in is not None else "-"
-            ),
-            "next_trigger_in": (
-                f"{next_trigger_in:.0f}s"
-                if next_trigger_in is not None else "-"
-            ),
         }
+        if scheduled_items:
+            snapshot["scheduled_tasks"] = [s for _, s in scheduled_items]
+        if pending_tasks:
+            snapshot["pending_tasks"] = pending_tasks
+        if in_progress_items:
+            snapshot["in_progress_tasks"] = [s for _, s in in_progress_items]
+        if failed_tasks:
+            snapshot["failed_tasks"] = failed_tasks
+        return snapshot
+
+    @staticmethod
+    def _fmt_clock(ts, now):
+        """
+        时间戳 → 界面可读的预计时刻：
+          - 今天   → "14:32"
+          - 非今天 → "09-01 14:32"
+        """
+        lt = time.localtime(ts)
+        if time.localtime(now).tm_yday == lt.tm_yday:
+            return time.strftime("%H:%M", lt)
+        return time.strftime("%m-%d %H:%M", lt)
 
     def all_done(self):
         """
