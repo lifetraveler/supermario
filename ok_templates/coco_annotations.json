@@ -784,19 +784,6 @@
     {
       "id": 30,
       "image_id": 10,
-      "category_id": 18,
-      "bbox": [
-        55,
-        1495,
-        76,
-        92
-      ],
-      "area": 6992,
-      "iscrowd": 0
-    },
-    {
-      "id": 31,
-      "image_id": 10,
       "category_id": 32,
       "bbox": [
         794,
@@ -808,7 +795,7 @@
       "iscrowd": 0
     },
     {
-      "id": 32,
+      "id": 31,
       "image_id": 10,
       "category_id": 22,
       "bbox": [
@@ -818,6 +805,19 @@
         76
       ],
       "area": 6080,
+      "iscrowd": 0
+    },
+    {
+      "id": 32,
+      "image_id": 10,
+      "category_id": 18,
+      "bbox": [
+        53,
+        1493,
+        82,
+        88
+      ],
+      "area": 7216,
       "iscrowd": 0
     },
     {
@@ -2410,17 +2410,17 @@
     },
     {
       "id": 27,
-      "name": "gobal_tag_shop",
+      "name": "global_tag_shop",
       "supercategory": ""
     },
     {
       "id": 28,
-      "name": "gobal_tag_bag",
+      "name": "global_tag_bag",
       "supercategory": ""
     },
     {
       "id": 29,
-      "name": "gobal_tag_hero",
+      "name": "global_tag_hero",
       "supercategory": ""
     },
     {
@@ -2660,12 +2660,12 @@
     },
     {
       "id": 77,
-      "name": "gobal_tag_bag_equipment",
+      "name": "global_tag_bag_equipment",
       "supercategory": ""
     },
     {
       "id": 78,
-      "name": "gobal_tag_bag_other",
+      "name": "global_tag_bag_other",
       "supercategory": ""
     },
     {
@@ -2700,7 +2700,7 @@
     },
     {
       "id": 85,
-      "name": "gobal_tag_bag_other_1",
+      "name": "global_tag_bag_other_1",
       "supercategory": ""
     },
     {

@@ -5,7 +5,7 @@ from src.sg.tasks.league.LeagueTechDonateTask import LeagueTechDonateTask
 GenericQueueTask.register_task_type(
     key="League Tech Donate",
     task_class=LeagueTechDonateTask,
-    name_prefix="League Tech Donate",
+    name_prefix="League Tech Donate联盟捐赠",
     # 游戏限制：同一时刻只能打开一个捐献界面，不可并行
     default_count=0,
     default_requires_march_queue=False,     # 不占军队队列

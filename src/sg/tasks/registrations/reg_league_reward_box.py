@@ -6,7 +6,7 @@ from src.sg.tasks.league.LeagueRewardBoxTask import LeagueRewardBoxTask
 GenericQueueTask.register_task_type(
     key="League Reward Box",
     task_class=LeagueRewardBoxTask,
-    name_prefix="League Reward Box",
+    name_prefix="League Reward Box联盟宝箱",
     # 游戏限制：宝箱页面同一时刻只能打开一个，不支持并行
     default_count=1,
     default_requires_march_queue=False,     # 不占军队队列

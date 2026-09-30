@@ -5,7 +5,7 @@ from src.sg.tasks.world.HuntBeastTask import HuntBeastTask
 GenericQueueTask.register_task_type(
     key="Hunt Beast Troop",
     task_class=HuntBeastTask,
-    name_prefix="Hunt Beast",
+    name_prefix="Hunt Beast狩猎野怪",
     default_count=6,
     default_max_active=2,                   # 可并行
     default_requires_march_queue=True,      # 占军队队列（挑战发起进攻）

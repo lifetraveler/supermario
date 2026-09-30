@@ -5,7 +5,7 @@ from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
 GenericQueueTask.register_task_type(
     key="Hunt Scare Wolf Troop",
     task_class=HuntScareWolfTask,
-    name_prefix="Hunt Scare Wolf",
+    name_prefix="Hunt Scare Wolf恐狼",
     # 游戏限制：同一时刻只能打一只恐狼，所以不需要并行/多补
     default_count=0,
     default_requires_march_queue=True,      # 占军队队列

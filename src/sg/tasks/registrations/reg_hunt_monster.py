@@ -5,7 +5,7 @@ from src.sg.tasks.world.HuntMonsterTask import HuntMonsterTask
 GenericQueueTask.register_task_type(
     key="Hunt Monster Troop",
     task_class=HuntMonsterTask,
-    name_prefix="Hunt Monster",
+    name_prefix="Hunt Monster狩猎巨兽",
     default_count=6,
     default_max_active=2,
     default_requires_march_queue=True,      # 占军队队列

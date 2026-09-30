@@ -5,7 +5,7 @@ from src.sg.tasks.island.GatherIslandWaterTask import GatherIslandWaterTask
 GenericQueueTask.register_task_type(
     key="Gather Island Water",
     task_class=GatherIslandWaterTask,
-    name_prefix="Gather Island Water",
+    name_prefix="Gather Island Water海岛海水收集",
     # 采水不派部队，不占军队队列；生命之泉最多积累 10 小时，
     # 同一时刻只有一个岛要采，无并发必要
     default_count=1,

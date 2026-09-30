@@ -283,23 +283,23 @@ GLOBAL_TAG_LEAGUE = SceneElement(
 )
 
 # id: 27
-GOBAL_TAG_SHOP = SceneElement(
-    name="gobal_tag_shop",
-    resource_id="gobal_tag_shop",
+GLOBAL_TAG_SHOP = SceneElement(
+    name="global_tag_shop",
+    resource_id="global_tag_shop",
     desc="全局标签：商店",
 )
 
 # id: 28
-GOBAL_TAG_BAG = SceneElement(
-    name="gobal_tag_bag",
-    resource_id="gobal_tag_bag",
+GLOBAL_TAG_BAG = SceneElement(
+    name="global_tag_bag",
+    resource_id="global_tag_bag",
     desc="全局标签：背包",
 )
 
 # id: 29
-GOBAL_TAG_HERO = SceneElement(
-    name="gobal_tag_hero",
-    resource_id="gobal_tag_hero",
+GLOBAL_TAG_HERO = SceneElement(
+    name="global_tag_hero",
+    resource_id="global_tag_hero",
     desc="全局标签：英雄",
 )
 
@@ -586,22 +586,22 @@ ITEM_SCARE_WOLF_CLAW_BUTTON_USE = SceneElement(
 )
 
 # id: 77
-GOBAL_TAG_BAG_EQUIPMENT = SceneElement(
-    name="gobal_tag_bag_equipment",
-    resource_id="gobal_tag_bag_equipment",
+GLOBAL_TAG_BAG_EQUIPMENT = SceneElement(
+    name="global_tag_bag_equipment",
+    resource_id="global_tag_bag_equipment",
     desc="全局标签：背包-装备",
 )
 
 # id: 78
-GOBAL_TAG_BAG_OTHER = SceneElement(
-    name="gobal_tag_bag_other",
-    resource_id="gobal_tag_bag_other",
+GLOBAL_TAG_BAG_OTHER = SceneElement(
+    name="global_tag_bag_other",
+    resource_id="global_tag_bag_other",
     desc="全局标签：背包-其他",
 )
 # id: 78
-GOBAL_TAG_BAG_OTHER_1 = SceneElement(
-    name="gobal_tag_bag_other_1",
-    resource_id="gobal_tag_bag_other_1",
+GLOBAL_TAG_BAG_OTHER_1 = SceneElement(
+    name="global_tag_bag_other_1",
+    resource_id="global_tag_bag_other_1",
     desc="全局标签：背包-其他_1",
 )
 

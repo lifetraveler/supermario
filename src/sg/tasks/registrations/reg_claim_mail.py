@@ -6,7 +6,7 @@ from src.sg.tasks.daily.ClaimMailRewardTask import ClaimMailRewardTask
 GenericQueueTask.register_task_type(
     key="Claim Mail Reward",
     task_class=ClaimMailRewardTask,
-    name_prefix="Claim Mail Reward",
+    name_prefix="Claim Mail Reward邮件奖励",
     # 游戏限制：消息面板同一时刻只能打开一个，不支持并行
     default_count=1,
     default_requires_march_queue=False,     # 不占军队队列

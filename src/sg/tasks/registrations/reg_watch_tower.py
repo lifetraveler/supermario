@@ -5,7 +5,7 @@ from src.sg.tasks.world.WatchTowerEventTask import WatchTowerEventTask
 GenericQueueTask.register_task_type(
     key="Watch Tower Event",
     task_class=WatchTowerEventTask,
-    name_prefix="Watch Tower",
+    name_prefix="Watch Tower瞭望塔任务",
     # 不占军队队列：事件在瞭望塔界面内直接处理（挑战类自行管理队列占用）
     default_count=0,                        # 无限循环补任务，靠体力/无事件自然终止
     default_requires_march_queue=False,
