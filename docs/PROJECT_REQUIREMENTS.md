@@ -237,3 +237,38 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 ### 遗留 / 风险
 - PENDING 列表按插入序（FIFO）展示，未考虑 `next_retry_time` 未到的任务实际会被 `_pick_next` 跳过，展示顺序与真实执行顺序在重试场景下可能有偏差。
 - RUNNING 任务无明细列表（同时最多 1 个，`current` 字段已覆盖）。
+
+## [2026-09-30] 队列失败补建策略 + 一次性任务 + 定时任务（TaskQueue / TaskFactory）
+
+### 原始需求
+占用军队队列的任务（如集结巨兽 count=3、并行 1）在 #1 成功、#2 失败后，剩余次数永远建不出来：补任务只有 SUCCESS 后的 `_create_follower` 和一次性 `_replenish` 两条路径，任务 FAILED 后两条路都不触发；且 `all_done()` 里 `can_submit_more()` 恒 True，run() 主循环死转。要求：失败后可选"继续跑满次数"或"停止"（全局参数）。另新增两类任务：一次性任务（只建一个实例循环执行 Count 次）、定时任务（按 cron 表达式触发，支持 Count 次后停止）。
+
+### 变更点
+- **失败补建策略**：`TaskQueue.continue_after_failure`（队列级全局参数，默认 True=继续）。tick 末尾新增 `_check_stalled_factories()` 扫描"工厂名下全部任务已终态（DONE/FAILED）但 count 未用完"的卡死状态：继续 → 补建下一个（trigger=now+next_trigger_delay，失败次数也算进 count）；停止 → 标 `factory.exhausted`，剩余次数作废。修复 `all_done()` 永不满足导致 run() 死循环的问题。
+- **一次性任务**：`TaskFactory.one_shot`。整个工厂只建 1 个实例，`task.one_shot_remaining` 记剩余次数；SUCCESS/FAILED 终态后由 `_reschedule_for_next_run()` 扣减重排 PENDING（按 next_trigger_delay 延后），到 0 终态；不走 `_create_follower`。非阻塞自重排方案：每次执行走完整 SUCCESS→IN_PROGRESS→check_completed 链路，UI 刷新/暂停/停止随时可用。
+- **定时任务**：`TaskFactory.cron`（croniter 语法）。首次执行也等触发点——`_replenish` 建任务时按 cron 预置 `trigger_time`（SCHEDULED）；任务终态后用 croniter 算下一次触发点再排 SCHEDULED；执行 Count 次后停止；表达式非法在建任务时即标 exhausted + 任务 FAILED（防死循环）。与 next_trigger_delay / one_shot 互斥。
+- **配额记账拆分**：`submitted` 恢复"已 create 的任务实例数"原语义（所有工厂一致）；单实例复用型（one_shot/cron）的执行次数收敛由新字段 `finished_count` 承担（每终态 +1）。修正中间版本把 submitted 当"剩余次数"扣减导致 `can_submit_more()` 初始即 False、run() 主循环一次都不进、任务建不出来的问题。
+- **count=0 口径**：count=0 常规语义是无限，但一次性/定时任务复用单实例、无法表达无限（`finished_count < 0` 恒 False，任务建不出来）。约定：count=0 按 1 次处理，`can_submit_more()` 用 `finished_count < max(1, count)`，`one_shot_remaining` 预置 `max(1, count)`。
+- **时区修复**：croniter 传 float 时间戳按 UTC 解析（差 8 小时），统一走 `_next_cron_time()` 公共方法，本地 datetime 进出再转回纪元秒。
+- **配置层**：`register_task_type` 新增 `default_one_shot` / `default_cron`；每类型自动展开 "One Shot"（bool）/ "Cron"（文本，空=关）配置项并挂 Enabled 收起列表；`QueueTaskBase` 新增全局 "Continue After Failure" 开关（默认 True），run() 时注入队列。`add()` 尊重调用方已判定的 FAILED 终态不再覆盖为 PENDING。
+
+### 涉及文件
+- `src/scheduler/task_queue.py`（TaskFactory：one_shot/cron/finished_count/exhausted；TaskQueue：`_check_stalled_factories` / `_reschedule_for_next_run` / `_next_cron_time` / `_replenish` 预置 / `add` 终态尊重 / `can_submit_more` 拆分）
+- `src/sg/tasks/queue/QueueTaskBase.py`（全局 Continue After Failure 配置 + 注入）
+- `src/sg/tasks/queue/GenericQueueTask.py`（register_task_type 新参数 + One Shot/Cron 配置展开）
+- `pyproject.toml` / `uv.lock`（新增 croniter 依赖）
+- `tests/TestTaskQueueScheduling.py`（新增，14 用例）
+- `tests/TestGenericQueueConfig.py`（扩展 One Shot/Cron 配置回归）
+- `.agents/skills/automation-framework-arch/SKILL.md`（架构变更记录追加 5 条）
+
+### 测试
+- `tests/TestTaskQueueScheduling.py` 14 用例全绿：失败停止/继续两策略（原始 bug 场景 count=3 并行1 #1成#2败）、one_shot 单实例跑满/失败计入次数/count=0 端到端、cron 首次等触发点/时区秒级对齐守护/非法表达式建任务即 exhausted、配额衰减/无限模式/exhausted 语义。
+- `tests/TestGenericQueueConfig.py` 4 用例全绿（含 One Shot/Cron 配置声明与收起守护）。
+- run() 链路复核：one_shot count=3 → 建 1 实例执行 3 次（submitted=1, finished_count=3）收敛；cron count=2 → 两轮到点执行后收敛；初始 all_done=False 能进 while。
+- `tests/TestMain.py` 3 个失败经 stash 对照确认为存量问题（placeholder feature/OCR），与本次无关。
+
+### 遗留 / 风险
+- 单实例复用型工厂的 `finished_count` 是新概念：后续若有代码直接读工厂计数做业务判断，需区分 `submitted`（实例数）与 `finished_count`（已执行次数）。
+- cron 触发点按墙钟对齐（`*/5` = :00/:05/:10...），不是从启动时刻起算。
+- cron 首次执行等触发点：启动后任务立即出现在 SCHEDULED 列表，到下一个分钟/周期边界才跑第一次；想立即验证可用 `* * * * *`。
+- 实机未验证：GUI 面板 "Continue After Failure" / "One Shot" / "Cron" 三项配置的展示与持久化需真机确认（离屏测试只覆盖 schema 层）。

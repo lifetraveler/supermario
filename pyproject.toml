@@ -2,7 +2,9 @@
 name = "ok-script-app"
 version = "0.0.0"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "croniter>=6.2.4",
+]
 
 [project.optional-dependencies]
 # PySide6-Fluent-Widgets declares the full PySide6 metapackage, but the Qt app

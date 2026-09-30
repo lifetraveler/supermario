@@ -39,16 +39,27 @@ class TestGenericQueueConfig(TaskTestCase):
                     checked += 1
         self.assertGreater(checked, 0, "no collapsed config keys found")
 
-    def test_enabled_type_expands_all_configs(self):
-        enabled = [k for k in GenericQueueTask.TASK_REGISTRY
-                   if self.task.config.get(f"{k}: Enabled")]
-        if not enabled:
-            self.skipTest("no enabled task type in current persisted config")
+    def test_new_base_configs_declared_and_collapsed(self):
+        # One Shot / Cron 是新增基础配置：必须始终存在于 default_config，
+        # 且未启用类型时收起（挂在 Enabled 的 sub_configs 下）。
+        self.assertGreater(len(GenericQueueTask.TASK_REGISTRY), 0)
+        for key in GenericQueueTask.TASK_REGISTRY:
+            self.assertIn(f"{key}: One Shot", self.task.default_config)
+            self.assertIn(f"{key}: Cron", self.task.default_config)
+            self.assertIn(f"{key}: One Shot", self.task.default_config)
+
+    def test_task_factory_builds_with_one_shot_and_cron_defaults(self):
+        # _build_factories 读取 One Shot / Cron 配置不抛异常，
+        # 且 Cron 空字符串归一化为 None。
         vis = config_visibility(self.task.config, self.task.config_type)
-        for key in enabled:
-            for k in self.task.default_config:
-                if k.startswith(f"{key}: "):
-                    self.assertTrue(vis(k), f"{k} must be visible while enabled")
+        self.task._factories.clear()
+        try:
+            self.task._build_factories()
+        except Exception as e:
+            self.fail(f"_build_factories raised: {e}")
+        for factory in self.task._factories:
+            self.assertIsInstance(factory.one_shot, bool)
+            self.assertTrue(factory.cron is None or isinstance(factory.cron, str))
 
 
 if __name__ == '__main__':

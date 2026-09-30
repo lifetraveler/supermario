@@ -1,7 +1,11 @@
+import datetime
 import time
 import uuid
 
+from croniter import croniter
+
 from ok import Logger
+
 
 from src.scheduler.task_status import (
     InteractionResult,
@@ -28,6 +32,10 @@ class TaskFactory:
     next_trigger_delay    下一个同类任务的触发延迟（秒）
                           - 0      → 本任务完成时立即触发下一个
                           - 86400  → 本任务完成后 24h 触发下一个
+    one_shot              一次性任务：整个工厂只建 1 个实例，
+                          终态后按剩余次数自重排，不走 _create_follower
+    cron                  定时任务 cron 表达式：trigger_time 由 cron 计算
+                          下一次触发点，与 next_trigger_delay 互斥
 
     =========================================================
     建立策略（配合 TaskQueue）
@@ -49,6 +57,8 @@ class TaskFactory:
         next_trigger_delay=0.0,
         kwargs=None,
         name_prefix=None,
+        one_shot=False,
+        cron=None,
     ):
         self.task_class = task_class
         self.count = count
@@ -57,12 +67,28 @@ class TaskFactory:
         self.next_trigger_delay = next_trigger_delay
         self.kwargs = kwargs or {}
         self.name_prefix = name_prefix or task_class.__name__
-        self.submitted = 0
-        self.initial_filled = False      # ← 新增
+        self.one_shot = bool(one_shot)
+        self.cron = cron
+        self.exhausted = False
+        self.submitted = 0        # 已 create 的任务实例数（原语义）
+        self.finished_count = 0   # 单实例复用型已消耗的执行次数
+        self.initial_filled = False
         self.key = uuid.uuid4().hex[:8]
 
     def can_submit_more(self):
-        """是否还能继续提交新任务（只看 count 上限）"""
+        """
+        是否还能继续提交新任务（只看 count 上限与 exhausted 标记）。
+
+        submitted：已 create 的任务实例数（原语义，所有工厂一致）。
+        finished_count：已消耗的执行次数，仅单实例复用型（one_shot /
+        cron）使用——它们复用同一个实例，不产生新 create，每执行完
+        一次终态 +1；submitted == count 只说明实例已建，不代表次数
+        用完，因此单实例复用型以 finished_count 判断收敛。
+        """
+        if self.exhausted:
+            return False
+        if self.one_shot or self.cron:
+            return self.finished_count < max(1,self.count)
         if self.count > 0 and self.submitted >= self.count:
             return False
         return True
@@ -163,8 +189,17 @@ class TaskQueue:
         # 短暂等待避免下一轮立刻在旧帧上误判。
         self.restart_delay = 1.0
 
-    # --------------------------------------------------------
-    # 生命周期
+        # --------------------------------------------------------
+        # ====================================================
+        # 失败策略（队列级全局参数）
+        # ====================================================
+        # True（默认）：某工厂的全部任务都进入终态（DONE/FAILED）但
+        #   提交数还没用完 count 时，继续补建下一个任务——失败的次数
+        #   也算在 count 里，跑满为止。
+        # False：出现上述"卡死"局面时把工厂标记 exhausted，剩余次数
+        #   作废，该类型停止。
+        # 该值由 QueueTaskBase.run() 在构造队列时从 GUI 配置注入。
+        self.continue_after_failure = True
     # --------------------------------------------------------
 
     def start(self):
@@ -203,7 +238,11 @@ class TaskQueue:
             task.next_trigger_delay = 0.0
 
         now = time.time()
-        if task.trigger_time <= now:
+        if getattr(task, "status", None) == TaskStatus.FAILED:
+            # 调用方（cron 预置失败等）已判定终态，不要覆盖为 PENDING，
+            # 否则 all_done() 因非终态任务永远不收敛。
+            pass
+        elif task.trigger_time <= now:
             task.status = TaskStatus.PENDING
         else:
             task.status = TaskStatus.SCHEDULED
@@ -281,9 +320,8 @@ class TaskQueue:
           3. SCHEDULED → PENDING（trigger_time 到 + 有名额）
           4. 挑一个 PENDING 做交互
           5. 初始填充（每个工厂首次启动时执行一次）
+          6. 失败策略扫描：全部终态但次数未用完的工厂，按策略补建或停止
         """
-        if not self.started or self.paused:
-            return
 
         now = time.time()
 
@@ -304,6 +342,10 @@ class TaskQueue:
 
         # 5. 初始填充
         self._replenish()
+
+        # 6. 失败策略：补建 / 停止
+        self._check_stalled_factories(now)
+
 
     # --------------------------------------------------------
     # 内部逻辑
@@ -336,6 +378,8 @@ class TaskQueue:
             if ok:
                 task.status = TaskStatus.DONE
                 task.finished_at = now
+                # one_shot / cron：终态即触发下一次排程（次数在这里扣减）
+                self._reschedule_for_next_run(task, now)
                 logger.info(f"TaskQueue done: {task.name}")
             else:
                 task.status = TaskStatus.PENDING
@@ -411,7 +455,11 @@ class TaskQueue:
           - 切成 RUNNING
           - 调 task.run_interaction() 拿 (InteractionResult, wait_seconds)
           - 按结果更新状态
-          - SUCCESS 时立即建立同类的下一个任务
+          - SUCCESS：常规任务立即建立同类的下一个任务；
+            one_shot / cron 任务不建 follower（"一次"要等
+            check_completed() 确认，排程在终态路径里做）
+          - FAILED：先问 _reschedule_for_next_run（one_shot / cron
+            自重排），常规任务交由 tick 的 stalled 扫描按失败策略处理
         异常处理：
         - TaskRestartRequested → 走重排流程（见 _handle_restart_requested）
         - 其它异常            → 记 FAILED，不拖垮整个 tick
@@ -433,6 +481,8 @@ class TaskQueue:
             task.status = TaskStatus.FAILED
             task.last_error = str(e)
             self.current_interaction = None
+            # one_shot / cron 也可能在这里终态，统一交给重排判定
+            self._reschedule_for_next_run(task, time.time())
             return
 
         self.current_interaction = None
@@ -442,8 +492,11 @@ class TaskQueue:
             task.status = TaskStatus.IN_PROGRESS
             task.estimated_finish_time = time.time() + max(0.0, wait_seconds)
 
-            # 立即建立同类的下一个任务
-            self._create_follower(task)
+            # one_shot / cron 的下一次排程不在这里做：
+            # "一次"要等 check_completed() 确认真正完成才算数。
+            if not self._is_special_task(task):
+                # 立即建立同类的下一个任务
+                self._create_follower(task)
 
             logger.info(
                 f"TaskQueue wait: {task.name} in {wait_seconds:.1f}s"
@@ -458,9 +511,27 @@ class TaskQueue:
             )
             return
 
+        # 默认终态失败；one_shot / cron 由 _reschedule_for_next_run 改写去向
         task.status = TaskStatus.FAILED
-        logger.info(f"TaskQueue failed: {task.name} {task.last_error}")
-        
+        if not self._reschedule_for_next_run(task, time.time()):
+            logger.info(
+                f"TaskQueue failed: {task.name} {task.last_error}"
+            )
+            return
+        # one_shot / cron 已由 _reschedule_for_next_run 决定去向；
+        # 常规任务的失败由 tick 的 stalled 扫描按失败策略补建或停止。
+
+    def _is_special_task(self, task):
+        """
+        任务是否属于 one_shot / cron 工厂。
+        这两类任务的下一次排程由 _reschedule_for_next_run 负责，
+        与常规 follower / stalled 路径互斥。
+        """
+        factory = self._find_factory(task)
+        return factory is not None and (
+            factory.one_shot or factory.cron
+        )
+
     def _handle_restart_requested(self, task, exc):
         """
         处理 TaskRestartRequested：决定重排还是标记失败。
@@ -489,6 +560,8 @@ class TaskQueue:
 
         if task.restart_count > self.max_restart_count:
             task.status = TaskStatus.FAILED
+            # one_shot / cron 在这里终态同样要决定下一次去向
+            self._reschedule_for_next_run(task, time.time())
             logger.info(
                 f"TaskQueue restart exceeded: {task.name} "
                 f"已重排 {self.max_restart_count} 次仍失败，标记 FAILED: {exc}"
@@ -549,6 +622,158 @@ class TaskQueue:
             f"trigger in {next_task.trigger_time - time.time():.1f}s"
         )
 
+    # --------------------------------------------------------
+    # 失败策略 / 自重排
+    # --------------------------------------------------------
+
+    def _check_stalled_factories(self, now):
+        """
+        失败策略扫描：某工厂的全部任务都进入终态（DONE/FAILED），
+        但提交数还没用完 count → 该工厂"卡死"了。
+
+        背景：补任务只有两条路径——SUCCESS 后的 _create_follower
+        和一次性的 _replenish。任务 FAILED 后两条路都不触发，
+        剩余次数永远建不出来，且 all_done() 因 can_submit_more()
+        恒 True 而永远不满足，run() 主循环死转。
+
+        按 self.continue_after_failure 二选一：
+          True  → 补建下一个任务（trigger = now + next_trigger_delay），
+                  失败的次数也算在 count 里，跑满为止。
+          False → 标记 factory.exhausted = True，剩余次数作废，
+                  该类型停止；can_submit_more() 由此返回 False，
+                  all_done() 得以收敛。
+
+        判定细节：
+          - 只看本工厂名下的任务（factory_key 匹配）。
+          - 有 PENDING / RUNNING / IN_PROGRESS / SCHEDULED 在身
+            就不算卡死——SCHEDULED 覆盖 cron 下一次触发与
+            next_trigger_delay 延迟两种情形。
+          - exhausted / can_submit_more 已 False 的工厂直接跳过。
+          - one_shot / cron 工厂不走这里：它们的重排在
+            _reschedule_for_next_run 里做，且终态即"次数已减"，
+            不存在卡死形态。
+        """
+        for factory in self.factories:
+            if factory.exhausted or not factory.can_submit_more():
+                continue
+            if factory.one_shot or factory.cron:
+                continue
+
+            own = [
+                t for t in self.tasks
+                if getattr(t, "factory_key", None) == factory.key
+            ]
+            # 还没有任何任务（例如全部被手动移除）不算卡死，
+            # 交给初始填充 / follower 的正常路径处理。
+            if not own:
+                continue
+            if any(
+                t.status not in (TaskStatus.DONE, TaskStatus.FAILED)
+                for t in own
+            ):
+                continue
+
+            if self.continue_after_failure:
+                next_task = factory.create(
+                    self.executor, self.app, self.scene
+                )
+                next_task.trigger_time = now + factory.next_trigger_delay
+                self.add(next_task)
+                logger.info(
+                    f"TaskQueue continue after failure: {next_task.name}, "
+                    f"trigger in {factory.next_trigger_delay:.1f}s"
+                )
+            else:
+                factory.exhausted = True
+                logger.info(
+                    f"TaskQueue factory exhausted: {factory.name_prefix} "
+                    f"存在失败任务且失败后停止，剩余次数作废 "
+                    f"(submitted={factory.submitted}/{factory.count})"
+                )
+
+    def _reschedule_for_next_run(self, task, finished_at):
+        """
+        one_shot / cron 工厂的任务终态后的下一次排程。
+
+        返回 True 表示该任务由本方法处理（调用方不要再走
+        _create_follower / stalled 扫描）；False 表示与一次性 /
+        定时无关，走常规路径。
+
+        - one_shot：剩余次数记在 task.one_shot_remaining 上，
+          每次终态 -1；仍 >0 时重置为 PENDING（next_retry_time 按
+          next_trigger_delay 延后），同一实例循环执行。
+          次数收敛由 can_submit_more()（finished_count < count）兜住。
+          表达式非法时按 exhausted 处理并告警，绝不吞成无限循环。
+        """
+        factory = self._find_factory(task)
+        if factory is None:
+            return False
+
+        if factory.one_shot:
+            remaining = getattr(task, "one_shot_remaining", 1) - 1
+            task.one_shot_remaining = remaining
+            # one_shot 复用单实例、不再 create，把已执行的次数记到
+            # finished_count 上（submitted 保持"已 create 数"原语义），
+            # can_submit_more() 用 finished_count < count 判断收敛。
+            factory.finished_count += 1
+            if remaining > 0:
+                task.status = TaskStatus.PENDING
+                task.next_retry_time = finished_at + max(
+                    0.0, getattr(task, "next_trigger_delay", 0.0)
+                )
+                logger.info(
+                    f"TaskQueue one shot: {task.name} "
+                    f"剩 {remaining} 次"
+                )
+            else:
+                logger.info(
+                    f"TaskQueue one shot: {task.name} 次数用完"
+                )
+            return True
+
+        if factory.cron:
+            # cron 复用单实例，每执行一次消耗一个名额；
+            # 先解析表达式再扣名额，保证非法表达式一定留下 exhausted 标记。
+            # 时区处理见 _next_cron_time：float 会被 croniter 按 UTC 解析。
+            try:
+                next_time = self._next_cron_time(
+                    factory.cron, finished_at
+                )
+            except (KeyError, ValueError) as e:
+                factory.exhausted = True
+                logger.error(
+                    f"TaskQueue cron invalid: {factory.name_prefix} "
+                    f"expr={factory.cron!r}: {e}"
+                )
+                return True
+            factory.finished_count += 1
+            if not factory.can_submit_more():
+                logger.info(
+                    f"TaskQueue cron: {factory.name_prefix} "
+                    f"次数用完 ({factory.count})，不再排下一次"
+                )
+                return True
+            task.status = TaskStatus.SCHEDULED
+            task.trigger_time = next_time
+            logger.info(
+                f"TaskQueue cron: {task.name} 下次触发 "
+                f"{self._fmt_clock(next_time, time.time())}"
+            )
+            return True
+
+        return False
+
+    def _next_cron_time(self, expr, base_ts):
+        """
+        cron 表达式在 base_ts 之后的下一次触发点（本地纪元秒）。
+
+        croniter 传 float 时间戳会按 UTC 解析（差时区），必须用
+        本地 datetime 进出，再转回本地纪元秒。
+        表达式非法抛 ValueError / KeyError，由调用方决定降级方式。
+        """
+        itr = croniter(expr, datetime.datetime.fromtimestamp(base_ts))
+        return itr.get_next(datetime.datetime).timestamp()
+
     def _replenish(self):
         """
         初始填充：每个工厂启动时按"初始数量"一次性建满。
@@ -563,6 +788,7 @@ class TaskQueue:
         用独立标记 initial_filled 就完全避开这个问题。
 
         初始数量：
+        - 一次性任务   ：1（整个工厂共用一个实例循环执行）
         - 占军队队列型：min(max_active, count)，count=0 时取 max_active
         - 非占用型   ：1
         """
@@ -573,9 +799,35 @@ class TaskQueue:
             target = self._initial_count(factory)
             built = 0
             for _ in range(target):
-                if not factory.can_submit_more():
+                if factory.exhausted:
+                    break
+                if factory.count > 0 and factory.submitted >= factory.count:
                     break
                 task = factory.create(self.executor, self.app, self.scene)
+                if factory.one_shot:
+                    # 一次性任务的剩余次数记在实例上，
+                    # 终态时由 _reschedule_for_next_run 扣减。
+                    # count=0（无限）对一次性任务无意义，按 1 次处理，
+                    # 与 can_submit_more() 的 max(1, count) 口径一致。
+                    task.one_shot_remaining = max(1, factory.count)
+                if factory.cron:
+                    # 首次执行也等 cron 到点：建任务即按 cron 预置
+                    # trigger_time（SCHEDULED），而不是立即执行。
+                    # 表达式非法则标 exhausted，任务不会被激活。
+                    try:
+                        task.trigger_time = self._next_cron_time(
+                            factory.cron, time.time()
+                        )
+                    except (KeyError, ValueError) as e:
+                        factory.exhausted = True
+                        # 任务永远不会被激活，标 FAILED 让 all_done() 收敛
+                        task.status = TaskStatus.FAILED
+                        task.last_error = f"invalid cron expr: {factory.cron!r}"
+                        logger.error(
+                            f"TaskQueue cron invalid: "
+                            f"{factory.name_prefix} "
+                            f"expr={factory.cron!r}: {e}"
+                        )
                 self.add(task)
                 built += 1
 
@@ -584,8 +836,11 @@ class TaskQueue:
                 f"TaskQueue initial fill: {factory.name_prefix} "
                 f"built {built}/{target}"
             )
-        
+
     def _initial_count(self, factory):
+        # 一次性任务整个工厂只建 1 个实例
+        if factory.one_shot:
+            return 1
         if factory.requires_march_queue:
             if factory.count == 0:
                 return factory.max_active
@@ -726,6 +981,17 @@ class TaskQueue:
           - 有任何任务未到 DONE / FAILED → False
           - 有任何工厂还能继续提交 → False
           - 否则 True
+
+        失败策略下的收敛：
+          - continue_after_failure=True 时，卡死工厂会在 tick 的
+            stalled 扫描里补建下一个任务，can_submit_more 随 count
+            用尽而变 False，这里自然收敛。
+          - =False 时卡死工厂被标 exhausted，can_submit_more 直接
+            返回 False。修复了旧实现中"存在失败任务时本方法永远
+            不满足、run() 主循环死转"的问题。
+          - one_shot / cron 工厂：submitted 只记已 create 的实例数
+            （通常为 1），执行次数收敛看 finished_count——每终态 +1，
+            finished_count >= count 时 can_submit_more=False。
         """
         if not self.tasks and not self.factories:
             return False

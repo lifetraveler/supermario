@@ -24,25 +24,28 @@ from src.scheduler.task_queue import TaskQueue
 #                 └── 各业务薄壳（HuntMonsterTroop / DailyChest / ...）
 # =============================================================================
 class QueueTaskBase(SGBaseTask):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # name / description 是 UI 上看到的默认值。
-        # 子类一般会覆盖它们；如果忘了覆盖，UI 上会显示这个中性名称。
-        self.name = "Queue Task"
-        self.description = "队列模式任务基类。"
-
         # ---------------------------------------------------------------------
-        # 通用配置：所有走队列模式的任务都共享这一项。
+        # 通用配置：所有走队列模式的任务都共享这几项。
         # 业务特有的配置（等级、资源类型……）由子类自己追加。
         # ---------------------------------------------------------------------
         self.default_config.update({
             "Tick Interval": 1.0,
+            "Continue After Failure": True,
         })
         self.config_description.update({
             "Tick Interval": "调度间隔秒数。Scheduler tick interval.",
+            "Continue After Failure": (
+                "有任务失败时是否继续跑完剩余次数；"
+                "关闭则该类型队列立即停止。"
+                "Continue running remaining count after a failure; "
+                "off = stop that task type."
+            ),
         })
+        self.name = "Queue Task"
+        self.description = "队列模式任务基类。"
 
         # ---------------------------------------------------------------------
         # 运行时状态：
@@ -94,6 +97,10 @@ class QueueTaskBase(SGBaseTask):
             executor=self.executor,
             app=self._app,
             scene=self.scene,
+        )
+        # 全局失败策略：GUI 配置注入队列。
+        self.queue.continue_after_failure = bool(
+            self.config.get("Continue After Failure", True)
         )
         self.queue.start()
 

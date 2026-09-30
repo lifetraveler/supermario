@@ -211,6 +211,11 @@ register_task_type(extra_config={
 |---|---|---|
 | — | 初版：SimpleNamespace + getattr + factory 注入 | — |
 | — | `_wait_element` / `_wait_and_click` 支持单/多元素，共享 timeout 并行轮询 | 单元素调用完全兼容 |
+| 2026-09-30 | 失败补建策略：TaskQueue 新增 `_check_stalled_factories`（tick 末尾扫描"全部终态但 count 未用完"的卡死工厂）+ 队列级 `continue_after_failure`（默认 True=补建跑满次数；False=标 `factory.exhausted` 停止）。修复旧实现中任务 FAILED 后既无 follower 又无 replenish 导致剩余次数丢失、`all_done()` 永不满足、run() 死循环的问题。`TaskFactory.can_submit_more()` 尊重 exhausted | 默认行为=继续跑满，向后兼容；旧"失败即卡死"场景变为按策略收敛 |
+| 2026-09-30 | 一次性任务：`TaskFactory.one_shot`，整个工厂只建 1 个实例，`one_shot_remaining` 记剩余次数，终态（SUCCESS/FAILED）后由 `_reschedule_for_next_run` 扣减并重排 PENDING，到 0 终态；不走 `_create_follower`。注册参数 `default_one_shot`，GUI 配置 "{key}: One Shot" | 新增开关默认 False，不启用时调度行为与原来完全一致 |
+| 2026-09-30 | 定时任务：`TaskFactory.cron`（croniter 表达式），trigger_time 由 cron 计算，终态后排下一次触发（SCHEDULED），执行 Count 次后停止；非法表达式标 exhausted 防死循环。注册参数 `default_cron`，GUI 配置 "{key}: Cron"。与 next_trigger_delay / one_shot 互斥 | 新增配置默认空=关闭；常规任务行为不变 |
+| 2026-09-30 | 配额记账拆分：`submitted` 恢复"已 create 的任务实例数"原语义（所有工厂一致）；单实例复用型（one_shot/cron）的执行次数收敛改由新字段 `finished_count` 承担（每终态 +1，`finished_count >= count` 即收敛）。修正初版实现把 submitted 当"剩余次数"扣减导致 `can_submit_more()` 初始即 False、run() 主循环一次都不进、任务建不出来的问题 | submitted 语义与旧版完全一致；finished_count 为新增字段，常规任务恒为 0 不参与判断 |
+| 2026-09-30 | cron 首次执行也等触发点：`_replenish` 建任务时按 cron 预置 `trigger_time`（SCHEDULED），不再"启动即跑一次"；表达式非法在建任务时就标 exhausted + 任务 FAILED。抽取 `_next_cron_time()` 公共方法统一时区处理（croniter 传 float 会按 UTC 解析差时区，必须用本地 datetime 进出）；`add()` 尊重调用方已判定的 FAILED 终态不再覆盖 | cron 行为从"立即跑一次+周期"变为"严格按 cron 到点才跑"；one_shot 与常规任务行为不变 |
 
 **变更前必问**：
 
