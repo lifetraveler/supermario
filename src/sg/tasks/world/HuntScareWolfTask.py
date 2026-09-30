@@ -27,9 +27,9 @@ from src.sg.element.overall.tasklist.worldtask.troop.rally import Rally
 
 # ---- 背包相关元素（路径按项目实际结构调整） ----
 from src.sg.scene.elements import (
-    GOBAL_TAG_BAG,                    # 打开背包
-    GOBAL_TAG_BAG_OTHER,          # 背包"其他"标签
-    GOBAL_TAG_BAG_OTHER_1,
+    GLOBAL_TAG_BAG,                    # 打开背包
+    GLOBAL_TAG_BAG_OTHER,          # 背包"其他"标签
+    GLOBAL_TAG_BAG_OTHER_1,
     ITEM_SCARE_WOLF_CLAW,               # 狼爪道具图标
     ITEM_SCARE_WOLF_CLAW_BUTTON_USE,    # 狼爪"使用"按钮
     WORLD_RESOURCE_SCARE_WOLF,
@@ -141,14 +141,14 @@ class HuntScareWolfTask(SGBaseTask):
         """
         # 打开背包
         if not self._wait_and_click(
-            GOBAL_TAG_BAG, name="背包按钮", timeout=6.0
+            GLOBAL_TAG_BAG, name="背包按钮", timeout=6.0
         ):
             return False
         self._sleep(0.5)
 
         # 切换到"其他"标签
         if not self._wait_and_click(
-            [GOBAL_TAG_BAG_OTHER,GOBAL_TAG_BAG_OTHER_1] ,name="背包-其他标签", timeout=6.0
+            [GLOBAL_TAG_BAG_OTHER,GLOBAL_TAG_BAG_OTHER_1] ,name="背包-其他标签", timeout=6.0
         ):
             return False
         self._sleep(0.5)

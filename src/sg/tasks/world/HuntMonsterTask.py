@@ -205,7 +205,7 @@ class HuntMonsterTask(SGBaseTask):
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
 
-        wait_seconds = self.rally.estimate_wait()
+        wait_seconds = self.rally.estimate_wait(self.extra_config)
         self.log_info(
             f"========== 巨兽集结完成，"
             f"预计 {wait_seconds:.1f}s 后完成 =========="
