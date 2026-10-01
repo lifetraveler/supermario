@@ -8,6 +8,7 @@ description: |
   - 防止 AI 在架构未变更的情况下臆造新机制
   本 Skill 不指导具体业务步骤编写，业务开发看 Skill B。
 trigger_keywords:
+  - 架构任务
   - 架构
   - 分层
   - TaskQueue
@@ -216,6 +217,8 @@ register_task_type(extra_config={
 | 2026-09-30 | 定时任务：`TaskFactory.cron`（croniter 表达式），trigger_time 由 cron 计算，终态后排下一次触发（SCHEDULED），执行 Count 次后停止；非法表达式标 exhausted 防死循环。注册参数 `default_cron`，GUI 配置 "{key}: Cron"。与 next_trigger_delay / one_shot 互斥 | 新增配置默认空=关闭；常规任务行为不变 |
 | 2026-09-30 | 配额记账拆分：`submitted` 恢复"已 create 的任务实例数"原语义（所有工厂一致）；单实例复用型（one_shot/cron）的执行次数收敛改由新字段 `finished_count` 承担（每终态 +1，`finished_count >= count` 即收敛）。修正初版实现把 submitted 当"剩余次数"扣减导致 `can_submit_more()` 初始即 False、run() 主循环一次都不进、任务建不出来的问题 | submitted 语义与旧版完全一致；finished_count 为新增字段，常规任务恒为 0 不参与判断 |
 | 2026-09-30 | cron 首次执行也等触发点：`_replenish` 建任务时按 cron 预置 `trigger_time`（SCHEDULED），不再"启动即跑一次"；表达式非法在建任务时就标 exhausted + 任务 FAILED。抽取 `_next_cron_time()` 公共方法统一时区处理（croniter 传 float 会按 UTC 解析差时区，必须用本地 datetime 进出）；`add()` 尊重调用方已判定的 FAILED 终态不再覆盖 | cron 行为从"立即跑一次+周期"变为"严格按 cron 到点才跑"；one_shot 与常规任务行为不变 |
+| 2026-10-01 | 工厂简览日志：QueueTaskBase 新增 `_log_factories_summary()`，run() 构建工厂后输出单行 `[Factories] N 个: name_prefix(x count,active max_active[,one_shot][,cron=…][,march]) …`，作为启动第一条汇总。原来散在 `_build_factories` 里的逐条 `[Factory]` 日志删除，逐条详情由 `TaskQueue.add_factory` 保留 | 纯日志新增；调度逻辑不变 |
+| 2026-10-01 | 配置折叠开关：每类任务新增 "{key}: Expanded"（**默认 True=展开**），sub_configs 两级链控 Enabled→Expanded→详情（Count/Max Active/Next Trigger Delay/One Shot/Cron/extra_config）。Enabled=False 全收起；Enabled=True 时由 Expanded 决定详情显隐。旧配置文件里的 Expanded: false（旧默认值迁移产物）已在 configs/UnifiedQueue.json 手工翻为 true | 新增 bool 默认 True（展开）；Config.verify_config 自动迁移旧配置文件缺失键；_build_factories 不读 Expanded，调度行为不变 |
 
 **变更前必问**：
 

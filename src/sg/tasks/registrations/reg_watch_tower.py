@@ -20,7 +20,7 @@ GenericQueueTask.register_task_type(
     ),
     extra_config={
         "Beast Queue Limit": {
-            "attr": "beast_queue_limit",
+    "attr": "beast_queue_limit",
             "default": 1,
             "desc": "挑战类事件最多占用的军队队列数，0 表示跳过挑战类。",
         },

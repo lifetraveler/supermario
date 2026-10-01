@@ -9,6 +9,7 @@ description: |
   - 为新任务注册配置
   前置：框架架构稳定，见 Skill A。本 Skill 只指导业务开发。
 trigger_keywords:
+  - 业务任务
   - 新任务
   - 新增任务
   - 开发任务

@@ -112,6 +112,7 @@ class QueueTaskBase(SGBaseTask):
         self._build_factories()
         for factory in self._factories:
             self.queue.add_factory(factory)
+        self._log_factories_summary()
 
         tick_interval = float(self.config.get("Tick Interval", 1.0))
 
@@ -159,3 +160,21 @@ class QueueTaskBase(SGBaseTask):
         for key, value in snapshot.items():
             label = key.replace("_", " ").title()
             self.info_set(label, value)
+
+    def _log_factories_summary(self):
+        """
+        启动首行：所有工厂的单行简览（key/count/max_active/mode），
+        便于一眼核对本次调度计划。
+        逐条详情由 add_factory / [Factory]（如子类有）在后续行输出。
+        """
+        if not self._factories:
+            self.log_info("[Factories] 0 个: 未启用任何任务类型")
+            return
+        summary = " | ".join(
+            f"{f.name_prefix}(x{f.count},active{f.max_active}"
+            f"{',one_shot' if f.one_shot else ''}"
+            f"{f',cron={f.cron}' if f.cron else ''}"
+            f"{',march' if f.requires_march_queue else ''})"
+            for f in self._factories
+        )
+        self.log_info(f"[Factories] {len(self._factories)} 个: {summary}")

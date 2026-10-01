@@ -325,12 +325,6 @@
       "height": 1600
     },
     {
-      "id": 99,
-      "file_name": "95.png",
-      "width": 900,
-      "height": 1600
-    },
-    {
       "id": 100,
       "file_name": "96.png",
       "width": 900,
@@ -399,6 +393,48 @@
     {
       "id": 112,
       "file_name": "23.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 113,
+      "file_name": "24.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 114,
+      "file_name": "25.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 115,
+      "file_name": "26.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 116,
+      "file_name": "27.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 117,
+      "file_name": "28.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 118,
+      "file_name": "29.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 119,
+      "file_name": "30.png",
       "width": 900,
       "height": 1600
     }
@@ -1810,41 +1846,41 @@
     },
     {
       "id": 109,
-      "image_id": 99,
-      "category_id": 109,
+      "image_id": 113,
+      "category_id": 143,
       "bbox": [
-        111,
-        25,
-        100,
-        51
+        645,
+        1002,
+        173,
+        57
       ],
-      "area": 5100,
+      "area": 9861,
       "iscrowd": 0
     },
     {
       "id": 110,
-      "image_id": 99,
-      "category_id": 110,
+      "image_id": 113,
+      "category_id": 109,
       "bbox": [
-        727,
-        305,
-        114,
-        94
+        109,
+        25,
+        104,
+        55
       ],
-      "area": 10716,
+      "area": 5720,
       "iscrowd": 0
     },
     {
       "id": 111,
-      "image_id": 99,
-      "category_id": 111,
+      "image_id": 113,
+      "category_id": 110,
       "bbox": [
-        623,
-        959,
-        185,
-        55
+        729,
+        305,
+        110,
+        90
       ],
-      "area": 10175,
+      "area": 9900,
       "iscrowd": 0
     },
     {
@@ -1943,12 +1979,12 @@
       "image_id": 104,
       "category_id": 119,
       "bbox": [
-        109,
+        107,
         937,
-        114,
+        116,
         110
       ],
-      "area": 12540,
+      "area": 12760,
       "iscrowd": 0
     },
     {
@@ -2274,6 +2310,84 @@
         61
       ],
       "area": 8967,
+      "iscrowd": 0
+    },
+    {
+      "id": 145,
+      "image_id": 114,
+      "category_id": 111,
+      "bbox": [
+        349,
+        358,
+        208,
+        80
+      ],
+      "area": 16640,
+      "iscrowd": 0
+    },
+    {
+      "id": 146,
+      "image_id": 115,
+      "category_id": 146,
+      "bbox": [
+        708,
+        1127,
+        126,
+        55
+      ],
+      "area": 6930,
+      "iscrowd": 0
+    },
+    {
+      "id": 147,
+      "image_id": 116,
+      "category_id": 147,
+      "bbox": [
+        375,
+        1117,
+        165,
+        78
+      ],
+      "area": 12870,
+      "iscrowd": 0
+    },
+    {
+      "id": 148,
+      "image_id": 117,
+      "category_id": 148,
+      "bbox": [
+        24,
+        729,
+        334,
+        43
+      ],
+      "area": 14362,
+      "iscrowd": 0
+    },
+    {
+      "id": 149,
+      "image_id": 118,
+      "category_id": 149,
+      "bbox": [
+        507,
+        1231,
+        112,
+        84
+      ],
+      "area": 9408,
+      "iscrowd": 0
+    },
+    {
+      "id": 150,
+      "image_id": 119,
+      "category_id": 150,
+      "bbox": [
+        353,
+        630,
+        189,
+        153
+      ],
+      "area": 28917,
       "iscrowd": 0
     }
   ],
@@ -2830,7 +2944,7 @@
     },
     {
       "id": 111,
-      "name": "city_daily_free_leader_box_1",
+      "name": "city_daily_free_leader_page_button_geted",
       "supercategory": ""
     },
     {
@@ -2989,6 +3103,11 @@
       "supercategory": ""
     },
     {
+      "id": 143,
+      "name": "city_daily_free_leader_page_button_get_reward",
+      "supercategory": ""
+    },
+    {
       "id": 144,
       "name": "hero_tag_special_training_camp_entry",
       "supercategory": ""
@@ -2996,6 +3115,31 @@
     {
       "id": 145,
       "name": "global_mark_reward_geted_quit_tip",
+      "supercategory": ""
+    },
+    {
+      "id": 146,
+      "name": "global_tag_march_button_get",
+      "supercategory": ""
+    },
+    {
+      "id": 147,
+      "name": "global_tag_march_button_get_next",
+      "supercategory": ""
+    },
+    {
+      "id": 148,
+      "name": "global_task_list_pet_search_treasure_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 149,
+      "name": "item_elite_rebels_icon",
+      "supercategory": ""
+    },
+    {
+      "id": 150,
+      "name": "world_resource_elite_rebels",
       "supercategory": ""
     }
   ]

@@ -126,26 +126,28 @@ class GenericQueueTask(QueueTaskBase):
         """
         遍历注册表，为每个注册项在 GUI 上生成配置项。
 
-        每个注册项固定生成四项：
+        每个注册项固定生成六项：
             "{key}: Enabled"            —— 是否启用
+            "{key}: Expanded"           —— 展开/收起详情（仅展示层）
             "{key}: Count"              —— 提交次数
             "{key}: Max Active"         —— 并发上限
             "{key}: Next Trigger Delay" —— 任务间隔时间
+            （另有 One Shot / Cron 与 extra_config 各若干项）
 
-        然后遍历 extra_config，为业务特有参数再生成若干项。
-        这样业务方只需在注册时声明"我有哪些参数"，
-        不用手写 default_config / config_description / config_type。
-
-        收起/展开：
-            通过 ok-script 的 sub_configs 机制挂在 Enabled 开关上：
-            未启用时 Count / Max Active / Next Trigger Delay 与
-            extra_config 全部收起，勾选 Enabled 后才展开。
-            配置值始终存在，收起只是展示层行为，不影响 _build_factories。
+        收起/展开（两级 sub_configs 链控，仅展示层，配置值始终持久化，
+        不影响 _build_factories；Expanded 默认 True=展开）：
+            Enabled=False           → 全部收起，只留开关本身
+            Enabled=True, Expanded  → Count / Max Active / One Shot /
+                                      Cron / extra_config 展开
+            Enabled=True, 收起      → 只显示 Expanded 开关
+        ok-script 的 sub_configs 支持"父配置取值 → 子配置列表"，
+        子配置自身也可再挂 sub_configs，递归生效。
         """
         for key, meta in self.TASK_REGISTRY.items():
             prefix = key
             # ---- 基础配置 ----
             self.default_config[f"{prefix}: Enabled"] = False
+            self.default_config[f"{prefix}: Expanded"] = True
             self.default_config[f"{prefix}: Count"] = meta["default_count"]
             self.default_config[f"{prefix}: Max Active"] = meta["default_max_active"]
             self.default_config[f"{prefix}: Next Trigger Delay"] = meta["default_next_trigger_delay"]
@@ -154,6 +156,10 @@ class GenericQueueTask(QueueTaskBase):
 
             self.config_description[f"{prefix}: Enabled"] = (
                 f"启用「{meta['description']}」"
+            )
+            self.config_description[f"{prefix}: Expanded"] = (
+                "展开/收起本任务的详细配置，默认展开。"
+                "Expand/collapse details, expanded by default."
             )
             self.config_description[f"{prefix}: Count"] = "执行次数，0 = 无限"
             self.config_description[f"{prefix}: Max Active"] = "并发上限"
@@ -167,12 +173,8 @@ class GenericQueueTask(QueueTaskBase):
                 "启用后按时间触发，Count 次后停止。"
                 "Cron schedule (croniter), empty = off."
             )
-            # ---- 收起/展开：未启用时把其余配置全部挂在 Enabled 下 ----
-            # ok-script 约定：config_type[key]["sub_configs"] 声明
-            # "父配置取值 → 显示哪些子配置"。Enabled 是 bool 开关，
-            # False → 不显示任何子配置，True → 全部展开。
-            # 仅展示层联动，配置值始终持久化，不影响 _build_factories。
-            collapsed = [
+            # ---- 详情项：挂在 Expanded 开关下，勾选才显示 ----
+            details = [
                 f"{prefix}: Count",
                 f"{prefix}: Max Active",
                 f"{prefix}: Next Trigger Delay",
@@ -188,10 +190,14 @@ class GenericQueueTask(QueueTaskBase):
                 if "type" in extra:
                     # 例如下拉框、多选、文本框……
                     self.config_type[full] = extra["type"]
-                collapsed.append(full)
+                details.append(full)
 
+            self.config_type[f"{prefix}: Expanded"] = {
+                "sub_configs": {True: details},
+            }
+            # ---- 两级链控：Enabled 只直接控制 Expanded ----
             self.config_type[f"{prefix}: Enabled"] = {
-                "sub_configs": {True: collapsed},
+                "sub_configs": {True: [f"{prefix}: Expanded"]},
             }
 
     # =========================================================================
@@ -224,11 +230,6 @@ class GenericQueueTask(QueueTaskBase):
                 # extra 里声明了 attr 就用 attr，没声明就退回原 key（保持兼容）
                 attr = extra.get("attr", extra_key)
                 kwargs[attr] = self.config.get(f"{key}: {extra_key}")
-
-            self.log_info(
-                f"[Factory] key={key}, count={count}, "
-                f"max_active={max_active}, one_shot={one_shot}, cron={cron}"
-            )
 
             self._factories.append(TaskFactory(
                 task_class=meta["task_class"],
