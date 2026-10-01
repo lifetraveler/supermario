@@ -272,3 +272,53 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - cron 触发点按墙钟对齐（`*/5` = :00/:05/:10...），不是从启动时刻起算。
 - cron 首次执行等触发点：启动后任务立即出现在 SCHEDULED 列表，到下一个分钟/周期边界才跑第一次；想立即验证可用 `* * * * *`。
 - 实机未验证：GUI 面板 "Continue After Failure" / "One Shot" / "Cron" 三项配置的展示与持久化需真机确认（离屏测试只覆盖 schema 层）。
+
+---
+
+## [2026-10-01] 六项业务任务（讨伐领取 / 统帅奖励 / 宠物寻宝 / 恐狼滑动找道具 / 叛军精锐 / 集结选队门控）
+
+### 原始需求
+待办任务.txt 任务区 1–6：
+1. 主界面讨伐：GOBAL_TAG_MARCH 进讨伐界面 → 两层领取按钮（global_tag_march_button_get / _next）→ 退出回主界面。
+2. 统帅领取奖励：city_daily_free_leader_entry 进统帅界面 → 匹配 leaderbox 点击 → 弹窗匹配 page_button_geted（已领取）后退出 → 匹配 page_button_get_reward 领取 → "获得奖励"弹窗后结束 → 回主界面。
+3. 宠物训练：global_event_task_need_handle 展开任务列表 → 上滑找 global_task_list_pet_search_treasure_entry → 宝藏界面全屏循环匹配 pet_symbol_treasure_hunt_1/_2（timeout=2、不重试）→ 点击后点 pet_button_search_treasure 派遣 → 找不到为止 → 回主界面。
+4. 恐狼：背包里找不到狼爪时向上滑动，直到匹配到。
+5. 叛军精锐：与恐狼同构，道具换 item_elite_rebels_icon，跳转后点击 world_resource_elite_rebels，接集结流程。
+6. 所有集结流程：并发队列=1 时才在 rally apply 调整军队配置时按 team_element（TEAM_HUNTING 省体力队）选队；并发>1 跳过 select_team。
+
+### 变更点
+- **元素同步**（按 Skill C 规则，resource_id 原样照抄 coco categories，只追加不删旧）：elements.py 新增 13 个 SceneElement——讨伐 2（GLOBAL_TAG_MARCH_BUTTON_GET / _GET_NEXT）、统帅 5（CITY_DAILY_FREE_LEADER_ENTRY / _TITLE / _BOX / _PAGE_BUTTON_GETED / _PAGE_BUTTON_GET_REWARD）、宠物 4（GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY / PET_SYMBOL_TREASURE_HUNT_1 / _2 / PET_BUTTON_SEARCH_TREASURE）、叛军 2（ITEM_ELITE_REBELS_ICON / WORLD_RESOURCE_ELITE_REBELS）。
+- **新增 PunishClaimTask**（daily/）：回主界面 → 点行军标签 → 两层领取按钮全屏检索点击 → ESC 回主界面；注册 key="Punish Claim"，count=1，不占队列，delay=86400。
+- **新增 LeaderRewardTask**（daily/）：进统帅界面（标题确认）→ 循环领取（≤5 轮：找 box 图标 → 点击 → geted 弹窗=已领过点击退出 / get_reward=领取 → "获得奖励"tip 退出）→ 回主界面；注册 key="Leader Reward"，count=1，不占队列，delay=86400。
+- **新增 PetTreasureHuntTask**（daily/）：复用岛屿采水的任务列表滑动模式（swipe_relative 上滑 1/4 屏 ×8）找宠物寻宝入口 → 循环派遣（_wait_element timeout=2 with_recovery=False 匹配 _1/_2 标志 → 点击 → pet_button_search_treasure 派遣）→ 找不到即正常结束 → 回主界面；注册 key="Pet Treasure Hunt"，count=1，不占队列，delay=86400。
+- **HuntScareWolfTask**：新增 `bag_scroll_max=8` 常量与 `_scroll_find_item()`（全屏匹配 → 找不到上滑 1/4 屏重试）；`_use_scare_wolf_claw` 找狼爪改走滑动查找。
+- **新增 HuntEliteRebelsTask**（world/）：与恐狼同构——道具换 ITEM_ELITE_REBELS_ICON（同样滑动查找）、"使用"按钮沿用 ITEM_SCARE_WOLF_CLAW_BUTTON_USE（道具使用按钮通用）、资源点击先特征匹配 WORLD_RESOURCE_ELITE_REBELS 失败再按 coco bbox 兜底（使用道具后游戏强制居中），之后 rally.execute 集结 + estimate_wait；注册 key="Hunt Elite Rebels Troop"，count=0（无限），占队列，delay=0。
+- **集结选队门控**：`TaskFactory.create()` 新增把 `max_active` 注入任务实例（kwargs 显式设置时以 kwargs 为准）；`RallyConfig.select_team()` 开头检查 `task.max_active > 1` → 跳过选队（省体力队伍只有一支，多路集结共用会互相覆盖配置），=1 且 team_element 非 None 才执行选队。HuntMonster / HuntScareWolf / HuntEliteRebels 三个集结任务自动生效，无需改任务代码。
+
+### 修复点
+- 无（全部为新任务/新行为，未改动既有失败路径）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（新增 13 元素）
+- `src/sg/tasks/daily/PunishClaimTask.py`（新增）
+- `src/sg/tasks/daily/LeaderRewardTask.py`（新增）
+- `src/sg/tasks/daily/PetTreasureHuntTask.py`（新增）
+- `src/sg/tasks/world/HuntScareWolfTask.py`（滑动找道具）
+- `src/sg/tasks/world/HuntEliteRebelsTask.py`（新增）
+- `src/sg/tasks/registrations/reg_punish_claim.py` / `reg_leader_reward.py` / `reg_pet_treasure.py` / `reg_hunt_elite_rebels.py`（新增）
+- `src/scheduler/task_queue.py`（TaskFactory.create 注入 max_active）
+- `src/sg/element/overall/tasklist/worldtask/troop/rally_config.py`（select_team 按 max_active 门控）
+
+### 测试
+- 全部触及文件 `py_compile` 通过。
+- 导入/注册验证：13 个新元素 resource_id 与 coco categories 逐一比对一致；TASK_REGISTRY 13 项，4 个新 key 全部注册成功且参数正确（Punish Claim/Leader Reward/Pet Treasure Hunt count=1 不占队列，Hunt Elite Rebels Troop count=0 占队列）。
+- select_team 门控单测（FakeTask）：max_active=2 跳过不点击；=1 且配置队伍执行点击；=1 未配置队伍跳过。
+- TaskFactory.create 注入单测：max_active=2 注入实例；kwargs 显式 max_active=5 优先。
+- `tests/TestTaskQueueScheduling.py` + `tests/TestGenericQueueConfig.py` 21 用例全绿（框架层无回归）。
+
+### 遗留 / 风险
+- 实机未验证：三个新每日任务与叛军精锐的全流程需游戏前台确认；新元素特征图已录入（coco 已含全部 13 项），但识别率未实测。
+- 叛军精锐"使用"按钮复用恐狼的 item_scare_wolf_claw_button_use 模板：若游戏为不同道具渲染不同的使用按钮样式，需拆独立元素。
+- LeaderRewardTask 的"已领取"分支点击 geted 标志本身作为退出动作（用户原文"匹配leaderboxgeted后点击退出"）；若该标志不可点击需改为 ESC。
+- PetTreasureHuntTask 派遣后未处理可能的"派遣成功"弹窗（用户未提及）；实机若发现弹窗遮挡，需在 dispatch 循环里加 popup 处理。
+- 恐狼/叛军精锐的 `_scroll_find_item` 为类级复制（两处 ~25 行）；第三处出现时应上移到 SGBaseTask 或公共 helper。

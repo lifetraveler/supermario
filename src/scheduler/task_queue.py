@@ -112,6 +112,12 @@ class TaskFactory:
             setattr(task, k, v)
             setattr(task.extra_config, k, v)
 
+        # 并发上限注入任务实例（kwargs 显式设置时以 kwargs 为准）。
+        # RallyConfig.select_team 依据它决定是否切换省体力队伍：
+        # 并发=1 选队，并发>1 跳过（省体力队伍只有一支，多路共用会冲突）。
+        if "max_active" not in self.kwargs:
+            task.max_active = self.max_active
+
         # 工厂级别的 next_trigger_delay 覆盖任务默认值，
         # 但如果用户通过 kwargs 显式设了就不覆盖
         if "next_trigger_delay" not in self.kwargs:

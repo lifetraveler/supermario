@@ -437,6 +437,18 @@
       "file_name": "30.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 120,
+      "file_name": "31.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 121,
+      "file_name": "35.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -2389,6 +2401,58 @@
       ],
       "area": 28917,
       "iscrowd": 0
+    },
+    {
+      "id": 151,
+      "image_id": 120,
+      "category_id": 151,
+      "bbox": [
+        83,
+        1367,
+        181,
+        51
+      ],
+      "area": 9231,
+      "iscrowd": 0
+    },
+    {
+      "id": 152,
+      "image_id": 120,
+      "category_id": 152,
+      "bbox": [
+        270,
+        1373,
+        53,
+        41
+      ],
+      "area": 2173,
+      "iscrowd": 0
+    },
+    {
+      "id": 153,
+      "image_id": 121,
+      "category_id": 153,
+      "bbox": [
+        635,
+        482,
+        171,
+        76
+      ],
+      "area": 12996,
+      "iscrowd": 0
+    },
+    {
+      "id": 154,
+      "image_id": 121,
+      "category_id": 154,
+      "bbox": [
+        662,
+        437,
+        122,
+        43
+      ],
+      "area": 5246,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -3140,6 +3204,26 @@
     {
       "id": 150,
       "name": "world_resource_elite_rebels",
+      "supercategory": ""
+    },
+    {
+      "id": 151,
+      "name": "global_page_player_stamina",
+      "supercategory": ""
+    },
+    {
+      "id": 152,
+      "name": "global_page_player_stamina_button_add",
+      "supercategory": ""
+    },
+    {
+      "id": 153,
+      "name": "global_page_player_stamina_add_waittime",
+      "supercategory": ""
+    },
+    {
+      "id": 154,
+      "name": "global_page_player_stamina_add_next_tip",
       "supercategory": ""
     }
   ]

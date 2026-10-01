@@ -21,6 +21,14 @@ class RallyConfig:
     # --------------------------------------------------------
 
     def select_team(self) -> bool:
+        # 并发>1 时跳过选队：省体力队伍（如 TEAM_HUNTING）只有一支，
+        # 多路集结共用同一步会互相覆盖配置；并发=1 才按配置选队。
+        max_active = getattr(self.task, "max_active", 1) or 1
+        if max_active > 1:
+            self.task.log_info(
+                f"RallyConfig: 并发={max_active} > 1，跳过选择队伍"
+            )
+            return True
         if self.team_element is None:
             self.task.log_info("RallyConfig: 未配置队伍，跳过")
             return True

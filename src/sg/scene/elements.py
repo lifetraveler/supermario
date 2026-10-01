@@ -846,3 +846,110 @@ LEAGUE_REWARD_BOX_BUTTON_GET_ITEM = SceneElement(
     resource_id="league_reward_box_button_get_item",
     desc="联盟宝箱：条目领取按钮（可领取标志）",
 )
+
+# ============================================================
+# 讨伐领取（Punish Claim）
+# ============================================================
+
+# 行军面板：讨伐领取按钮（第一层）
+GLOBAL_TAG_MARCH_BUTTON_GET = SceneElement(
+    name="global_tag_march_button_get",
+    resource_id="global_tag_march_button_get",
+    desc="讨伐：行军面板领取按钮",
+)
+
+# 讨伐弹窗：下一层领取按钮
+GLOBAL_TAG_MARCH_BUTTON_GET_NEXT = SceneElement(
+    name="global_tag_march_button_get_next",
+    resource_id="global_tag_march_button_get_next",
+    desc="讨伐：弹窗下一层领取按钮",
+)
+
+# ============================================================
+# 统帅领取奖励（Leader Reward）
+# ============================================================
+
+# city 主界面：统帅（每日免费）入口
+CITY_DAILY_FREE_LEADER_ENTRY = SceneElement(
+    name="city_daily_free_leader_entry",
+    resource_id="city_daily_free_leader_entry",
+    desc="统帅：主界面入口",
+)
+
+# 统帅界面：标题
+CITY_DAILY_FREE_LEADER_TITLE = SceneElement(
+    name="city_daily_free_leader_title",
+    resource_id="city_daily_free_leader_title",
+    desc="统帅：界面标题",
+)
+
+# 统帅界面：宝箱图标
+CITY_DAILY_FREE_LEADER_BOX = SceneElement(
+    name="city_daily_free_leader_box",
+    resource_id="city_daily_free_leader_box",
+    desc="统帅：宝箱图标",
+)
+
+# 统帅界面：翻页按钮-已领取标志
+CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GETED = SceneElement(
+    name="city_daily_free_leader_page_button_geted",
+    resource_id="city_daily_free_leader_page_button_geted",
+    desc="统帅：翻页按钮-已领取标志",
+)
+
+# 统帅界面：翻页按钮-领取奖励
+CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GET_REWARD = SceneElement(
+    name="city_daily_free_leader_page_button_get_reward",
+    resource_id="city_daily_free_leader_page_button_get_reward",
+    desc="统帅：翻页按钮-领取奖励",
+)
+
+# ============================================================
+# 宠物寻宝（Pet Treasure Hunt）
+# ============================================================
+
+# 任务列表：宠物寻宝入口
+GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY = SceneElement(
+    name="global_task_list_pet_search_treasure_entry",
+    resource_id="global_task_list_pet_search_treasure_entry",
+    desc="宠物寻宝：任务列表入口",
+)
+
+# 宠物寻宝界面：可派遣宝藏标志 1
+PET_SYMBOL_TREASURE_HUNT_1 = SceneElement(
+    name="pet_symbol_treasure_hunt_1",
+    resource_id="pet_symbol_treasure_hunt_1",
+    desc="宠物寻宝：可派遣宝藏标志1",
+)
+
+# 宠物寻宝界面：可派遣宝藏标志 2
+PET_SYMBOL_TREASURE_HUNT_2 = SceneElement(
+    name="pet_symbol_treasure_hunt_2",
+    resource_id="pet_symbol_treasure_hunt_2",
+    desc="宠物寻宝：可派遣宝藏标志2",
+)
+
+# 派遣界面：派遣按钮
+PET_BUTTON_SEARCH_TREASURE = SceneElement(
+    name="pet_button_search_treasure",
+    resource_id="pet_button_search_treasure",
+    desc="宠物寻宝：派遣按钮",
+)
+
+# ============================================================
+# 叛军精锐（Elite Rebels）
+# ============================================================
+
+# 背包：叛军精锐道具图标
+ITEM_ELITE_REBELS_ICON = SceneElement(
+    name="item_elite_rebels_icon",
+    resource_id="item_elite_rebels_icon",
+    desc="叛军精锐：背包道具图标",
+)
+
+# 世界资源：叛军精锐
+WORLD_RESOURCE_ELITE_REBELS = SceneElement(
+    name="world_resource_elite_rebels",
+    resource_id="world_resource_elite_rebels",
+    desc="叛军精锐：世界资源",
+)
