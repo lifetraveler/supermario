@@ -953,3 +953,35 @@ WORLD_RESOURCE_ELITE_REBELS = SceneElement(
     resource_id="world_resource_elite_rebels",
     desc="叛军精锐：世界资源",
 )
+
+# ============================================================
+# 领取体力（Claim Stamina）
+# ============================================================
+
+# 主界面：用户头像入口
+GLOBAL_PLAYER_HEADPHOTO = SceneElement(
+    name="global_player_headphoto",
+    resource_id="global_player_headphoto",
+    desc="主界面：用户头像入口",
+)
+
+# 用户界面：体力领取界面入口（加号按钮）
+GLOBAL_PAGE_PLAYER_STAMINA_BUTTON_ADD = SceneElement(
+    name="global_page_player_stamina_button_add",
+    resource_id="global_page_player_stamina_button_add",
+    desc="用户界面：体力领取界面入口按钮",
+)
+
+# 体力领取界面：下次领取按钮（存在即可领取）
+GLOBAL_PAGE_PLAYER_STAMINA_BUTTON_ADD_NEXT = SceneElement(
+    name="global_page_player_stamina_button_add_next",
+    resource_id="global_page_player_stamina_button_add_next",
+    desc="体力领取界面：下次领取按钮",
+)
+
+# 体力领取界面：下次领取倒计时区域
+GLOBAL_PAGE_PLAYER_STAMINA_ADD_WAITTIME = SceneElement(
+    name="global_page_player_stamina_add_waittime",
+    resource_id="global_page_player_stamina_add_waittime",
+    desc="体力领取界面：下次领取倒计时区域",
+)

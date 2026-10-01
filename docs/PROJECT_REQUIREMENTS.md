@@ -322,3 +322,34 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - LeaderRewardTask 的"已领取"分支点击 geted 标志本身作为退出动作（用户原文"匹配leaderboxgeted后点击退出"）；若该标志不可点击需改为 ESC。
 - PetTreasureHuntTask 派遣后未处理可能的"派遣成功"弹窗（用户未提及）；实机若发现弹窗遮挡，需在 dispatch 循环里加 popup 处理。
 - 恐狼/叛军精锐的 `_scroll_find_item` 为类级复制（两处 ~25 行）；第三处出现时应上移到 SGBaseTask 或公共 helper。
+
+## [2026-10-01] 领取体力（Claim Stamina）
+
+### 原始需求
+主界面点击用户头像 global_player_headphoto，进入用户界面，直接点击 global_page_player_stamina_button_add 按钮，进入体力领取界面。如果找到 global_page_player_stamina_button_add_next 领取按钮，则点击领取，弹出领取成功界面后 ESC 返回上一层，接着做下一次领取的时间计算。如果没有找到领取按钮，则识别 global_page_player_stamina_add_waittime 区域的下次领取倒计时，通过当前时间算出下一次领取时间。最后退回主界面。
+
+### 变更点
+- **elements.py 新增 4 个元素**（领取体力段）：GLOBAL_PLAYER_HEADPHOTO（主界面头像）、GLOBAL_PAGE_PLAYER_STAMINA_BUTTON_ADD（体力入口加号）、GLOBAL_PAGE_PLAYER_STAMINA_BUTTON_ADD_NEXT（领取按钮）、GLOBAL_PAGE_PLAYER_STAMINA_ADD_WAITTIME（倒计时区域）。
+- **新增 ClaimStaminaTask**（daily/）：回主界面 → 点头像进用户界面 → 点加号进体力领取界面 → 分支：找到领取按钮则点击领取 + 领取成功后 ESC 回上一层、下次领取 = 当前时间 + claim_cooldown；未找到则 OCR 倒计时区域、下次领取 = 当前时间 + 倒计时（识别失败兜底 default_wait_seconds=3600，下限 min_wait_seconds=60 防空转）→ 回主界面。
+- **动态等待调度**：run_interaction 返回 (SUCCESS, 距下次可领取秒数)，check_completed 以 next_claim_time 为准——队列 IN_PROGRESS 到点后放行 DONE，follower 以 next_trigger_delay=0 在同一时刻触发下一次领取，循环节奏完全由游戏内倒计时驱动。注册 count=0（无限）+ next_trigger_delay=0 + 不占队列。
+- **倒计时解析** `_parse_countdown_text`：支持 "01:23:45"、"12:34"、"5"、"1小时23分45秒" 等格式，冒号按段数映射、无冒号按数字组个数推断（3 组=时分秒，2 组=分秒，1 组=秒）。
+- **注册文件 reg_claim_stamina.py**：key="Claim Stamina"，extra_config 暴露 Claim Cooldown（attr=claim_cooldown，默认 3600s）。
+
+### 修复点
+- 无（全新任务，未改动既有代码路径）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（新增 4 元素）
+- `src/sg/tasks/daily/ClaimStaminaTask.py`（新增）
+- `src/sg/tasks/registrations/reg_claim_stamina.py`（新增）
+
+### 测试
+- py_compile / import 通过；注册经 pkgutil 扫描验证 TASK_REGISTRY 注册成功，extra_config attr 展开 kwargs['claim_cooldown']=3600.0 正确。
+- `_parse_countdown_text` 七种输入格式单测全通过。
+- 打桩冒烟：成功路径步骤编排 front→main→player→stamina→claim→main、返回 (SUCCESS, 1234)；失败路径（进用户界面失败）返回 (FAILED, 0) 且 last_error 正确；check_completed 到点前 False / 到点后 True 语义验证通过。
+- 实机未验证（需游戏前台确认 4 个新元素特征识别与 OCR 倒计时）。
+
+### 遗留 / 风险
+- 领取成功界面以固定等待 claim_popup_wait=1.5s 后按 ESC 处理，未做弹窗特征确认；若领取动画超 1.5s 可能 ESC 落空（影响：退层失败，后续 _ensure_main_scene 兜底，不影响领取结果）。
+- 倒计时 OCR 依赖 get_box_by_name 命中 GLOBAL_PAGE_PLAYER_STAMINA_ADD_WAITTIME 的 bbox；若该元素未录特征图会走 3600s 兜底，表现为领取间隔变大而非错误领取。
+- claim_cooldown 的真实值需实机校准（当前默认 3600s 为估计值）。

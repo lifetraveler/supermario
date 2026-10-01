@@ -2408,11 +2408,11 @@
       "category_id": 151,
       "bbox": [
         83,
-        1367,
+        1365,
         181,
-        51
+        53
       ],
-      "area": 9231,
+      "area": 9593,
       "iscrowd": 0
     },
     {
@@ -2452,6 +2452,19 @@
         43
       ],
       "area": 5246,
+      "iscrowd": 0
+    },
+    {
+      "id": 155,
+      "image_id": 106,
+      "category_id": 155,
+      "bbox": [
+        8,
+        9,
+        104,
+        102
+      ],
+      "area": 10608,
       "iscrowd": 0
     }
   ],
@@ -3224,6 +3237,11 @@
     {
       "id": 154,
       "name": "global_page_player_stamina_add_next_tip",
+      "supercategory": ""
+    },
+    {
+      "id": 155,
+      "name": "global_player_headphoto",
       "supercategory": ""
     }
   ]
