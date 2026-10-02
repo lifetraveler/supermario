@@ -25,9 +25,11 @@ from src.sg.scene.elements import (
     GLOBAL_ICON_MESSAGE_ENTRY,
     MESSAGE_BUTTON_REC,
     MESSAGE_TAG_LEAGUE,
+    MESSAGE_TAG_LEAGUE_1,
     MESSAGE_TAG_SYS,
     MESSAGE_TAG_REPORT,
     MESSAGE_TAG_REWARD_ICON,
+    MESSAGE_TAG_REWARD_ICON_1,
     MESSAGE_BUTTON_DEL,
     MESSAGE_BUTTON_DEL_CONFIRM,
 )
@@ -50,7 +52,7 @@ class ClaimMailRewardTask(SGBaseTask):
 
     # 标签遍历顺序（类常量：固定业务顺序，无需配置）。
     # 战斗标签（MESSAGE_TAG_WAR）无奖励，保留常量但不遍历。
-    MESSAGE_TAGS = (MESSAGE_TAG_LEAGUE, MESSAGE_TAG_SYS, MESSAGE_TAG_REPORT)
+    MESSAGE_TAGS = (MESSAGE_TAG_LEAGUE,MESSAGE_TAG_LEAGUE_1, MESSAGE_TAG_SYS, MESSAGE_TAG_REPORT)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -173,9 +175,11 @@ class ClaimMailRewardTask(SGBaseTask):
                 claimed += 1
                 miss_streak = 0
                 # 领取后可能出现奖励弹窗，尝试关掉
+                self._sleep(2)
+                self.recovery._try_press_esc()
                 self._sleep(1)
-                self.popup.try_close_one()
-                self._sleep(1)
+                # 先删除已读消息，避免旧消息遮挡 / 干扰领取判断
+                self._del_readed_msg()
             else:
                 miss_streak += 1
                 if miss_streak >= 2:
@@ -191,21 +195,23 @@ class ClaimMailRewardTask(SGBaseTask):
     def _claim_all_tags(self) -> bool:
         for tag in self.MESSAGE_TAGS:
             tag_name = getattr(tag, "name", str(tag))
-            if not self._wait_and_click(tag, name=f"切换标签:{tag_name}", timeout=6.0):
+            if not self._wait_and_click(tag, name=f"切换标签:{tag_name}", timeout=2.0):
                 self.log_info(f"标签 {tag_name} 未找到，跳过")
                 continue
             self._sleep(0.5)
 
-            # 先删除已读消息，避免旧消息遮挡 / 干扰领取判断
-            self._del_readed_msg()
 
             # 标签下没有可领标记（message_tag_reward_icon）→ 直接下一个标签
-            if not self._wait_element(MESSAGE_TAG_REWARD_ICON):
+            if not self._wait_element((MESSAGE_TAG_REWARD_ICON,MESSAGE_TAG_REWARD_ICON_1),timeout=2):
                 self.log_info(f"标签 {tag_name} 无可领奖励")
+                # 先删除已读消息，避免旧消息遮挡 / 干扰领取判断
+                self._del_readed_msg()
                 continue
 
             if not self._claim_current_tag():
                 return False
+            
+            
         return True
 
     # ========================================================
@@ -236,15 +242,19 @@ class ClaimMailRewardTask(SGBaseTask):
 
         返回值语义：
           True —— 正常结束（一条没删也是正常）
+          
+        最多删除3次吧  
         """
+        i=0
         while self._wait_and_click(
             MESSAGE_BUTTON_DEL, timeout=2.0, with_recovery=False,
-        ):
+        ) and i<3:
             self._sleep(0.5)
             self._wait_and_click(
                 MESSAGE_BUTTON_DEL_CONFIRM, timeout=6.0, with_recovery=False,
             )
             self._sleep(1.0)
+            i+= 1
         return True
 
     # ========================================================

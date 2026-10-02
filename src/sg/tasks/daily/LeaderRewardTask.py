@@ -27,6 +27,7 @@ from src.sg.element.overall.activity.popup import ActivityPopup
 from src.sg.scene.elements import (
     CITY_DAILY_FREE_LEADER_ENTRY,
     CITY_DAILY_FREE_LEADER_BOX,
+    CITY_DAILY_FREE_LEADER_TITLE,
     CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GETED,
     CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GET_REWARD,
     GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
@@ -120,7 +121,7 @@ class LeaderRewardTask(SGBaseTask):
 
         if not self._wait_and_click(
             CITY_DAILY_FREE_LEADER_ENTRY, name="统帅入口",
-            timeout=6.0, box=full_screen,
+            timeout=2.0, box=full_screen,
         ):
             return False
         self._sleep(1.0)
@@ -128,7 +129,7 @@ class LeaderRewardTask(SGBaseTask):
         # 确认进入统帅界面（标题出现）
         if self._wait_element(
             CITY_DAILY_FREE_LEADER_TITLE,
-            timeout=6.0, box=full_screen, with_recovery=False,
+            timeout=2.0, box=full_screen, with_recovery=False,
         ) is None:
             self.log_error("未进入统帅界面（标题未出现）")
             return False

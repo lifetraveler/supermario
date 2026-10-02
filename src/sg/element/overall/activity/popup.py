@@ -60,7 +60,7 @@ class ActivityPopup:
             if box is None:
                 continue
             self.task.log_info(f"关闭弹窗 {element.name}")
-            self.task.click(box, name=f"关闭弹窗: {element.name}")
+            self.task.click(box, name=f"关闭弹窗: {element.name}",timeout=2)
             self.task._sleep(0.5)
             return True
         return False

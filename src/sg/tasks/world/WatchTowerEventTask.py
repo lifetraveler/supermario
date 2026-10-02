@@ -334,7 +334,7 @@ class WatchTowerEventTask(SGBaseTask):
                 self._sleep(2.0)
         
         for element in _EVENT_SEARCH_ORDER:
-            box = self._find(element,box=self.box_of_screen(0, 0, 1, 1))
+            box = self._find(element,box=self.box_of_screen(0, 0, 1, 1),threshold=0.95)
             if box is None:
                 continue
 

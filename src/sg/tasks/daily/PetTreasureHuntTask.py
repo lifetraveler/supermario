@@ -36,7 +36,10 @@ from src.sg.scene.elements import (
     GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY,
     PET_SYMBOL_TREASURE_HUNT_1,
     PET_SYMBOL_TREASURE_HUNT_2,
+    PET_SYMBOL_TREASURE_HUNT_3,
     PET_BUTTON_SEARCH_TREASURE,
+    PET_BUTTON_SEARCH_TREASURE_START,
+    GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -146,10 +149,14 @@ class PetTreasureHuntTask(SGBaseTask):
 
         for attempt in range(self.task_list_scroll_max + 1):
             entry_box = self._find(
-                GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY,
-                threshold=0.8, box=full_screen,
+                GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK,
+                threshold=0.8, box=full_screen
             )
             if entry_box is not None:
+                entry_box = self._find(
+                GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY,
+                threshold=0.8, box=full_screen
+            )
                 self.log_info("点击任务列表宠物寻宝入口")
                 self.click(entry_box)
                 self._sleep(2.0)
@@ -178,11 +185,12 @@ class PetTreasureHuntTask(SGBaseTask):
         """
         full_screen = self.box_of_screen(0, 0, 1, 1)
         for element in (PET_SYMBOL_TREASURE_HUNT_1,
-                        PET_SYMBOL_TREASURE_HUNT_2):
+                        PET_SYMBOL_TREASURE_HUNT_2,
+                        PET_SYMBOL_TREASURE_HUNT_3):
             box = self._wait_element(
                 element,
                 timeout=2.0,
-                threshold=self.symbol_threshold,
+                threshold=0.95,
                 box=full_screen,
                 with_recovery=False,
             )
@@ -198,10 +206,17 @@ class PetTreasureHuntTask(SGBaseTask):
         if not self.click(symbol_box):
             return False
         self._sleep(1.5)
-
+        
+         # 派遣界面：直接点击派遣按钮
+        if not self._wait_and_click(
+            PET_BUTTON_SEARCH_TREASURE_START, name="宠物派遣",
+            timeout=6.0, box=self.box_of_screen(0, 0, 1, 1),
+        ):
+            return False
+        self._sleep(1.5)
         # 派遣界面：直接点击派遣按钮
         if not self._wait_and_click(
-            PET_BUTTON_SEARCH_TREASURE, name="宠物派遣按钮",
+            PET_BUTTON_SEARCH_TREASURE, name="开始寻宝",
             timeout=6.0, box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False
@@ -230,6 +245,7 @@ class PetTreasureHuntTask(SGBaseTask):
             ):
                 self.log_error("派遣宝藏失败")
                 return False
+            self.recovery._try_press_esc()            
             dispatched += 1
 
     # ========================================================

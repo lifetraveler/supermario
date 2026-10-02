@@ -449,6 +449,90 @@
       "file_name": "35.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 122,
+      "file_name": "36.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 123,
+      "file_name": "37.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 124,
+      "file_name": "38.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 125,
+      "file_name": "39.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 126,
+      "file_name": "41.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 127,
+      "file_name": "43.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 128,
+      "file_name": "44.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 129,
+      "file_name": "48.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 130,
+      "file_name": "49.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 131,
+      "file_name": "50.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 132,
+      "file_name": "51.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 133,
+      "file_name": "52.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 134,
+      "file_name": "53.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 135,
+      "file_name": "54.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -1159,12 +1243,12 @@
       "image_id": 44,
       "category_id": 118,
       "bbox": [
-        272,
+        252,
         380,
-        98,
-        82
+        134,
+        78
       ],
-      "area": 8036,
+      "area": 10452,
       "iscrowd": 0
     },
     {
@@ -1742,7 +1826,7 @@
     {
       "id": 100,
       "image_id": 90,
-      "category_id": 100,
+      "category_id": 173,
       "bbox": [
         347,
         366,
@@ -1991,12 +2075,12 @@
       "image_id": 104,
       "category_id": 119,
       "bbox": [
-        107,
-        937,
-        116,
-        110
+        99,
+        951,
+        130,
+        83
       ],
-      "area": 12760,
+      "area": 10790,
       "iscrowd": 0
     },
     {
@@ -2465,6 +2549,331 @@
         102
       ],
       "area": 10608,
+      "iscrowd": 0
+    },
+    {
+      "id": 156,
+      "image_id": 122,
+      "category_id": 157,
+      "bbox": [
+        848,
+        222,
+        23,
+        23
+      ],
+      "area": 529,
+      "iscrowd": 0
+    },
+    {
+      "id": 157,
+      "image_id": 123,
+      "category_id": 156,
+      "bbox": [
+        245,
+        130,
+        80,
+        43
+      ],
+      "area": 3440,
+      "iscrowd": 0
+    },
+    {
+      "id": 158,
+      "image_id": 124,
+      "category_id": 158,
+      "bbox": [
+        67,
+        707,
+        120,
+        53
+      ],
+      "area": 6360,
+      "iscrowd": 0
+    },
+    {
+      "id": 159,
+      "image_id": 124,
+      "category_id": 159,
+      "bbox": [
+        229,
+        800,
+        110,
+        41
+      ],
+      "area": 4510,
+      "iscrowd": 0
+    },
+    {
+      "id": 160,
+      "image_id": 125,
+      "category_id": 160,
+      "bbox": [
+        656,
+        463,
+        49,
+        61
+      ],
+      "area": 2989,
+      "iscrowd": 0
+    },
+    {
+      "id": 161,
+      "image_id": 126,
+      "category_id": 161,
+      "bbox": [
+        394,
+        1481,
+        118,
+        72
+      ],
+      "area": 8496,
+      "iscrowd": 0
+    },
+    {
+      "id": 162,
+      "image_id": 127,
+      "category_id": 162,
+      "bbox": [
+        302,
+        632,
+        295,
+        88
+      ],
+      "area": 25960,
+      "iscrowd": 0
+    },
+    {
+      "id": 163,
+      "image_id": 127,
+      "category_id": 163,
+      "bbox": [
+        390,
+        1233,
+        114,
+        57
+      ],
+      "area": 6498,
+      "iscrowd": 0
+    },
+    {
+      "id": 164,
+      "image_id": 126,
+      "category_id": 164,
+      "bbox": [
+        14,
+        5,
+        96,
+        90
+      ],
+      "area": 8640,
+      "iscrowd": 0
+    },
+    {
+      "id": 165,
+      "image_id": 128,
+      "category_id": 165,
+      "bbox": [
+        215,
+        681,
+        141,
+        76
+      ],
+      "area": 10716,
+      "iscrowd": 0
+    },
+    {
+      "id": 166,
+      "image_id": 129,
+      "category_id": 166,
+      "bbox": [
+        367,
+        565,
+        200,
+        191
+      ],
+      "area": 38200,
+      "iscrowd": 0
+    },
+    {
+      "id": 167,
+      "image_id": 130,
+      "category_id": 167,
+      "bbox": [
+        219,
+        380,
+        313,
+        262
+      ],
+      "area": 82006,
+      "iscrowd": 0
+    },
+    {
+      "id": 168,
+      "image_id": 130,
+      "category_id": 168,
+      "bbox": [
+        339,
+        1369,
+        230,
+        62
+      ],
+      "area": 14260,
+      "iscrowd": 0
+    },
+    {
+      "id": 169,
+      "image_id": 117,
+      "category_id": 169,
+      "bbox": [
+        20,
+        679,
+        173,
+        47
+      ],
+      "area": 8131,
+      "iscrowd": 0
+    },
+    {
+      "id": 170,
+      "image_id": 131,
+      "category_id": 171,
+      "bbox": [
+        347,
+        1278,
+        210,
+        57
+      ],
+      "area": 11970,
+      "iscrowd": 0
+    },
+    {
+      "id": 171,
+      "image_id": 124,
+      "category_id": 170,
+      "bbox": [
+        562,
+        644,
+        41,
+        92
+      ],
+      "area": 3772,
+      "iscrowd": 0
+    },
+    {
+      "id": 172,
+      "image_id": 132,
+      "category_id": 172,
+      "bbox": [
+        538,
+        744,
+        136,
+        76
+      ],
+      "area": 10336,
+      "iscrowd": 0
+    },
+    {
+      "id": 173,
+      "image_id": 133,
+      "category_id": 100,
+      "bbox": [
+        109,
+        1052,
+        230,
+        59
+      ],
+      "area": 13570,
+      "iscrowd": 0
+    },
+    {
+      "id": 174,
+      "image_id": 133,
+      "category_id": 174,
+      "bbox": [
+        552,
+        1056,
+        204,
+        51
+      ],
+      "area": 10404,
+      "iscrowd": 0
+    },
+    {
+      "id": 175,
+      "image_id": 133,
+      "category_id": 175,
+      "bbox": [
+        122,
+        1483,
+        212,
+        45
+      ],
+      "area": 9540,
+      "iscrowd": 0
+    },
+    {
+      "id": 176,
+      "image_id": 133,
+      "category_id": 176,
+      "bbox": [
+        546,
+        1481,
+        216,
+        51
+      ],
+      "area": 11016,
+      "iscrowd": 0
+    },
+    {
+      "id": 177,
+      "image_id": 134,
+      "category_id": 177,
+      "bbox": [
+        528,
+        1062,
+        212,
+        66
+      ],
+      "area": 13992,
+      "iscrowd": 0
+    },
+    {
+      "id": 178,
+      "image_id": 135,
+      "category_id": 178,
+      "bbox": [
+        686,
+        139,
+        96,
+        90
+      ],
+      "area": 8640,
+      "iscrowd": 0
+    },
+    {
+      "id": 179,
+      "image_id": 133,
+      "category_id": 179,
+      "bbox": [
+        692,
+        137,
+        92,
+        90
+      ],
+      "area": 8280,
+      "iscrowd": 0
+    },
+    {
+      "id": 180,
+      "image_id": 135,
+      "category_id": 180,
+      "bbox": [
+        46,
+        126,
+        786,
+        102
+      ],
+      "area": 80172,
       "iscrowd": 0
     }
   ],
@@ -2966,7 +3375,7 @@
     },
     {
       "id": 100,
-      "name": "message_reward",
+      "name": "activity_tag_bank_save_1day",
       "supercategory": ""
     },
     {
@@ -3242,6 +3651,131 @@
     {
       "id": 155,
       "name": "global_player_headphoto",
+      "supercategory": ""
+    },
+    {
+      "id": 156,
+      "name": "message_tag_league_1",
+      "supercategory": ""
+    },
+    {
+      "id": 157,
+      "name": "message_tag_reward_icon_1",
+      "supercategory": ""
+    },
+    {
+      "id": 158,
+      "name": "city_task_list_mijing",
+      "supercategory": ""
+    },
+    {
+      "id": 159,
+      "name": "city_task_list_mijing_need_trigger",
+      "supercategory": ""
+    },
+    {
+      "id": 160,
+      "name": "mijing_need_fight",
+      "supercategory": ""
+    },
+    {
+      "id": 161,
+      "name": "mijing_section_button_sweep",
+      "supercategory": ""
+    },
+    {
+      "id": 162,
+      "name": "mijing_section_button_sweep_reward",
+      "supercategory": ""
+    },
+    {
+      "id": 163,
+      "name": "mijing_section_button_sweep_reward_get",
+      "supercategory": ""
+    },
+    {
+      "id": 164,
+      "name": "mijing_section_arrow_return",
+      "supercategory": ""
+    },
+    {
+      "id": 165,
+      "name": "city_task_list_warehouse_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 166,
+      "name": "city_task_list_warehouse_button_get",
+      "supercategory": ""
+    },
+    {
+      "id": 167,
+      "name": "city_task_list_warehouse_button_geted_tips",
+      "supercategory": ""
+    },
+    {
+      "id": 168,
+      "name": "city_task_list_warehouse_next_reward_time",
+      "supercategory": ""
+    },
+    {
+      "id": 169,
+      "name": "global_task_list_pet_search_treasure_mask",
+      "supercategory": ""
+    },
+    {
+      "id": 170,
+      "name": "global_task_list_fold_arraw",
+      "supercategory": ""
+    },
+    {
+      "id": 171,
+      "name": "pet_button_search_treasure_start",
+      "supercategory": ""
+    },
+    {
+      "id": 172,
+      "name": "pet_symbol_treasure_hunt_3",
+      "supercategory": ""
+    },
+    {
+      "id": 173,
+      "name": "message_reward_close_tip",
+      "supercategory": ""
+    },
+    {
+      "id": 174,
+      "name": "activity_tag_bank_save_7day",
+      "supercategory": ""
+    },
+    {
+      "id": 175,
+      "name": "activity_tag_bank_save_15day",
+      "supercategory": ""
+    },
+    {
+      "id": 176,
+      "name": "activity_tag_bank_save_30day",
+      "supercategory": ""
+    },
+    {
+      "id": 177,
+      "name": "activity_tag_bank_button_save",
+      "supercategory": ""
+    },
+    {
+      "id": 178,
+      "name": "activity_tag_bank_icon_not_select",
+      "supercategory": ""
+    },
+    {
+      "id": 179,
+      "name": "activity_tag_bank_icon_selected",
+      "supercategory": ""
+    },
+    {
+      "id": 180,
+      "name": "activity_tag_slide_area",
       "supercategory": ""
     }
   ]

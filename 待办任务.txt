@@ -1,0 +1,27 @@
+框架
+done 1.QueueTaskBase run方法中，while not self.queue.all_done()循环中，调用tick方法补充任务逻辑现在有一个问题，就是涉及到占用军队队列任务的时候，比如我的集结巨兽设定3次任务，并行1，如果第1个成功了，第二个失败了。虽然alldone判断里这个任务的factory里还没有全部执行完，还满足继续增加任务，但是 程序不会tick第三个任务到taskqueue里面，因为补充任务的地方一共有两个，一个是第一个任务成功以后增加_do_interaction方法里调用的_create_follower，一个是第一次填充 _replenish（这个地方只会增加一次任务，这里做了一个是否第一次填充的标记判断，主要是为了处理多并行任务需要第一次初始化出来多个任务的原因），现在缺少一个因为失败而无法继续添加后续任务的流程判断，或者是当目前已经create好的任务数量，如果done+fail的数量相同，但是还没有达到所有任务配置的数量，则提供两个处理方式，一种是停止，一种是继续按照规则往后进行，用一个整体参数，所有任务未完成时（包括失败）是否还需要继续进行，另外再加一个任务参数叫做一次性任务，启用的时候，该任务就执行对应的次数即可，再 _do_interaction 里按照次数循环调用即可，而不用执行里面的_create_follower。还有一个类型叫做定时任务，启用的时候，按照配置的定时来执行（支持cron表达式。），这次任务比较复杂，你可以规划一下，分别来完成。
+
+done 2.日志信息，第一行，展示所有的taskfactory的简略信息，目前只展示了一个
+
+done 3.配置参数那块，每一类任务启用旁边 增加一个按钮，可以折叠下面的配置，收缩展开
+
+
+任务
+done 1.主界面讨伐
+任意主界面根据 global_tag_march 点击进入讨伐界面，直接点击 global_tag_march_button_get 位置按钮，弹出界面 直接点击 global_tag_march_button_get_next 位置按钮领取奖励，接着根据统一退出标志来退出，最终返回到主界面
+
+done 2. 统帅领取奖励
+city主界面 根据 city_daily_free_leader_entry 进入统帅界面，然后特征匹配 leaderbox点击,弹出来窗口 匹配leaderboxgeted后点击退出。接着匹配 leaderbuttongetreward后，点击，弹出窗口匹配 buttongeted后结束。最后返回到主界面。
+
+done 3.宠物训练
+city主界面，根据 global_event_task_need_handle 区域点击，弹出来城市的tasklist，参考 海岛islandgatherwater，向上滑动，直到找到global_task_list_pet_search_treasure_entry入口，点击后跳转到宠物寻找宝藏界面，全屏匹配pet_symbol_treasure_hunt_1，pet_symbol_treasure_hunt_2，pet_symbol_treasure_hunt_3，这里需要循环匹配，直到无法找到，这里把timeout=2，不需要重试 with_recovery=False,每找到一个，点击，跳转到派遣界面，直接点击 pet_button_search_treasure 按钮，本次结束，直到	找不到需要派遣的宝藏。最终返回到主界面
+
+done 4.恐狼任务，需要物品栏里找不到恐狼的爪子，向上滑动，直到匹配到。
+
+done 5.叛军精锐，跟scarewolf 恐狼一样，只不过换了一个匹配特征图案item_elite_rebels_icon，然后跳转后点击 world_resource_elite_rebels，接着就是集结流程了。参考恐狼。
+
+done 6.所有的集结流程总，选择军队那一步，如果并发队列为1的时候，在rally apply 调整军队配置的时候，才去根据team_element的配置（一般都是TEAM_HUNTING）去选择对应的队伍，因为这个队伍是省体力的队伍。如果并发>1，则跳过这一步，也就是跳过切换select_team。
+
+done 7. 领取体力
+主界面点击用户头像global_player_headphoto，进入用户界面，直接点击 global_page_player_stamina_button_add 按钮，进入体力领取界面，如果找到 global_page_player_stamina_button_add_next 领取按钮，则点击领取，然后弹出来领取成功界面后，esc返回上一层。接着做下一次领取的时间计算。也就是识别 global_page_player_stamina_add_waittime 区域，得到下次的领取倒计时，通过当前时间算出来下一次领取是什么时候。而如果没有找到领取按钮，则参考前面做下一次的领取时间计算。最后退回到主界面。
+

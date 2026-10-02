@@ -725,6 +725,11 @@ MESSAGE_TAG_LEAGUE = SceneElement(
     name="消息面板：联盟标签",
     resource_id="message_tag_league",
     desc="消息面板：联盟标签",
+)# 消息面板：联盟标签
+MESSAGE_TAG_LEAGUE_1 = SceneElement(
+    name="消息面板：联盟标签",
+    resource_id="message_tag_league_1",
+    desc="消息面板：联盟标签",
 )
 
 # 消息面板：系统标签
@@ -742,9 +747,9 @@ MESSAGE_TAG_REPORT = SceneElement(
 )
 
 # 消息面板：领取奖励后标识（单条消息上的奖励图标）
-MESSAGE_REWARD = SceneElement(
+MESSAGE_REWARD_CLOSE_TIP = SceneElement(
     name="消息面板：领取奖励后标识",
-    resource_id="message_reward",
+    resource_id="message_reward_close_tip",
     desc="消息面板：领取奖励后标识",
 )
 
@@ -752,6 +757,11 @@ MESSAGE_REWARD = SceneElement(
 MESSAGE_TAG_REWARD_ICON = SceneElement(
     name="消息面板：奖励标记",
     resource_id="message_tag_reward_icon",
+    desc="消息面板：奖励标记（有可领奖励）",
+)# 消息面板：奖励标记（标签页上的"有可领奖励"角标，用于跳过无奖励标签）
+MESSAGE_TAG_REWARD_ICON_1 = SceneElement(
+    name="消息面板：奖励标记",
+    resource_id="message_tag_reward_icon_1",
     desc="消息面板：奖励标记（有可领奖励）",
 )
 
@@ -914,6 +924,14 @@ GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_ENTRY = SceneElement(
     resource_id="global_task_list_pet_search_treasure_entry",
     desc="宠物寻宝：任务列表入口",
 )
+# 任务列表：宠物寻宝入口
+GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK = SceneElement(
+    name="global_task_list_pet_search_treasure_mask",
+    resource_id="global_task_list_pet_search_treasure_mask",
+    desc="宠物寻宝：任务列表入口",
+)
+
+
 
 # 宠物寻宝界面：可派遣宝藏标志 1
 PET_SYMBOL_TREASURE_HUNT_1 = SceneElement(
@@ -928,11 +946,23 @@ PET_SYMBOL_TREASURE_HUNT_2 = SceneElement(
     resource_id="pet_symbol_treasure_hunt_2",
     desc="宠物寻宝：可派遣宝藏标志2",
 )
+# 宠物寻宝界面：可派遣宝藏标志 3
+PET_SYMBOL_TREASURE_HUNT_3 = SceneElement(
+    name="pet_symbol_treasure_hunt_3",
+    resource_id="pet_symbol_treasure_hunt_3",
+    desc="宠物寻宝：可派遣宝藏标志32",
+)
 
 # 派遣界面：派遣按钮
 PET_BUTTON_SEARCH_TREASURE = SceneElement(
     name="pet_button_search_treasure",
     resource_id="pet_button_search_treasure",
+    desc="宠物寻宝：派遣按钮",
+)
+# 派遣界面：派遣按钮
+PET_BUTTON_SEARCH_TREASURE_START = SceneElement(
+    name="pet_button_search_treasure_start",
+    resource_id="pet_button_search_treasure_start",
     desc="宠物寻宝：派遣按钮",
 )
 

@@ -353,3 +353,37 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - 领取成功界面以固定等待 claim_popup_wait=1.5s 后按 ESC 处理，未做弹窗特征确认；若领取动画超 1.5s 可能 ESC 落空（影响：退层失败，后续 _ensure_main_scene 兜底，不影响领取结果）。
 - 倒计时 OCR 依赖 get_box_by_name 命中 GLOBAL_PAGE_PLAYER_STAMINA_ADD_WAITTIME 的 bbox；若该元素未录特征图会走 3600s 兜底，表现为领取间隔变大而非错误领取。
 - claim_cooldown 的真实值需实机校准（当前默认 3600s 为估计值）。
+
+## [2026-10-02] 实测调优（消息中心 / 统帅 / 宠物寻宝 / 瞭望塔 + 元素与特征图补录）
+
+### 原始需求
+首轮六项任务与领取体力上线后实机联调：修复实机暴露的识别与流程问题（弹窗关闭超时不足、消息标签/奖励角标多变体漏识别、宠物寻宝入口被遮挡、派遣按钮识别、宝藏标志误匹配、瞭望塔误匹配），并补录对应特征图到 coco。
+
+### 变更点
+- **ClaimMailRewardTask**：领取按钮/切换标签 timeout 降至 1.5s/2.0s 提高节奏；每条领取成功后 sleep 2s + ESC 关奖励弹窗，随后立即删已读消息（从 `_claim_all_tags` 移入 `_claim_current_tag`，无奖励标签仍删一次）；无可领判断改为同时匹配 `MESSAGE_TAG_REWARD_ICON` / `_ICON_1`；标签列表加入 `MESSAGE_TAG_LEAGUE_1`；`_del_readed_msg` 加上限最多删 3 次。
+- **LeaderRewardTask**：统帅入口/标题确认 timeout 6s→2s。
+- **PetTreasureHuntTask**：入口查找先匹配新增的 `GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK`（遮挡判定）再定位 ENTRY 点击；宝藏标志加入 `_3` 且 threshold 提到 0.95；派遣界面改为两连点——先 `PET_BUTTON_SEARCH_TREASURE_START`（出征）再 `PET_BUTTON_SEARCH_TREASURE`（确认）；每轮派遣后 ESC 退出结果页。
+- **WatchTowerEventTask**：事件元素 `_find` threshold 提到 0.95（降低误匹配）。
+- **ActivityPopup.close_all**：click 传 timeout=2，加速弹窗扫描。
+- **元素同步**（resource_id 照抄 coco categories，只增不删）：`MESSAGE_TAG_LEAGUE_1` / `MESSAGE_TAG_REWARD_ICON_1` / `MESSAGE_REWARD_CLOSE_TIP`（原 `MESSAGE_REWARD` 更名，resource_id 实测为 message_reward_close_tip）/ `GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK` / `PET_SYMBOL_TREASURE_HUNT_3` / `PET_BUTTON_SEARCH_TREASURE_START`，`CITY_DAILY_FREE_LEADER_TITLE` 引用补齐；coco_annotations.json 同步 387 行（新增 7 个 category 及特征图 36–51.png）。
+
+### 修复点
+- `MESSAGE_REWARD` 更名为 `MESSAGE_REWARD_CLOSE_TIP`：原 resource_id 与实机特征不符，按 coco 实测 id 修正。
+- 宠物寻宝入口点击前未校验 ENTRY 是否存在即 click 的空指针风险：先 MASK 判定、ENTRY 复查后再点。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（新增 6 元素、更名 1 元素）
+- `src/sg/tasks/daily/ClaimMailRewardTask.py` / `LeaderRewardTask.py` / `PetTreasureHuntTask.py`
+- `src/sg/tasks/world/WatchTowerEventTask.py`
+- `src/sg/element/overall/activity/popup.py`
+- `ok_templates/coco_annotations.json` + 新增特征图 36–51.png
+
+### 测试
+- 全部触及文件 `py_compile` 通过；`import src.sg.tasks.registrations` 后 TASK_REGISTRY 14 项齐全；四个改动任务类导入成功。
+- `tests/TestTaskQueueScheduling.py` + `tests/TestGenericQueueConfig.py` 21 用例全绿（框架层无回归）。
+- 实机联调通过：待办任务.txt 全部 10 项标记 done；本轮调优即实机验证结论。
+
+### 遗留 / 风险
+- `_del_readed_msg` 的 3 次上限与各 timeout（1.5/2.0s）为实机经验值，网络慢时可能提前放弃，表现为少领而非失败。
+- 宝藏标志 threshold=0.95 较激进，若游戏换肤/动画帧导致识别率下降，需回退 0.9 并补特征图。
+- `src/sg/test.py`（ADB 多用户启动游戏辅助脚本）为手工工具，未纳入任务框架，保持 untracked。
