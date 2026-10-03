@@ -496,7 +496,12 @@ class TaskQueue:
         if result == InteractionResult.SUCCESS:
             # 统一进 IN_PROGRESS，wait=0 的任务下一 tick 会转 DONE
             task.status = TaskStatus.IN_PROGRESS
-            task.estimated_finish_time = time.time() + max(0.0, wait_seconds)
+            factory = self._find_factory(task)
+            # 如果是一次性任务，则清空下一次任务触发时间,这两种由_reschedule_for_next_run控制
+            if factory is not None and (factory.one_shot or factory.cron):
+                task.estimated_finish_time = time.time()
+            else:
+                task.estimated_finish_time = time.time() + max(0.0, wait_seconds)
 
             # one_shot / cron 的下一次排程不在这里做：
             # "一次"要等 check_completed() 确认真正完成才算数。
@@ -505,7 +510,7 @@ class TaskQueue:
                 self._create_follower(task)
 
             logger.info(
-                f"TaskQueue wait: {task.name} in {wait_seconds:.1f}s"
+                f"TaskQueue wait: {task.name} in {task.estimated_finish_time:.1f}s"
             )
             return
 

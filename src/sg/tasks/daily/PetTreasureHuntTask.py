@@ -39,7 +39,12 @@ from src.sg.scene.elements import (
     PET_SYMBOL_TREASURE_HUNT_3,
     PET_BUTTON_SEARCH_TREASURE,
     PET_BUTTON_SEARCH_TREASURE_START,
+    PET_SYMBOL_TREASURE_REWARD_ENTRY,
     GLOBAL_TASK_LIST_PET_SEARCH_TREASURE_MASK,
+    PET_SYMBOL_TREASURE_FRIEND_TAG_SEND,
+    PET_SYMBOL_TREASURE_FRIEND_TAG_SEND_BUTTON_GET,
+    PET_SYMBOL_TREASURE_MY_TAG_SEND,
+    PET_REWARD_GETED_TIPS,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -83,21 +88,6 @@ class PetTreasureHuntTask(SGBaseTask):
     # 步骤包装：失败 → 恢复 → 重试（标准实现，勿改）
     # ========================================================
 
-    def _step(self, step_func, step_name, with_recovery=True) -> bool:
-        for attempt in range(self.max_recover_attempts + 1):
-            if attempt > 0 and with_recovery:
-                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                if not self.recovery.full_recover():
-                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                    return False
-                self._sleep(self.recovery.recover_wait)
-
-            if step_func():
-                return True
-
-            self.log_info(f"步骤 [{step_name}] 失败")
-
-        return False
 
     # ========================================================
     # 步骤 1：回到主界面（城市 / 世界地图）
@@ -223,6 +213,30 @@ class PetTreasureHuntTask(SGBaseTask):
         self._sleep(1.5)
         return True
 
+    def _get_mates_reward(self) -> bool:
+        """
+        
+        找到 → 派遣一次；找不到 → 结束（正常完成）。
+        """
+        if not self._wait_and_click(PET_SYMBOL_TREASURE_REWARD_ENTRY,timeout=2,with_recovery=False,threshold=0.95):
+            self.log_info("没有找到奖励")
+            return False
+        self._sleep(1)
+        # 领取队友的，直接点击
+        box = self.get_box_by_name(PET_SYMBOL_TREASURE_FRIEND_TAG_SEND.resource_id)
+        if box is None:
+            self.log_error("未找到盟友赠礼 tag 的 bbox")
+            return False
+        self.log_info("点击盟友赠礼 tag 切换")
+        self.click_box(box)
+        self._sleep(1)
+        self._wait_and_click(PET_SYMBOL_TREASURE_FRIEND_TAG_SEND_BUTTON_GET,timeout=2,with_recovery=False)
+        self._sleep(2)
+        self._wait_and_click(PET_REWARD_GETED_TIPS,timeout=2,with_recovery=False)        
+        return True
+
+            
+            
     def _dispatch_all(self) -> bool:
         """
         循环派遣：每轮全屏匹配宝藏标志，
@@ -281,7 +295,13 @@ class PetTreasureHuntTask(SGBaseTask):
             self.last_error = "派遣宝藏失败"
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
-
+        
+        # ---- 领取联盟宝藏 ----
+        if not self._step(self._get_mates_reward, "循环派遣宝藏"):
+            self.last_error = "派遣宝藏失败"
+            self.log_error(self.last_error)
+            return (InteractionResult.FAILED, 0)
+        
         # ---- 退回主界面（失败不影响派遣结果）----
         if not self._step(self._ensure_main_scene, "退回主界面"):
             self.log_info("退回主界面失败，不影响派遣结果")

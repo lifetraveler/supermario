@@ -70,3 +70,6 @@ pip-log.txt
 pip-delete-this-directory.txt
 autohelper
 working_images/
+
+# 游戏临时数据（运行时生成）
+game_temp_data.json

@@ -387,3 +387,176 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - `_del_readed_msg` 的 3 次上限与各 timeout（1.5/2.0s）为实机经验值，网络慢时可能提前放弃，表现为少领而非失败。
 - 宝藏标志 threshold=0.95 较激进，若游戏换肤/动画帧导致识别率下降，需回退 0.9 并补特征图。
 - `src/sg/test.py`（ADB 多用户启动游戏辅助脚本）为手工工具，未纳入任务框架，保持 untracked。
+
+## [2026-10-03] 切萨雷征讨（Cesare Fight）
+
+### 原始需求
+游戏内两周一次的常规活动"切萨雷征讨"自动化：
+1. city 主界面读当前体力与实力（本次不实现，预留）；
+2. 主界面全屏搜索便捷入口 `global_activity_fight_qiesalei_convenient_entry`，找到直接进入切萨雷界面；
+3. 未找到 → 点 `global_entry_common_activity` 进常规活动，在 `global_entry_greatvalue_activity_slide_area` 区域先向左滑（每次 1/4 屏）匹配 `global_activity_fight_qiesalei_tag_entry`，向左找不到再向右滑；匹配后点击进入；
+4. OCR `global_activity_fight_qiesalei_power` 读目标实力存临时变量（后续业务可用）；
+5. 点 `global_activity_fight_qiesalei_button_reconnoitre` 侦察；体力不足会弹体力补充界面（后续实现），本次任务标记结束并按配置等待；
+6. 点 `global_activity_fight_qiesalei_resource` 弹出处理窗口，三分支：
+   - 挑战 `global_activity_fight_qiesalei_button_challenge`（普通野兽式流程，主路径）；
+   - 集结 `global_activity_fight_qiesalei_button_rally`（实力不够，走集结）；
+   - 求助 `global_activity_fight_qiesalei_button_need_help`（todo 待实现）。
+
+用户决策：分支用 OCR 实力对比；挑战后确认同野兽击杀；占队列+不可并行（count=1）；体力不足新增等待配置项。
+
+### 变更点
+- `elements.py` 新增 10 个切萨雷元素（resource_id 与 coco categories id 183-193 逐一比对一致，只增不删）。
+- 新增 `Cesare` 领域对象（`src/sg/element/overall/activity/cesare.py`）：便捷入口/常规活动双路径导航、滑动区左右滑找标签（每次 1/4 屏，向左优先）、目标实力 OCR（兼容千分位）、侦察、资源窗口、挑战/集结分支判定（目标未知→挑战；自身≥目标→挑战；否则集结）、求助力求按钮预留未接。
+- `Rally.execute(entry_elements=None)` 参数化集结入口按钮：默认 `(BUTTON_RALLY_GIANT_BEAST_1,)` 行为不变；切萨雷分支传 `()`（弹窗入口已由 Cesare 点击）。
+- 新增 `CesareFightTask`（`src/sg/tasks/world/CesareFightTask.py`）：编排 前台→清弹窗→回主界面→进界面→读实力→侦察→资源窗口→分支；挑战分支复用 `Beast.kill()` 野兽击杀确认；集结分支复用 `Rally`；侦察失败按 `stamina_wait_seconds` 返回等待。
+- 新增注册 `reg_cesare_fight.py`：key=`Cesare Fight`，count=1，占队列，delay=0，default_kwargs 与 extra_config 三项（auto_recall / min_stamina / stamina_wait_seconds=3600）一一对应且每项带 attr。
+
+### 修复点
+- 无（本次为新增任务；Rally 签名变化经 import 回归确认对恐狼/野兽/巨兽调用方向后兼容）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`
+- `src/sg/element/overall/activity/cesare.py`（新增）
+- `src/sg/element/overall/tasklist/worldtask/troop/rally.py`
+- `src/sg/tasks/world/CesareFightTask.py`（新增）
+- `src/sg/tasks/registrations/reg_cesare_fight.py`（新增，pkgutil 自动挂载）
+
+### 测试
+- 全部触及文件 `py_compile` 通过。
+- 注册冒烟：TASK_REGISTRY 15 项，`Cesare Fight` 注册成功（count=1 / requires_march_queue=True / delay=0.0），extra_config attrs 与 default_kwargs 完全一致。
+- 元素一致性：10 个新 resource_id 全部存在于 coco categories。
+- 分支判定 + OCR 数字提取单测（FakeTask）4 用例全过：None→challenge、mine>=target→challenge、mine<target→rally、mine 未知→rally；'1,234,567'→1234567。
+- 实机：未验证（待活动开启后联调）。
+
+### 遗留 / 风险
+- 体力补充界面处理（todo）：当前侦察按钮点不到/失败按"体力不足"处理并等待 `stamina_wait_seconds`。
+- 求助模式（`button_need_help`）todo 未实现。
+- 自身实力读取（`my_power`）todo：当前恒为 None，分支退化为"目标未知→挑战 / 目标已知→集结"的保守路径；实力读取实现后注入 task.my_power 即自动启用对比。
+- 常规活动界面向左滑的边界行为（滑到头后是否自动反弹）未实机确认；滑动次数上限 8 次可按实机调整。
+- `stamina_wait_seconds=3600` 为默认经验值，GUI 可调。
+
+## [2026-10-03] 野外建筑资源采集（Gather Resource Troop）
+
+### 原始需求
+新增野外建筑资源采集任务：进入世界地图，OCR 读取军队队列有效/最大数量，按空闲队列数（最大-有效）派出采集；空闲为 0 → FAILED"没有采集队列"。点搜索资源按钮进搜索面板，在滑动区域 OCR 检测"大型"资源（记录类型，后续跳过同类型普通矿），普通资源面包/木材/石头/铁矿按当天日期除以 4 的余数轮转选取，大型资源优先；最多占用 4 个队列，每种一轮：选资源（等级用游戏默认，todo）→ 确认搜索 → OCR 预计采集时间暂存 → 点开始采集；循环直到空闲队列占满或 4 队全部派出。不占集结判定、每日一次、不可并行。
+
+### 变更点
+- 同步 coco categories 194-197 到 `elements.py`：`WORLD_ICON_RESOURCE_SLIDE_AREA` / `WORLD_RESOURCE_SEARCH_LARGE_RESOURCE` / `WORLD_GATHER_REOURCE_BUTTON_START` / `WORLD_GATHER_REOURCE_TIME_AREA`。
+- 新增 `ResourceGatherSearcher` 领域对象：大型资源 OCR 检测（滑动区域内匹配"大型"+类型关键词，结果当天缓存）；`build_gather_plan(slot_count)` 实现轮转规则——普通资源按 面包→木材→石头→铁矿 循环，无大型矿时起点=日期%4（0→面包），有大型矿时起点=大型资源类型的下一种（大石头→余数0对应铁矿），跳过与大型同类型的普通矿，大型优先占 1 队，最多 4 队；`run_for(key)` 面板打开→选资源（滑动查找，与 BeastSearcher 同构）→确认搜索（等级 todo 跳过）。
+- 新增 `GatherResourceTask`（继承 `SGBaseTask`）：前台→清弹窗→进荒野→Troop 读空闲队列（0→FAILED"没有采集队列"）→首轮搜索面板打开后触发大型资源检测+计划生成（plan_provider 回调，因滑动区域是面板内元素）→逐队"搜索→OCR 采集时间（暂存展示）→开始采集"→计划耗尽 SUCCESS。全部业务步骤 `_step` 包裹；保留 `run_interaction`/`_run_once`/`run` 三入口。
+- 新增注册 `reg_gather_resource.py`：`key="Gather Resource Troop"`，`count=1`（不可并行，无 max_active），`requires_march_queue=False`（本任务就是去占采集队列），`next_trigger_delay=86400`，无 extra_config。
+
+### 修复点
+- 无（新任务，未改动既有逻辑文件）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（追加 4 个元素）
+- `src/sg/element/world/resource/gather/gather_searcher.py`（新增）
+- `src/sg/element/world/resource/gather/__init__.py`（新增）
+- `src/sg/tasks/world/GatherResourceTask.py`（新增）
+- `src/sg/tasks/registrations/reg_gather_resource.py`（新增，pkgutil 自动挂载）
+
+### 测试
+- 全部触及文件 `ast.parse` 通过；新元素 import 验证通过。
+- 注册冒烟：pkgutil 自动加载后 TASK_REGISTRY 16 项，`Gather Resource Troop` 注册成功（count=1 / requires_march_queue=False / delay=86400.0 / 无 kwargs）。
+- 轮转规划单测（FakeTask + monkeypatch 日期）：大石头余数0/4队→石头铁矿面包木材、大石头/2队→石头铁矿、大木头→木头石头铁矿面包、无大型矿余数0→面包木材石头铁矿、大铁矿余数3→铁矿面包木材石头，全 PASS；任务方法完整性 + 领域对象无反向 import 验证通过。
+- 实机：未验证（需要游戏前台）。
+
+### 遗留 / 风险
+- 等级选择 todo 未实现：当前用游戏搜索面板默认已选等级，`select_level` 跳过。
+- 大型资源 OCR 依赖滑动区域特征（`wolrd_icon_resource_slide_area`）与"大型/伐木场/面包/石头/铁矿"关键词；阈值和关键词匹配需实机校准。
+- 首轮计划生成依赖面板打开后滑动区域可见；若 OCR 失败按无大型矿处理（保守路径）。
+- `_wait_and_click` 未传 `name`（基类日志回退 `element.name`），符合 7.2 调用约定。
+
+---
+
+### 修复点（2026-10-03 二轮）
+- `Cesare.read_power`：原 `"".join(ch.isdigit())` 逐字拼接丢失小数点，`'1.23万'` 被解析成 12（差 100 倍）。改用正则 `r"(\d[\d,]*(?:\.\d+)?)\s*([万亿])?"` 提取，支持千分位/小数/万/亿量级，`'1.23万'`→12300、`'2亿'`→200000000。9 用例单测全过。
+- `Cesare._find_tag_by_sliding`：把 bbox 像素中心 y（约 1370）传给了 `swipe_relative`（只接受 0-1 相对坐标），会滑出屏幕。改为 `0.5` 屏幕中心。
+
+## [2026-10-03] 领主（Player）数据领域对象
+
+### 原始需求
+新建 `Player`（领主）领域对象，集中管理体力与部队实力的获取：
+1. 流程：主界面头像 → 领主展示界面；按 `global_page_player_stamina` OCR 体力（斜杠分割，前=有效体力，后=最大自动恢复上限）；经 `global_palyer_page_team_entry` → `global_palyer_page_team_org_entry` 进编组界面；点 `team_prepare_hunting_less_sinew` 切省体力编组，OCR `global_player_team_power_area` → `task.team_power_sinew`；切 `global_player_team_power_biggest` 最强编组再 OCR → `task.team_power_biggest`；退回主界面。
+2. 数据落盘 `game_temp_data.json`。
+3. 三级取值：各组件先用 task 全局字段 → 文件 → 现场跑获取流程。
+
+### 变更点
+- `SGBaseTask` 新增 4 个领主全局字段：`player_stamina` / `player_stamina_max` / `team_power_sinew` / `team_power_biggest`（默认 None）。
+- `elements.py` 新增 5 个领主元素（id 151/198/199/200/201，全部 coco 已标注；注意 `palyer` 拼写为 coco 原文，照抄）。
+- 新增 `Player` 领域对象（`src/sg/element/overall/player.py`）：
+  - `collect_all()`：头像→体力→部队编组→省体力实力→最强编组实力→ESC 回主界面；
+  - `_parse_stamina_text`：斜杠分割正则，`'1,200/2,000'`→(1200, 2000)、单数字→(150, None)；
+  - `_parse_power_text`：与 Cesare 同口径（千分位/小数/万/亿）；
+  - JSON 持久化：合并写、损坏容错（非 dict/JSON 错误返回空）；
+  - `get_stamina()` / `get_team_power('sinew'|'biggest')` / `ensure_player_data()` 三级取值，文件命中自动回填 task 字段。
+- `.gitignore` 追加 `game_temp_data.json`。
+
+### 修复点
+- 无。
+
+### 涉及文件
+- `src/sg/tasks/SGBaseTask.py`
+- `src/sg/scene/elements.py`
+- `src/sg/element/overall/player.py`（新增）
+- `.gitignore`
+
+### 测试
+- `py_compile` 全过。
+- 单测（FakeTask）14 用例全过：体力 7 例（斜杠/千分位/单数字/杂字容错）、实力 3 例、JSON 保存/文件回填/task 优先/损坏文件容错。
+- 回归：CesareFightTask / HuntScareWolfTask / HuntBeastTask 导入正常，TASK_REGISTRY 16 项（新增 Gather Resource Troop 为同期他人变更）。
+- 实机：未验证。
+
+### 遗留 / 风险
+- 编组界面点击 `TEAM_HUNTING` 后是否需要滚动/翻页才可见，未实机确认。
+- `ensure_player_data` 现场采集为整轮 `collect_all`（进一次界面全拿），不做单项补采——体力过期刷新策略（何时视为失效）待后续业务定。
+- OCR 体力原文若带其他装饰字符（如等级图标遮挡），解析可能失败，实机联调时观察。
+
+### 变更点（2026-10-03 三轮）
+- 重写 `src/sg/tasks/test/SGTestTask.py`（原为 HuntMonsterTask 批量自检）为 **Player 功能自检**：8 个用例逐项验证领主领域对象。
+  - 纯逻辑 6 项：体力解析（7 例）/ 实力解析（7 例）/ JSON 持久化 roundtrip / 三级取值-文件回填 / 三级取值-task 优先 / ensure 数据齐全跳过采集；
+  - 实机 2 项：`collect_all` 完整采集（需在主界面）/ 三级取值现场获取（清 task 字段+删 json 后 `get_stamina`）。
+  - 每项 PASS/FAIL 逐例打点，末尾汇总 notify；用例前后备份/恢复 task 领主字段，互不污染。
+  - 挂载不变：`config.py onetime_tasks` 的 `src.sg.tasks.test.SGTestTask`，UI 点击触发，独立模式 `run()`。
+- 验证：py_compile 过；脱框架运行 6 项纯逻辑用例全 PASS；实机 2 项待游戏画面联调。
+
+### 变更点（2026-10-03 四轮）
+- `game_temp_data.json` 改为嵌套格式：
+  ```json
+  {"player": {"stamina": {"remain": 10, "max": 200},
+              "team_power": {"team_power_sinew": 161573316, "team_power_biggest": 176913223}}}
+  ```
+- `Player` 相应改造：`_read_file_stamina` / `_read_file_team_power`（嵌套读取，缺失侧 None）、`_task_fields_to_nested`（task 字段→嵌套片段）、`_write_task_fields`（嵌套→task 回填）、`_merge_nested` 深层合并（部分字段保存不再抹掉另一段）；`get_stamina` / `get_team_power` 三级取值语义不变。
+- 五组端到端验证全过：完整保存格式逐字节一致 / 新会话文件回填 / 部分字段保存深层合并不丢段 / 用户手写样例原样可读 / 缺段+非法 JSON 容错。
+- 顺带修复：SGTestTask 移除 `runtime_locale` 引用（ok 框架运行时注入属性，独立路径下不存在导致 AttributeError）。
+
+### 修复点（2026-10-03 五轮）
+- `SGTestTask._test_json_roundtrip`：断言仍用旧扁平键（`disk.get(Player.KEY_STAMINA)`），嵌套格式下 `get` 返回 None 恒 FAIL。改为嵌套取值断言（`disk["player"]["stamina"]["remain"]` 等 4 项，含 `team_power_biggest` 缺席校验）。脱框架运行 3 个受影响用例（roundtrip/文件回填/task 优先）全 PASS。
+
+### 变更点（2026-10-03 六轮：task 与 json 嵌套层级统一）
+- `SGBaseTask`：4 个扁平领主字段（`player_stamina` / `player_stamina_max` / `team_power_sinew` / `team_power_biggest`）合并为单个 `task.player` 嵌套结构，与 `game_temp_data.json` 完全同层级（`player.stamina.remain/max`、`player.team_power.team_power_sinew/biggest`）。
+- `Player` 配套改造：
+  - 写入端：`_set_task_stamina` / `_set_task_team_power`（自动建段）；
+  - 读取端：`_task_player` / `_task_stamina` / `_task_team_power`（缺失安全，类型异常视为空）；
+  - 转换层：`_write_task_fields` = 深层合并进 `task.player`；`_task_fields_to_nested` = `task.player` → json 片段（过滤 None 叶子）；
+  - `get_stamina` / `get_team_power` / `ensure_player_data` 对外语义不变。
+- `SGTestTask` 全部用例改用 `task.player` 嵌套；领域对象实例改名 `player_obj`（`self.player` 已被数据结构占用）；文件类用例改用独立临时文件（`game_temp_data.json.test`，用后删除），不再污染真实数据文件。
+- 端到端 6 组验证全过：task 嵌套写入 / task→json 同层级 / json→task 回填 / task 优先 / ensure 跳过 / 6 用例连跑 + 真实文件零污染。
+
+### 变更点（2026-10-03 七轮：get_team_power 接口重整）
+- `Player.get_team_power()`：无参，返回整个 `team_power` 节点（dict，三级取值：task → json → 现场采集；完全无数据返回 None）。
+- `Player.get_team_power_key(key)`：`'sinew'`/`'biggest'` 查单键，内部复用 `get_team_power()` 后 `.get(file_key)`。
+- 底层 `_task_team_power(key=None)` 合并为单定义：无参返回节点 dict、传 key 返回单值（此前手工改动残留双定义，其中一处引用拼错的 `__task_team_power` 会 AttributeError，`get_team_power` 旧体引用未定义变量会 NameError——均已消除）。
+- 补回被误删的 `_set_task_stamina` / `_set_task_team_power` 写入端定义。
+- 端到端 6 组验证全过：写入端 / 整节点取值 / 单键取值 / 空节点走文件与现场 / 文件部分字段回填 / 回填后单键补查。
+
+### 变更点（2026-10-03 八轮：用户改动整理 + 提交前收口）
+- `_step` 通用化上移：`SGBaseTask._step(step_func, step_name, *args, with_recovery=True, **kwargs)` 成为唯一实现——支持业务参数透传（`*args/**kwargs`）与 `with_recovery` 开关。删除 15 个任务类的本地副本（三种历史变体：无参 / `*args` 透传 / `with_recovery` 开关），全部由基类继承。行为差异说明：WatchTowerEventTask 原副本 `with_recovery=False` 时"单次执行不重试"，基类版为"重试但不恢复"——搜索事件类步骤重试无害（目标可能天然不存在），统一采用基类语义。
+- `Beast` 领域对象支持修改队伍：新增 `team_element` 注入字段（默认 None）与 `select_team()`（与 RallyConfig 同规则：并发>1 跳过、未配置跳过）；`challenge(smalltili=False)` 开关控制挑战后是否切队，选队失败阻断流程（原实现忽略返回值且未初始化 `team_element`，未注入时 AttributeError）。`click_challenge_button` 改为全屏 `_wait_element` 检索。
+- `CesareFightTask`：挑战步骤 `_step(self.beast.challenge, "挑战", smalltili=True)` 走省体力队伍；注入 `beast.team_element = TEAM_HUNTING`。
+- `task_queue.py`：one_shot/cron 类型任务成功后 `estimated_finish_time = now`（触发时间由 `_reschedule_for_next_run` 控制）。
+- 日志修正：`TaskQueue wait` 打印 `estimated_finish_time` 而非相对 `wait_seconds`。
+- 新增 GatherResourceTask（采集资源）+ Gather 领域对象 + reg_gather_resource 注册；PetTreasureHuntTask/LeaderRewardTask/ClaimMailRewardTask 小调整；elements.py +181 行（含 gather/切萨雷/领主）；coco_annotations.json +486 行（新增特征图 10 张）。
+- 测试隔离：SGTestTask 文件类用例使用独立临时文件，`game_temp_data.json.test` 用后即删。
+- 验证：26 个 py 文件 py_compile 全过；TASK_REGISTRY 16 项全任务 `_step` 归属基类（无副本遮蔽）；`_step` 三种调用形态（无参/kwargs 透传/with_recovery=False）行为单测全过；Beast.select_team 未配置/并发>1 跳过路径验证通过。

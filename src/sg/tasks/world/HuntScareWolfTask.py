@@ -89,19 +89,6 @@ class HuntScareWolfTask(SGBaseTask):
     # 步骤包装：失败 → 恢复 → 重试
     # ========================================================
 
-    def _step(self, step_func, step_name) -> bool:
-        for attempt in range(self.max_recover_attempts + 1):
-            if attempt > 0:
-                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                if not self.recovery.full_recover():
-                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                    return False
-                self._sleep(self.recovery.recover_wait)
-
-            if step_func():
-                return True
-
-            self.log_info(f"步骤 [{step_name}] 失败")
 
 
     # 背包向上滑动查找次数上限（每次 1/4 屏）

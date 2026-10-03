@@ -965,6 +965,35 @@ PET_BUTTON_SEARCH_TREASURE_START = SceneElement(
     resource_id="pet_button_search_treasure_start",
     desc="宠物寻宝：派遣按钮",
 )
+# 派遣界面：派遣按钮
+PET_SYMBOL_TREASURE_REWARD_ENTRY = SceneElement(
+    name="pet_symbol_treasure_reward_entry",
+    resource_id="pet_symbol_treasure_reward_entry",
+    desc="宠物寻宝：联盟宝藏",
+)
+PET_SYMBOL_TREASURE_FRIEND_TAG_SEND = SceneElement(
+    name="pet_symbol_treasure_friend_tag_send",
+    resource_id="pet_symbol_treasure_friend_tag_send",
+    desc="宠物寻宝：联盟宝藏队友的",
+)
+PET_SYMBOL_TREASURE_FRIEND_TAG_SEND_BUTTON_GET = SceneElement(
+    name="pet_symbol_treasure_friend_tag_send_button_get",
+    resource_id="pet_symbol_treasure_friend_tag_send_button_get",
+    desc="宠物寻宝：联盟宝藏领取按钮",
+)
+PET_SYMBOL_TREASURE_MY_TAG_SEND = SceneElement(
+    name="pet_symbol_treasure_my_tag_send",
+    resource_id="pet_symbol_treasure_my_tag_send",
+    desc="宠物寻宝：联盟宝藏我的",
+)
+PET_REWARD_GETED_TIPS = SceneElement(
+    name="pet_reward_geted_tips",
+    resource_id="pet_reward_geted_tips",
+    desc="宠物寻宝：联盟宝藏我的",
+)
+
+
+
 
 # ============================================================
 # 叛军精锐（Elite Rebels）
@@ -1014,4 +1043,156 @@ GLOBAL_PAGE_PLAYER_STAMINA_ADD_WAITTIME = SceneElement(
     name="global_page_player_stamina_add_waittime",
     resource_id="global_page_player_stamina_add_waittime",
     desc="体力领取界面：下次领取倒计时区域",
+)
+
+# ============================================================
+# 切萨雷征讨（Cesare Fight）
+# ============================================================
+
+# 主界面：切萨雷便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry",
+    resource_id="global_activity_fight_qiesalei_convenient_entry",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_3 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_3",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_3",
+    desc="切萨雷征讨：主界面便捷入口",
+)
+
+# 主界面：常规活动入口
+GLOBAL_ENTRY_COMMON_ACTIVITY = SceneElement(
+    name="global_entry_common_activity",
+    resource_id="global_entry_common_activity",
+    desc="常规活动：主界面入口",
+)
+
+# 常规活动界面：超值活动滑动区域（左右滑动找切萨雷标签）
+GLOBAL_ENTRY_GREATVALUE_ACTIVITY_SLIDE_AREA = SceneElement(
+    name="global_entry_greatvalue_activity_slide_area",
+    resource_id="global_entry_greatvalue_activity_slide_area",
+    desc="常规活动：超值活动滑动区域",
+)
+
+# 常规活动界面：切萨雷标签入口（左右滑动后点击进入）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_TAG_ENTRY = SceneElement(
+    name="global_activity_fight_qiesalei_tag_entry",
+    resource_id="global_activity_fight_qiesalei_tag_entry",
+    desc="切萨雷征讨：常规活动标签入口",
+)
+
+# 切萨雷界面：目标实力数值区域（OCR 读取）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_POWER = SceneElement(
+    name="global_activity_fight_qiesalei_power",
+    resource_id="global_activity_fight_qiesalei_power",
+    desc="切萨雷征讨：目标实力数值区域",
+)
+
+# 切萨雷界面：侦察按钮
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_RECONNOITRE = SceneElement(
+    name="global_activity_fight_qiesalei_button_reconnoitre",
+    resource_id="global_activity_fight_qiesalei_button_reconnoitre",
+    desc="切萨雷征讨：侦察按钮",
+)
+
+# 切萨雷界面：资源区域（侦察后点击弹出处理窗口）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_RESOURCE = SceneElement(
+    name="global_activity_fight_qiesalei_resource",
+    resource_id="global_activity_fight_qiesalei_resource",
+    desc="切萨雷征讨：资源区域",
+)
+
+# 处理窗口：挑战按钮（实力足够时的主流程）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_CHALLENGE = SceneElement(
+    name="global_activity_fight_qiesalei_button_challenge",
+    resource_id="global_activity_fight_qiesalei_button_challenge",
+    desc="切萨雷征讨：处理窗口挑战按钮",
+)
+
+# 处理窗口：集结按钮（实力不够时走集结流程）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_RALLY = SceneElement(
+    name="global_activity_fight_qiesalei_button_rally",
+    resource_id="global_activity_fight_qiesalei_button_rally",
+    desc="切萨雷征讨：处理窗口集结按钮",
+)
+GLOBAL_PLAYER_STAMINA_MASK = SceneElement(
+    name="global_player_stamina_mask",
+    resource_id="global_player_stamina_mask",
+    desc="体力不足，领取界面",
+)
+# 处理窗口：求助按钮（todo 待实现）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_NEED_HELP = SceneElement(
+    name="global_activity_fight_qiesalei_button_need_help",
+    resource_id="global_activity_fight_qiesalei_button_need_help",
+    desc="切萨雷征讨：处理窗口求助按钮",
+)
+
+# ============================================================
+# 野外资源采集（Gather Resource）
+# id: 194
+WORLD_ICON_RESOURCE_SLIDE_AREA = SceneElement(
+    name="wolrd_icon_resource_slide_area",
+    resource_id="wolrd_icon_resource_slide_area",
+    desc="世界资源栏：滑动区域（大型矿 OCR 区域）",
+)
+
+# id: 195
+WORLD_RESOURCE_SEARCH_LARGE_RESOURCE = SceneElement(
+    name="wolrd_resource_search_large_resource",
+    resource_id="wolrd_resource_search_large_resource",
+    desc="搜索资源：大型资源图标",
+)
+
+# id: 196
+WORLD_GATHER_REOURCE_BUTTON_START = SceneElement(
+    name="wolrd_gather_reource_button_start",
+    resource_id="wolrd_gather_reource_button_start",
+    desc="采集确认页：开始采集按钮",
+)
+
+# id: 197
+WORLD_GATHER_REOURCE_TIME_AREA = SceneElement(
+    name="wolrd_gather_reource_time_area",
+    resource_id="wolrd_gather_reource_time_area",
+    desc="采集确认页：预计采集时间区域（OCR）",
+)
+
+# ============================================================
+# 领主（Player）
+# ============================================================
+
+# 领主界面：体力数值区域（斜杠分割：有效体力 / 最大自动恢复上限）
+GLOBAL_PAGE_PLAYER_STAMINA = SceneElement(
+    name="global_page_player_stamina",
+    resource_id="global_page_player_stamina",
+    desc="领主界面：体力数值区域",
+)
+
+# 领主界面：部队查看入口
+GLOBAL_PALYER_PAGE_TEAM_ENTRY = SceneElement(
+    name="global_palyer_page_team_entry",
+    resource_id="global_palyer_page_team_entry",
+    desc="领主界面：部队查看入口",
+)
+
+# 部队查看界面：部队编组按钮
+GLOBAL_PALYER_PAGE_TEAM_ORG_ENTRY = SceneElement(
+    name="global_palyer_page_team_org_entry",
+    resource_id="global_palyer_page_team_org_entry",
+    desc="部队查看界面：部队编组按钮",
+)
+
+# 编组界面：当前编组实力区域（OCR）
+GLOBAL_PLAYER_TEAM_POWER_AREA = SceneElement(
+    name="global_player_team_power_area",
+    resource_id="global_player_team_power_area",
+    desc="编组界面：当前编组实力区域",
+)
+
+# 编组界面：最强编组（切换目标）
+GLOBAL_PLAYER_TEAM_POWER_BIGGEST = SceneElement(
+    name="global_player_team_power_biggest",
+    resource_id="global_player_team_power_biggest",
+    desc="编组界面：最强编组切换",
 )

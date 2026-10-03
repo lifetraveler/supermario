@@ -42,25 +42,35 @@ class Beast:
         # OCR 不到单程时间时的兜底（秒）
         self.default_one_way_seconds = 300
 
-        # 运行时状态：最近一次读取的来回耗时
-        self.last_round_trip_seconds = 0.0
+        # 挑战进入选队界面时要选的队伍（SceneElement）。
+        # 由任务注入（如 TEAM_HUNTING）；None = 选队步骤跳过。
+        self.team_element = None
 
     # ========================================================
     # 完整流程
     # ========================================================
 
-    def challenge(self) -> bool:
+    def challenge(self, smalltili=False) -> bool:
         """
         完整挑战流程：
           1. 等处理弹窗渲染完成
           2. 点击弹窗的挑战按钮（固定位置，与瞭望塔事件
              WORLD_EVENT_OBJECT_HANDLEAREA 一致，暂不抽公共元素）
-          3. 读取单程行军时间（kill 前，弹窗仍在）
-          4. 点击挑战击杀按钮（world_event_beast_kill）
+          3. smalltili=True 时进入选队界面并切换队伍
+             （队伍由 task 注入的 beast.team_element 决定）
+          4. 读取单程行军时间（kill 前，弹窗仍在）
+          5. 点击挑战击杀按钮（world_event_beast_kill）
+
+        参数名 smalltili（小体力）沿用调用方命名：省体力队伍挑战开关。
         """
         self.task._sleep(self.challenge_settle_seconds)
 
         if not self.click_challenge_button():
+            return False
+
+        # 点击了挑战，进入选取队伍界面，按开关决定是否切队
+        if smalltili and not self.select_team():
+            self.task.log_error("挑战选队失败")
             return False
 
         # 单程时间要在弹窗还在时读
@@ -68,6 +78,25 @@ class Beast:
 
         return self.kill()
 
+    def select_team(self) -> bool:
+        """
+        选队步骤（与 RallyConfig.select_team 同规则）：
+          - 并发 > 1 跳过（省体力队伍只有一支，多路共用会互相覆盖）
+          - 未注入 team_element 跳过
+        """
+        max_active = getattr(self.task, "max_active", 1) or 1
+        if max_active > 1:
+            self.task.log_info(
+                f"Beast.select_team: 并发={max_active} > 1，跳过选择队伍"
+            )
+            return True
+        if self.team_element is None:
+            self.task.log_info("Beast.select_team: 未配置队伍，跳过")
+            return True
+        return self.task._wait_and_click(
+            self.team_element,
+            name=f"选择集结队伍: {self.team_element.name}",
+        )
 
     # ========================================================
     # 步骤 1：挑战按钮（固定位置）
@@ -75,7 +104,7 @@ class Beast:
 
     def click_challenge_button(self) -> bool:
         """点击处理弹窗中的挑战按钮（固定位置 bbox）。"""
-        box = self._safe_box(WORLD_EVENT_OBJECT_HANDLEAREA)
+        box = self.task._wait_element(WORLD_EVENT_OBJECT_HANDLEAREA,box=self.task.box_of_screen(0, 0, 1, 1))
         if not box:
             self.task.log_error("未找到挑战按钮（处理弹窗固定位置）bbox")
             return False

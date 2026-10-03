@@ -71,21 +71,6 @@ class LeaderRewardTask(SGBaseTask):
     # 步骤包装：失败 → 恢复 → 重试（标准实现，勿改）
     # ========================================================
 
-    def _step(self, step_func, step_name) -> bool:
-        for attempt in range(self.max_recover_attempts + 1):
-            if attempt > 0:
-                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                if not self.recovery.full_recover():
-                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                    return False
-                self._sleep(self.recovery.recover_wait)
-
-            if step_func():
-                return True
-
-            self.log_info(f"步骤 [{step_name}] 失败")
-
-        return False
 
     # ========================================================
     # 步骤 1：回到主界面（城市 / 世界地图）
@@ -173,7 +158,7 @@ class LeaderRewardTask(SGBaseTask):
         # 未领取 → 点击领取奖励按钮
         if not self._wait_and_click(
             CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GET_REWARD,
-            name="统帅领取奖励", timeout=6.0, box=full_screen,
+            name="统帅领取奖励", timeout=2.0
         ):
             self.log_info("未匹配到领取按钮，视为无可领取")
             return True
@@ -183,7 +168,7 @@ class LeaderRewardTask(SGBaseTask):
         # 等待"获得奖励"提示出现后点击退出
         quit_box = self._wait_element(
             GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
-            timeout=6.0, box=full_screen, with_recovery=False,
+            timeout=2.0, box=full_screen, with_recovery=False,
         )
         if quit_box is not None:
             self.log_info("点击获得奖励提示退出")

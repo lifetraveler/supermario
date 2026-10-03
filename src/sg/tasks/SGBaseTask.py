@@ -154,6 +154,17 @@ class SGBaseTask(MyBaseTask):
         
         # 核心修复：初始化为 SimpleNamespace，而不是 None 或 {}
         self.extra_config = types.SimpleNamespace()
+
+        # ====================================================
+        # 领主（Player）全局数据，由 Player 领域对象写入。
+        # 与 game_temp_data.json 同一嵌套层级，保持统一：
+        #   player.stamina.remain / player.stamina.max
+        #   player.team_power.team_power_sinew
+        #   player.team_power.team_power_biggest
+        # 各组件优先从这里取值，取不到时走
+        # game_temp_data.json，再取不到才现场跑获取流程。
+        # ====================================================
+        self.player = None
     # ========================================================
     # 协议方法：由 TaskQueue 调用
     # ========================================================
@@ -189,6 +200,40 @@ class SGBaseTask(MyBaseTask):
         由 TaskQueue 在 estimated_finish_time 到期后调用。
         """
         return True
+
+    # ========================================================
+    # 通用工具：步骤包装（失败 → 恢复 → 重试）
+    # ========================================================
+
+    def _step(self, step_func, step_name, *args,
+              with_recovery=True, **kwargs) -> bool:
+        """
+        通用业务步骤包装，全部任务类共用（子类不再各写副本）。
+
+        流程：执行 step_func(*args, **kwargs)；失败后
+        （with_recovery=True 时）先 full_recover 再重试，
+        最多 max_recover_attempts 次。
+
+        参数：
+          step_func:    业务步骤函数，返回真值=成功
+          step_name:    步骤名（日志用）
+          *args/**kwargs: 透传给 step_func 的业务参数
+          with_recovery: False 时跳过恢复直接重试
+        """
+        for attempt in range(self.max_recover_attempts + 1):
+            if attempt > 0 and with_recovery:
+                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
+                if not self.recovery.full_recover():
+                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
+                    return False
+                self._sleep(self.recovery.recover_wait)
+
+            if step_func(*args, **kwargs):
+                return True
+
+            self.log_info(f"步骤 [{step_name}] 失败")
+
+        return False
 
     # ========================================================
     # 通用工具：sleep

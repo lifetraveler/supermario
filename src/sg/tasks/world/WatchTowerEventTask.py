@@ -142,27 +142,10 @@ class WatchTowerEventTask(SGBaseTask):
     # 步骤包装：失败 → 恢复 → 重试
     # ========================================================
 
-    def _step(self, step_func, step_name,with_recovery=True) -> bool:
-        if with_recovery:
-            for attempt in range(self.max_recover_attempts + 1):
-                if attempt > 0:
-                    self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                    if not self.recovery.full_recover():
-                        self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                        return False
-                    self._sleep(self.recovery.recover_wait)
+    # _step 使用基类通用实现：失败 → （可选）恢复 → 重试。
+    # with_recovery=False 时仍按 max_recover_attempts 重试但不做恢复，
+    # 用于"搜索事件"这类目标可能天然不存在、不需要恢复现场的步骤。
 
-                if step_func():
-                    return True
-
-                self.log_info(f"步骤 [{step_name}] 失败")
-
-            return False
-        else:
-            if step_func():
-                    return True
-            self.log_info(f"步骤 [{step_name}] 失败")
-            return False
     # ========================================================
     # 安全 bbox 定位：ok 框架 get_box_by_name 找不到会抛 ValueError
     # ========================================================

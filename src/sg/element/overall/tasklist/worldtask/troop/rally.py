@@ -74,21 +74,23 @@ class Rally:
     # 执行一次集结
     # --------------------------------------------------------
 
-    def execute(self) -> bool:
+    def execute(self, entry_elements=None) -> bool:
         task = self.task
-        
-        for element in (
-            BUTTON_RALLY_GIANT_BEAST_1,
-        ):
-            if not task._wait_and_click(
-                element, 
+
+        # 集结入口按钮：默认巨兽弹窗；切萨雷等弹窗由调用方传入
+        if entry_elements is None:
+            entry_elements = (BUTTON_RALLY_GIANT_BEAST_1,)
+
+        for element in entry_elements:
+            if task._wait_and_click(
+                element,
                 timeout=3.0,
                 with_recovery=False,
                 box=task.box_of_screen(0, 0, 1, 1),
                 ):
-                return False
-            else:
                 break
+            else:
+                return False
         # 1. 进入集结页面
         # if not task._wait_and_click(
         #     BUTTON_RALLY_GIANT_BEAST,
