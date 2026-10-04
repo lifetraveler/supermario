@@ -23,7 +23,7 @@
   - 每日一次（next_trigger_delay=86400）
   - 不可并行：任务列表 / 宝藏界面同一时刻只能打开一个
 """
-
+import re
 from src.sg.tasks.SGBaseTask import SGBaseTask
 from src.scheduler.task_status import InteractionResult
 
@@ -45,6 +45,10 @@ from src.sg.scene.elements import (
     PET_SYMBOL_TREASURE_FRIEND_TAG_SEND_BUTTON_GET,
     PET_SYMBOL_TREASURE_MY_TAG_SEND,
     PET_REWARD_GETED_TIPS,
+    PET_CLAIM_DONE_TREASURE_REWARD,
+    PET_CLAIM_DONE_TREASURE_REWARD_AREA,
+    PET_CLAIM_DONE_TREASURE_REWARD_OVER_TIPS,
+    PET_CLAIM_TREASURE_REMAIN_TIMES,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -66,6 +70,8 @@ class PetTreasureHuntTask(SGBaseTask):
 
     # 宝藏标志全屏匹配阈值（标志样式固定，略提阈值减少误点）
     symbol_threshold = 0.8
+    
+    ramaintime=4
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -162,6 +168,26 @@ class PetTreasureHuntTask(SGBaseTask):
 
     def _enter_treasure_page(self) -> bool:
         return self._open_task_list() and self._scroll_find_pet_entry()
+    
+    def _claim_done_treasure_reward(self) -> bool:
+        result=True
+        while True:
+            if not self._wait_and_click_all_screen(PET_CLAIM_DONE_TREASURE_REWARD,with_recovery=False,timeout=2):
+                result=False
+                break
+            else:
+                self.sleep(1.5)
+                # 点击固定位置领取奖励
+                box=self.get_box_by_name(PET_CLAIM_DONE_TREASURE_REWARD_AREA.resource_id)
+                self.click_box(box=box)
+                # 弹出领取成功画面关闭
+                self.sleep(2)
+                if not self._wait_and_click(PET_CLAIM_DONE_TREASURE_REWARD_OVER_TIPS,with_recovery=False,timeout=2):
+                    self.recovery._try_press_esc()
+                else:    
+                    self.recovery._try_press_esc()
+                    self.sleep(1.5)
+        return result    
 
     # ========================================================
     # 步骤 3：循环派遣宝藏
@@ -245,6 +271,8 @@ class PetTreasureHuntTask(SGBaseTask):
         返回 True 表示流程走完（无论派出几个）。
         """
         dispatched = 0
+        if self.ramaintime<1:
+            return False
         while True:
             symbol_box = self._find_dispatchable_symbol()
             if symbol_box is None:
@@ -261,6 +289,7 @@ class PetTreasureHuntTask(SGBaseTask):
                 return False
             self.recovery._try_press_esc()            
             dispatched += 1
+            self.ramaintime -=1
 
     # ========================================================
     # 队列调用入口
@@ -290,17 +319,35 @@ class PetTreasureHuntTask(SGBaseTask):
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
 
+
+        # ocr剩余领取次数
+        box=self._safe_box(PET_CLAIM_TREASURE_REMAIN_TIMES)
+        if not box:
+            self.task.log_error("未找剩余领取次数")
+            return False
+        current=0
+        text = self._ocr_text(box)
+        if text is not None:
+            self.log_info(f"OCR 体力原文: {text}")
+            current, maximum = self._parse_stamina_text(text)
+        self.ramaintime=current    
+
+        # ---- 进入宝藏界面 ----
+        if not self._step(self._claim_done_treasure_reward, "领取已经完成的宝藏",with_recovery=False):
+            self.last_error = "领取已经完成的宝藏没有找到"
+            self.log_error(self.last_error)
+
+
         # ---- 循环派遣 ----
         if not self._step(self._dispatch_all, "循环派遣宝藏"):
             self.last_error = "派遣宝藏失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
+            # return (InteractionResult.FAILED, 0)
         
         # ---- 领取联盟宝藏 ----
-        if not self._step(self._get_mates_reward, "循环派遣宝藏"):
-            self.last_error = "派遣宝藏失败"
+        if not self._step(self._get_mates_reward, "领取联盟宝藏",with_recovery=False):
+            self.last_error = "领取联盟宝藏没有找到"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
         
         # ---- 退回主界面（失败不影响派遣结果）----
         if not self._step(self._ensure_main_scene, "退回主界面"):
@@ -308,7 +355,34 @@ class PetTreasureHuntTask(SGBaseTask):
 
         self.log_info("========== 宠物寻宝派遣完成 ==========")
         return (InteractionResult.SUCCESS, 0)
+    
+    def _to_int(self, text):
+        """'1,200' -> 1200；'1.5' -> 1（实力/体力均为整数语义）。"""
+        return int(float(str(text).replace(",", ""))) 
+    
+    def _parse_stamina_text(self, text):
+        """
+        解析 "有效/上限" 体力文本。
 
+        正则取斜杠两侧的数字（兼容千分位与小数）：
+          '150/200'       -> (150, 200)
+          '1,200/2,000'   -> (1200, 2000)
+          '150'           -> (150, None)
+        无数字返回 (None, None)。
+        """
+        if text is None:
+            return (None, None)
+        text = str(text).strip()
+
+        num = r"(\d[\d,]*(?:\.\d+)?)"
+        m = re.search(num + r"\s*/\s*" + num, text)
+        if m:
+            return (self._to_int(m.group(1)), self._to_int(m.group(2)))
+
+        m = re.search(num, text)
+        if m:
+            return (self._to_int(m.group(1)), None)
+        return (None, None)
     # ========================================================
     # 兼容旧接口
     # ========================================================

@@ -593,6 +593,30 @@
       "file_name": "88.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 146,
+      "file_name": "91.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 147,
+      "file_name": "92.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 148,
+      "file_name": "93.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 149,
+      "file_name": "94.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -3234,6 +3258,58 @@
       ],
       "area": 3599,
       "iscrowd": 0
+    },
+    {
+      "id": 204,
+      "image_id": 147,
+      "category_id": 204,
+      "bbox": [
+        532,
+        273,
+        45,
+        41
+      ],
+      "area": 1845,
+      "iscrowd": 0
+    },
+    {
+      "id": 205,
+      "image_id": 148,
+      "category_id": 205,
+      "bbox": [
+        268,
+        882,
+        368,
+        277
+      ],
+      "area": 101936,
+      "iscrowd": 0
+    },
+    {
+      "id": 206,
+      "image_id": 149,
+      "category_id": 206,
+      "bbox": [
+        288,
+        1440,
+        329,
+        70
+      ],
+      "area": 23030,
+      "iscrowd": 0
+    },
+    {
+      "id": 207,
+      "image_id": 147,
+      "category_id": 207,
+      "bbox": [
+        272,
+        139,
+        358,
+        55
+      ],
+      "area": 19690,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -4250,6 +4326,26 @@
     {
       "id": 203,
       "name": "global_activity_fight_qiesalei_convenient_entry_3",
+      "supercategory": ""
+    },
+    {
+      "id": 204,
+      "name": "pet_claim_done_treasure_reward",
+      "supercategory": ""
+    },
+    {
+      "id": 205,
+      "name": "pet_claim_done_treasure_reward_area",
+      "supercategory": ""
+    },
+    {
+      "id": 206,
+      "name": "pet_claim_done_treasure_reward_over_tips",
+      "supercategory": ""
+    },
+    {
+      "id": 207,
+      "name": "pet_claim_treasure_remain_times",
       "supercategory": ""
     }
   ]

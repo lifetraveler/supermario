@@ -991,6 +991,26 @@ PET_REWARD_GETED_TIPS = SceneElement(
     resource_id="pet_reward_geted_tips",
     desc="宠物寻宝：联盟宝藏我的",
 )
+PET_CLAIM_DONE_TREASURE_REWARD = SceneElement(
+    name="pet_claim_done_treasure_reward",
+    resource_id="pet_claim_done_treasure_reward",
+    desc="宠物寻宝：领取已经找到的宝藏",
+)
+PET_CLAIM_DONE_TREASURE_REWARD_AREA = SceneElement(
+    name="pet_claim_done_treasure_reward_area",
+    resource_id="pet_claim_done_treasure_reward_area",
+    desc="宠物寻宝：领取已经找到的宝藏打开",
+)
+PET_CLAIM_DONE_TREASURE_REWARD_OVER_TIPS = SceneElement(
+    name="pet_claim_done_treasure_reward_over_tips",
+    resource_id="pet_claim_done_treasure_reward_over_tips",
+    desc="宠物寻宝：领取已经找到的宝藏关闭提示",
+)
+PET_CLAIM_TREASURE_REMAIN_TIMES = SceneElement(
+    name="pet_claim_treasure_remain_times",
+    resource_id="pet_claim_treasure_remain_times",
+    desc="宠物寻宝：剩余的领取次数",
+)
 
 
 

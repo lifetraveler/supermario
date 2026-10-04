@@ -234,7 +234,28 @@ class SGBaseTask(MyBaseTask):
             self.log_info(f"步骤 [{step_name}] 失败")
 
         return False
-
+      
+    def _safe_box(self, element):
+        """
+        bbox 定位。框架 get_box_by_name 找不到类别时抛 ValueError，
+        这里转为 None，交由上层处理。
+        """
+        try:
+            return self.get_box_by_name(element.resource_id)
+        except ValueError:
+            return None
+          
+          
+    def _ocr_text(self, box):
+        """OCR box 区域，返回首个结果文本；异常/无结果返回 None。"""
+        try:
+            results = self.ocr(box=box)
+        except Exception as e:
+            self.log_info(f"OCR 异常: {e}")
+            return None
+        if not results:
+            return None
+        return results[0].name or ""
     # ========================================================
     # 通用工具：sleep
     # ========================================================
@@ -501,11 +522,11 @@ class SGBaseTask(MyBaseTask):
     ) -> bool:
       box=self.box_of_screen(0, 0, 1, 1)
       return self._wait_and_click(element,
-        name=None,
-        timeout=None,
-        interval=None,
+        name=name,
+        timeout=timeout,
+        interval=interval,
         threshold=0.8,
-        after_click_wait=None,
+        after_click_wait=after_click_wait,
         with_recovery=True,
         box=box)
       
