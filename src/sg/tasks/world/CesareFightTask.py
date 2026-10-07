@@ -91,7 +91,7 @@ class CesareFightTask(SGBaseTask):
         
         self.player = Player(self)
 
-        # 自身实力（todo：待实力读取实现后注入）
+        # 自身实力（TODO：待实力读取实现后注入）
         self.my_power = None
 
     # ========================================================

@@ -17,8 +17,12 @@
 
 import datetime
 
+from src.sg.element.world.resource.base_searcher import (
+    BaseResourceSearcher,
+)
 from src.sg.scene.elements import (
     BUTTON_SEARCH_RESOURCES,
+    WORLD_ICON_RESOURCE_BEAST,
     WORLD_ICON_RESOURCE_SLIDE_AREA,
     WORLD_ICON_RESOURCE_BREAD,
     WORLD_ICON_RESOURCE_WOOD,
@@ -39,9 +43,9 @@ NORMAL_RESOURCES = {
 # 大型伐木场 → wood；大型面包 → bread；大型石头 → stone；大型铁矿 → iron。
 LARGE_KEYWORDS = {
     "伐木场": "wood",
-    "面包": "bread",
-    "石头": "stone",
-    "铁矿": "iron",
+    "面包屋": "bread",
+    "采石场": "stone",
+    "铁矿场": "iron",
 }
 
 # 普通资源展示名，用于日志。
@@ -53,36 +57,27 @@ RESOURCE_NAMES = {
 }
 
 
-class ResourceGatherSearcher:
+class ResourceGatherSearcher(BaseResourceSearcher):
     """
     职责：大型资源检测 + 采集资源规划 + 搜索面板选资源。
     不负责：队列数量、等级选择、时间 OCR、恢复。
+
+    滑动查找与端点锚点复用父类 BaseResourceSearcher 的
+    _find_edge_anchor(direction) / _scroll(direction)。
+    最左端锚点 = 野兽图标（资源栏第一个图标）；
+    右端锚点沿用父类的石头/铁矿（资源栏最后两个图标）。
     """
 
     def __init__(self, task):
-        self.task = task
+        super().__init__(task)
 
-
-        # ====================================================
-        # 滑动查找配置（与 BeastSearcher 同构）
-        # ====================================================
-        # 最大滑动次数，防止无限滑动。
-        self.scroll_max_attempts = 8
-
-        # 滑动 x 坐标（屏幕相对）。短滑触发惯性，不滑满屏。
-        self.scroll_from_x = 0.5
-        self.scroll_to_x = 0.7
-
-        # 滑动时长（秒）。短一点模拟"快速滑动"，让惯性生效。
-        self.scroll_duration = 0.2
-
-        # 滑动后稳定等待（秒），等惯性动画完全停下来。
-        self.scroll_settle_time = 1.0
-        # 滑动线的兜底 y 值（资源栏典型位置，屏幕相对）。
-        self.scroll_default_y = 0.85
+        # 资源栏最左端锚点：野兽图标（资源栏第一个图标）。
+        # 看到它说明视图已位于资源栏最左侧。
+        self.left_edge_elements = [WORLD_ICON_RESOURCE_BEAST]
 
         # 资源图标匹配阈值。图标形态多变，用宽松阈值。
-        self.resource_threshold = 0.5
+        self.resource_threshold = 0.95
+
 
         # ====================================================
         # 内部状态
@@ -103,17 +98,20 @@ class ResourceGatherSearcher:
 
     def detect_large_resource(self):
         """
-        在滑动区域内 OCR 检测"大型"资源，识别具体类型。
+        先把资源栏滑到最左端（以检测到野兽图标为准），然后在滑动区域内
+        OCR 检测"大型"资源，识别具体类型。
 
-        返回 large_resource_type：大型资源对应的资源 key；
-        没有大型矿返回 None。结果缓存，重复调用不重复 OCR。
+        返回"大型"资源 OCR 结果的 box（供点击选中）；没有大型矿返回
+        None。结果缓存：缓存命中时直接返回资源 key，不重复滑动与 OCR。
         """
         if self.large_resource_type is not None:
             return self.large_resource_type
 
-        box = self.task._find(
-            WORLD_ICON_RESOURCE_SLIDE_AREA,
-            box=self.task.box_of_screen(0, 0, 1, 1),
+        # 先滑到资源栏最左端，保证每次检测的起始视图一致。
+        self._scroll_to_leftmost()
+
+        box = self.task.get_box_by_name(
+            WORLD_ICON_RESOURCE_SLIDE_AREA.resource_id
         )
         if box is None:
             self.task.log_info("未找到资源滑动区域，按无大型矿处理")
@@ -144,8 +142,11 @@ class ResourceGatherSearcher:
                 self.task.log_info(
                     f"检测到大型资源: 大型{keyword} → {key}"
                 )
-                return key
-
+                # return key
+        # 返回大型的box
+        for box in results:
+            if "大型" in box.name:
+                return box     
         # 含"大型"但未匹配到已知类型，按无大型矿处理。
         self.task.log_info("检测到大型但未识别类型，按无大型矿处理")
         return None
@@ -178,9 +179,9 @@ class ResourceGatherSearcher:
         normal_order = list(NORMAL_RESOURCES.keys())  # 面包→木材→石头→铁矿
         n = len(normal_order)
 
-        # 大型资源优先占用一个队列。
-        if large is not None:
-            plan.append(large)
+        # # 大型资源优先占用一个队列。 这里是不是有问题，这个队列是针对普通矿的
+        # if large is not None:
+        #     plan.append(large)
 
         # 普通资源循环起点：
         #   无大型矿 → 日期余数直接对应；
@@ -260,7 +261,7 @@ class ResourceGatherSearcher:
             self.task.log_info(
                 f"搜索: 未匹配到 {element.name}，滑动资源栏继续查找"
             )
-            self._scroll_right()
+            self._scroll("right")
 
         return False
 
@@ -286,17 +287,21 @@ class ResourceGatherSearcher:
 
         大型资源检测必须在面板打开后进行
         （滑动区域是搜索面板内元素）。
-        （等级选择 TODO：游戏默认已选，暂不实现）
+        （等级选择 TODO：游戏默认已选，暂不实现）   
         """
         if not self.open_search_panel():
             return False
         # 面板已打开，首次调用时检测大型资源并生成采集计划。
         if self.plan_provider is not None and not self.plan_provided:
-            self.detect_large_resource()
+            largebox=self.detect_large_resource()
             self.plan = self.plan_provider(self.large_resource_type)
             self.plan_provided = True
-        if not self.select_resource(key):
-            return False
+        # 如果由大资源，先采集大型资源    
+            if largebox:
+                self.task.click_box(largebox)
+        else:
+            if not self.select_resource(key):
+                return False
         if not self.confirm_search():
             return False
         return True
@@ -305,18 +310,44 @@ class ResourceGatherSearcher:
     # 滑动
     # ========================================================
 
-    def _scroll_right(self):
+    def _scroll_to_leftmost(self) -> bool:
         """
-        手指从屏幕中间滑向右侧，让资源栏内容右移、露出左侧图标。
+        把资源栏滑到最左端：手指向右滑，直到检测到左端锚点
+        （野兽图标，见 self.left_edge_elements）。
 
-        资源图标不匹配锚点时无法确定滑动线 y，
-        用资源图标典型位置的兜底 y 值。
+        复用父类 _find_edge_anchor("left") 判定端点、
+        _scroll("right") 执行滑动（滑动线自动取右端锚点位置）。
+        已在最左端时不滑动直接返回；滑满 scroll_max_attempts 次
+        仍未检测到锚点则按当前视图继续（返回 False）。
         """
-        self.task.swipe_relative(
-            from_x=self.scroll_from_x,
-            from_y=self.scroll_default_y,
-            to_x=self.scroll_to_x,
-            to_y=self.scroll_default_y,
-            duration=self.scroll_duration,
-            settle_time=self.scroll_settle_time,
+        for attempt in range(self.scroll_max_attempts + 1):
+            if self._find_edge_anchor(
+                "left", threshold=self.resource_threshold
+            ) is not None:
+                if attempt > 0:
+                    self.task.log_info(
+                        f"搜索: 滑动 {attempt} 次后检测到野兽图标，"
+                        f"资源栏已到最左端"
+                    )
+                else:
+                    self.task.log_info(
+                        "搜索: 已检测到野兽图标，资源栏位于最左端"
+                    )
+                return True
+
+            if attempt >= self.scroll_max_attempts:
+                break
+
+            self.task.log_info(
+                f"搜索: 未检测到野兽图标，"
+                f"向右滑动到最左端 ({attempt + 1}/{self.scroll_max_attempts})"
+            )
+            self._scroll("right")
+
+        self.task.log_info(
+            f"搜索: 滑动 {self.scroll_max_attempts} 次仍未检测到野兽图标，"
+            f"按当前视图继续检测"
         )
+        return False
+
+

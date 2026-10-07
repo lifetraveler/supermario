@@ -617,6 +617,36 @@
       "file_name": "94.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 150,
+      "file_name": "95.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 151,
+      "file_name": "104.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 152,
+      "file_name": "105.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 153,
+      "file_name": "106.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 154,
+      "file_name": "107.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -729,12 +759,12 @@
       "image_id": 1,
       "category_id": 30,
       "bbox": [
-        16,
-        238,
-        293,
-        59
+        211,
+        246,
+        100,
+        43
       ],
-      "area": 17287,
+      "area": 4300,
       "iscrowd": 0
     },
     {
@@ -1626,12 +1656,12 @@
       "image_id": 75,
       "category_id": 76,
       "bbox": [
-        386,
-        1432,
-        139,
-        61
+        402,
+        1438,
+        103,
+        59
       ],
-      "area": 8479,
+      "area": 6077,
       "iscrowd": 0
     },
     {
@@ -2003,12 +2033,12 @@
       "image_id": 23,
       "category_id": 107,
       "bbox": [
-        729,
-        74,
-        169,
-        45
+        786,
+        86,
+        63,
+        33
       ],
-      "area": 7605,
+      "area": 2079,
       "iscrowd": 0
     },
     {
@@ -3158,7 +3188,7 @@
     {
       "id": 196,
       "image_id": 142,
-      "category_id": 196,
+      "category_id": 209,
       "bbox": [
         383,
         760,
@@ -3171,7 +3201,7 @@
     {
       "id": 197,
       "image_id": 142,
-      "category_id": 197,
+      "category_id": 196,
       "bbox": [
         556,
         634,
@@ -3310,6 +3340,19 @@
       ],
       "area": 19690,
       "iscrowd": 0
+    },
+    {
+      "id": 208,
+      "image_id": 1,
+      "category_id": 208,
+      "bbox": [
+        53,
+        246,
+        70,
+        41
+      ],
+      "area": 2870,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -3335,12 +3378,12 @@
     },
     {
       "id": 5,
-      "name": "wolrd_resource_monster_button_rallygiantbeast",
+      "name": "world_resource_monster_button_rallygiantbeast",
       "supercategory": ""
     },
     {
       "id": 6,
-      "name": "wolrd_icon_resource_monster",
+      "name": "world_icon_resource_monster",
       "supercategory": ""
     },
     {
@@ -3350,7 +3393,7 @@
     },
     {
       "id": 8,
-      "name": "wolrd_icon_resource_beast",
+      "name": "world_icon_resource_beast",
       "supercategory": ""
     },
     {
@@ -3395,7 +3438,7 @@
     },
     {
       "id": 17,
-      "name": "wolrd_resource_button_add",
+      "name": "world_resource_button_add",
       "supercategory": ""
     },
     {
@@ -3500,7 +3543,7 @@
     },
     {
       "id": 38,
-      "name": "wolrd_resource_button_negtive",
+      "name": "world_resource_button_negtive",
       "supercategory": ""
     },
     {
@@ -3635,27 +3678,27 @@
     },
     {
       "id": 65,
-      "name": "wolrd_icon_resource_scarewolf",
+      "name": "world_icon_resource_scarewolf",
       "supercategory": ""
     },
     {
       "id": 66,
-      "name": "wolrd_icon_resource_bread",
+      "name": "world_icon_resource_bread",
       "supercategory": ""
     },
     {
       "id": 67,
-      "name": "wolrd_icon_resource_wood",
+      "name": "world_icon_resource_wood",
       "supercategory": ""
     },
     {
       "id": 68,
-      "name": "wolrd_icon_resource_stone",
+      "name": "world_icon_resource_stone",
       "supercategory": ""
     },
     {
       "id": 69,
-      "name": "wolrd_icon_resource_iron",
+      "name": "world_icon_resource_iron",
       "supercategory": ""
     },
     {
@@ -3750,7 +3793,7 @@
     },
     {
       "id": 88,
-      "name": "wolrd_event_fight",
+      "name": "world_event_fight",
       "supercategory": ""
     },
     {
@@ -4280,22 +4323,17 @@
     },
     {
       "id": 194,
-      "name": "wolrd_icon_resource_slide_area",
+      "name": "world_icon_resource_slide_area",
       "supercategory": ""
     },
     {
       "id": 195,
-      "name": "wolrd_resource_search_large_resource",
+      "name": "world_resource_search_large_resource",
       "supercategory": ""
     },
     {
       "id": 196,
-      "name": "wolrd_gather_reource_button_start",
-      "supercategory": ""
-    },
-    {
-      "id": 197,
-      "name": "wolrd_gather_reource_time_area",
+      "name": "world_gather_reource_time_area",
       "supercategory": ""
     },
     {
@@ -4346,6 +4384,16 @@
     {
       "id": 207,
       "name": "pet_claim_treasure_remain_times",
+      "supercategory": ""
+    },
+    {
+      "id": 208,
+      "name": "troop_march_team_num_position",
+      "supercategory": ""
+    },
+    {
+      "id": 209,
+      "name": "world_gather_reource_button_start",
       "supercategory": ""
     }
   ]

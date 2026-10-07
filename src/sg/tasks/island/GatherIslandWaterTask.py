@@ -178,17 +178,17 @@ class GatherIslandWaterTask(SGBaseTask):
     # ========================================================
     # 步骤 3：缩放到最小（ctrl + 滚轮向下）
     # ========================================================
-
+    def _u2_available(self) -> bool:
+        """uiautomator2 是否可用（pinch / swipe_points / two_finger 依赖）。"""
+        import importlib.util
+        return importlib.util.find_spec("uiautomator2") is not None
+    
     def _zoom_out_island(self) -> bool:
-        self.log_info("按住 ctrl 滚轮向下缩放到最小")
-        self.send_key_down("ctrl")
-        self._sleep(0.3)
-        for _ in range(self.zoom_out_steps):
-            self.scroll_relative(0.5, 0.5, -5)
-            self._sleep(0.4)
-        self.send_key_up("ctrl")
         self._sleep(1.0)
-        return True
+        u2_ok = self._u2_available()
+        if u2_ok:
+            return self.zoom(zoom_in=False, percent=60)
+        return False
 
     # ========================================================
     # 步骤 4：点击产水建筑完成采水
@@ -299,7 +299,7 @@ class GatherIslandWaterTask(SGBaseTask):
             self.last_error = "进入海岛失败"
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
-
+        self._sleep(1)
         # ---- 缩放到最小 ----
         if not self._step(self._zoom_out_island, "缩放海岛"):
             self.last_error = "缩放海岛失败"
@@ -315,7 +315,11 @@ class GatherIslandWaterTask(SGBaseTask):
         # ---- 领取采水奖励（失败不阻塞任务结果）----
         if not self._step(self._claim_gather_reward, "领取采水奖励",with_recovery=False):
             self.log_info("领取采水奖励失败，不影响采水结果")
-
+            
+        if not self._step(self._ensure_main_scene, "回到主界面"):
+            self.last_error = "回到主界面失败"
+            self.log_error(self.last_error)
+            return (InteractionResult.FAILED, 0)        
         self.log_info("========== 岛屿采水完成 ==========")
         return (InteractionResult.SUCCESS, 0)
 

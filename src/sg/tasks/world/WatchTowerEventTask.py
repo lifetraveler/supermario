@@ -387,7 +387,7 @@ class WatchTowerEventTask(SGBaseTask):
     def _handle_conq_event(self) -> bool:
         """
         讨伐流程：
-          1. bbox 直接点击 wolrd_event_fight
+          1. bbox 直接点击 world_event_fight
           2. 等待约 5 秒
           3. 等待 world_event_fight_success 特征出现 → 成功
         """

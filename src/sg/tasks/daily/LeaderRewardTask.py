@@ -29,6 +29,7 @@ from src.sg.scene.elements import (
     CITY_DAILY_FREE_LEADER_BOX,
     CITY_DAILY_FREE_LEADER_TITLE,
     CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GETED,
+    CITY_DAILY_FREE_LEADER_BOX_GETED,
     CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GET_REWARD,
     GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
 )
@@ -48,7 +49,7 @@ class LeaderRewardTask(SGBaseTask):
     """
 
     # 宝箱领取轮数上限（界面有几个宝箱就点几轮，防异常界面死循环）
-    claim_rounds_max = 5
+    claim_rounds_max = 1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -139,21 +140,19 @@ class LeaderRewardTask(SGBaseTask):
         # 选中宝箱
         if not self._wait_and_click(
             CITY_DAILY_FREE_LEADER_BOX, name="统帅宝箱",
-            timeout=6.0, box=full_screen,
+            timeout=2.0, box=full_screen,with_recovery=False
         ):
-            return False
-        self._sleep(1.0)
-
-        # 弹出窗口：先匹配"已领取"标志
-        geted_box = self._wait_element(
-            CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GETED,
-            timeout=3.0, box=full_screen, with_recovery=False,
-        )
-        if geted_box is not None:
-            self.log_info("当前宝箱已领取，点击退出继续下一个")
-            self.click(geted_box)
-            self._sleep(1.0)
-            return True
+            self.log_info("宝箱可能已经被领取")
+        else:
+            # 弹出窗口：先匹配"已领取"标志
+            geted_box = self._wait_element(
+                CITY_DAILY_FREE_LEADER_BOX_GETED,
+                timeout=2.0, box=full_screen, with_recovery=False,
+            )
+            if geted_box is not None:
+                self.log_info("当前宝箱已领取，点击退出继续下一个")
+                self.click(geted_box)
+                self._sleep(1.0)
 
         # 未领取 → 点击领取奖励按钮
         if not self._wait_and_click(
@@ -167,7 +166,7 @@ class LeaderRewardTask(SGBaseTask):
 
         # 等待"获得奖励"提示出现后点击退出
         quit_box = self._wait_element(
-            GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
+            CITY_DAILY_FREE_LEADER_PAGE_BUTTON_GETED,
             timeout=2.0, box=full_screen, with_recovery=False,
         )
         if quit_box is not None:
@@ -186,13 +185,6 @@ class LeaderRewardTask(SGBaseTask):
         full_screen = self.box_of_screen(0, 0, 1, 1)
 
         for round_no in range(1, self.claim_rounds_max + 1):
-            box = self._find(
-                CITY_DAILY_FREE_LEADER_BOX, threshold=0.8, box=full_screen
-            )
-            if box is None:
-                self.log_info(f"第 {round_no} 轮未找到宝箱图标，领取结束")
-                return True
-
             if not self._step(self._claim_one_box, f"领取宝箱#{round_no}"):
                 self.log_info(f"宝箱#{round_no} 领取失败，继续下一个")
             self._sleep(0.5)

@@ -982,8 +982,8 @@ class TaskQueue:
         """
         lt = time.localtime(ts)
         if time.localtime(now).tm_yday == lt.tm_yday:
-            return time.strftime("%H:%M", lt)
-        return time.strftime("%m-%d %H:%M", lt)
+            return time.strftime("%H:%M:%S", lt)
+        return time.strftime("%m-%d %H:%M:%S", lt)
 
     def all_done(self):
         """

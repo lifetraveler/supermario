@@ -11,7 +11,7 @@
 
 import re
 
-from src.sg.scene.elements import TROOP_MARCH_TEAM_NUM
+from src.sg.scene.elements import (TROOP_MARCH_TEAM_NUM,TROOP_MARCH_TEAM_NUM_POSITION)
 
 
 class Troop:
@@ -44,6 +44,8 @@ class Troop:
         读取失败返回 (None, None)。
         第一个数字是有效数量，第二个是最大数量。
         """
+        if not self.task._wait_element(TROOP_MARCH_TEAM_NUM_POSITION,with_recovery=True,timeout=2):
+            return (0,5)
         try:
             box = self.task.get_box_by_name(self.element.resource_id)
         except ValueError:
@@ -60,8 +62,8 @@ class Troop:
             return (None, None)
 
         if not results:
-            self.task.log_info("未识别到队列数量文本")
-            return (None, None)
+            self.task.log_info("未识别到队列数量文本,给默认值0/5")
+            return (0, 5)
 
         # 按 x 排序保证 "有效数量在前、最大数量在后"，
         # 兼容 "3/5" 单文本框与 "3" "5" 分离文本框两种渲染

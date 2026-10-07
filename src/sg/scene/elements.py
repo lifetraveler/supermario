@@ -84,7 +84,7 @@ GIANT_BEAST = SceneElement(
 # 巨兽页面 → 集结
 BUTTON_RALLY_GIANT_BEAST = SceneElement(
     name="巨兽页面 → 集结button_rallygiantbeast",
-    resource_id="wolrd_resource_monster_button_rallygiantbeast",
+    resource_id="world_resource_monster_button_rallygiantbeast",
     desc="巨兽页面 → 集结按钮",
 )
 
@@ -125,14 +125,14 @@ BUTTON_RESOURCESEARCH = SceneElement(
 # 资源栏右端：石头
 WORLD_ICON_RESOURCE_STONE = SceneElement(
     name="world_icon_resource_stone",
-    resource_id="wolrd_icon_resource_stone",
+    resource_id="world_icon_resource_stone",
     desc="资源栏右端：石头",
 )
 
 # 资源栏右端：铁矿
 WORLD_ICON_RESOURCE_IRON = SceneElement(
     name="world_icon_resource_iron",
-    resource_id="wolrd_icon_resource_iron",
+    resource_id="world_icon_resource_iron",
     desc="资源栏右端：铁矿",
 )
 
@@ -179,16 +179,16 @@ MAINCASTLE = SceneElement(
 
 # id: 6
 WORLD_ICON_RESOURCE_MONSTER = SceneElement(
-    name="wolrd_icon_resource_monster",
-    resource_id="wolrd_icon_resource_monster",
+    name="world_icon_resource_monster",
+    resource_id="world_icon_resource_monster",
     desc="世界资源图标：怪物",
 )
 
 
 # id: 8
 WORLD_ICON_RESOURCE_BEAST = SceneElement(
-    name="wolrd_icon_resource_beast",
-    resource_id="wolrd_icon_resource_beast",
+    name="world_icon_resource_beast",
+    resource_id="world_icon_resource_beast",
     desc="世界资源图标：野兽",
 )
 
@@ -197,6 +197,11 @@ TROOP_MARCH_TEAM_NUM = SceneElement(
     name="troop_march_team_num",
     resource_id="troop_march_team_num",
     desc="行军队伍数量",
+)
+TROOP_MARCH_TEAM_NUM_POSITION = SceneElement(
+    name="troop_march_team_num_position",
+    resource_id="troop_march_team_num_position",
+    desc="行军队伍数量位置",
 )
 
 BEAST_TIME_WAY = SceneElement(
@@ -235,8 +240,8 @@ TEAM_PREPARE_BEARPIT1 = SceneElement(
 
 # id: 17
 WORLD_RESOURCE_BUTTON_ADD = SceneElement(
-    name="wolrd_resource_button_add",
-    resource_id="wolrd_resource_button_add",
+    name="world_resource_button_add",
+    resource_id="world_resource_button_add",
     desc="世界资源按钮：添加",
 )
 
@@ -340,8 +345,8 @@ TEAM_PREPARE_ALLIANCEMINE = SceneElement(
 
 # id: 38
 WORLD_RESOURCE_BUTTON_NEGTIVE = SceneElement(
-    name="wolrd_resource_button_negtive",
-    resource_id="wolrd_resource_button_negtive",
+    name="world_resource_button_negtive",
+    resource_id="world_resource_button_negtive",
     desc="世界资源按钮：减少",
 )
 
@@ -538,22 +543,22 @@ WORLD_EVENT_BUTTON_TAKEOVER = SceneElement(
 
 # id: 65
 WORLD_ICON_RESOURCE_SCAREWOLF = SceneElement(
-    name="wolrd_icon_resource_scarewolf",
-    resource_id="wolrd_icon_resource_scarewolf",
+    name="world_icon_resource_scarewolf",
+    resource_id="world_icon_resource_scarewolf",
     desc="世界资源图标：稻草狼",
 )
 
 # id: 66
 WORLD_ICON_RESOURCE_BREAD = SceneElement(
-    name="wolrd_icon_resource_bread",
-    resource_id="wolrd_icon_resource_bread",
+    name="world_icon_resource_bread",
+    resource_id="world_icon_resource_bread",
     desc="世界资源图标：面包",
 )
 
 # id: 67
 WORLD_ICON_RESOURCE_WOOD = SceneElement(
-    name="wolrd_icon_resource_wood",
-    resource_id="wolrd_icon_resource_wood",
+    name="world_icon_resource_wood",
+    resource_id="world_icon_resource_wood",
     desc="世界资源图标：木材",
 )
 
@@ -659,8 +664,8 @@ WORLD_EVENT_OBJECT_HANDLEAREA = SceneElement(
 
 # 讨伐流程：讨伐按钮
 WORLD_EVENT_FIGHT = SceneElement(
-    name="wolrd_event_fight",
-    resource_id="wolrd_event_fight",
+    name="world_event_fight",
+    resource_id="world_event_fight",
     desc="讨伐界面：讨伐按钮",
 )
 
@@ -897,6 +902,12 @@ CITY_DAILY_FREE_LEADER_TITLE = SceneElement(
 CITY_DAILY_FREE_LEADER_BOX = SceneElement(
     name="city_daily_free_leader_box",
     resource_id="city_daily_free_leader_box",
+    desc="统帅：宝箱图标",
+)
+# 统帅界面：宝箱图标
+CITY_DAILY_FREE_LEADER_BOX_GETED = SceneElement(
+    name="city_daily_free_leader_box_geted",
+    resource_id="city_daily_free_leader_box_geted",
     desc="统帅：宝箱图标",
 )
 
@@ -1141,7 +1152,7 @@ GLOBAL_PLAYER_STAMINA_MASK = SceneElement(
     resource_id="global_player_stamina_mask",
     desc="体力不足，领取界面",
 )
-# 处理窗口：求助按钮（todo 待实现）
+# 处理窗口：求助按钮（TODO 待实现）
 GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_NEED_HELP = SceneElement(
     name="global_activity_fight_qiesalei_button_need_help",
     resource_id="global_activity_fight_qiesalei_button_need_help",
@@ -1152,29 +1163,29 @@ GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_NEED_HELP = SceneElement(
 # 野外资源采集（Gather Resource）
 # id: 194
 WORLD_ICON_RESOURCE_SLIDE_AREA = SceneElement(
-    name="wolrd_icon_resource_slide_area",
-    resource_id="wolrd_icon_resource_slide_area",
+    name="world_icon_resource_slide_area",
+    resource_id="world_icon_resource_slide_area",
     desc="世界资源栏：滑动区域（大型矿 OCR 区域）",
 )
 
 # id: 195
 WORLD_RESOURCE_SEARCH_LARGE_RESOURCE = SceneElement(
-    name="wolrd_resource_search_large_resource",
-    resource_id="wolrd_resource_search_large_resource",
+    name="world_resource_search_large_resource",
+    resource_id="world_resource_search_large_resource",
     desc="搜索资源：大型资源图标",
 )
 
 # id: 196
 WORLD_GATHER_REOURCE_BUTTON_START = SceneElement(
-    name="wolrd_gather_reource_button_start",
-    resource_id="wolrd_gather_reource_button_start",
+    name="world_gather_reource_button_start",
+    resource_id="world_gather_reource_button_start",
     desc="采集确认页：开始采集按钮",
 )
 
 # id: 197
 WORLD_GATHER_REOURCE_TIME_AREA = SceneElement(
-    name="wolrd_gather_reource_time_area",
-    resource_id="wolrd_gather_reource_time_area",
+    name="world_gather_reource_time_area",
+    resource_id="world_gather_reource_time_area",
     desc="采集确认页：预计采集时间区域（OCR）",
 )
 

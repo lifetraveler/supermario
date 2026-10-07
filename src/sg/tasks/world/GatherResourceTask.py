@@ -195,6 +195,9 @@ class GatherResourceTask(SGBaseTask):
             self.log_error(self.last_error)
             return False
 
+        
+        # TODO---- 开始采集队列选择出发派遣,复用rally，给rally里加一个出发类型，区分开是野怪也还是资源采集，然后对应队列，英雄，兵力做相应的处理 ----
+        
         name = RESOURCE_NAMES.get(
             key, RESOURCE_NAMES.get(self._last_planned_key(), "?")
         )
@@ -215,7 +218,7 @@ class GatherResourceTask(SGBaseTask):
 
     def _read_gather_time(self):
         """
-        OCR wolrd_gather_reource_time_area 读取预计采集时间，暂存展示。
+        OCR world_gather_reource_time_area 读取预计采集时间，暂存展示。
         读取失败不影响流程（时间仅用于日志 / info 展示）。
         """
         box = self._find(
@@ -289,9 +292,9 @@ class GatherResourceTask(SGBaseTask):
         return total if total > 0 else None
 
     def _click_start_gather(self) -> bool:
-        """点击 wolrd_gather_reource_button_start 开始采集。"""
-        if not self._wait_and_click(
-            WORLD_GATHER_REOURCE_BUTTON_START, timeout=8.0
+        """点击 world_gather_reource_button_start 开始采集。"""
+        if not self._wait_and_click_all_screen(
+            WORLD_GATHER_REOURCE_BUTTON_START, timeout=2.0
         ):
             return False
         self._sleep(self.after_start_wait)

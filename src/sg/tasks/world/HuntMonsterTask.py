@@ -155,7 +155,7 @@ class HuntMonsterTask(SGBaseTask):
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)
 
-        # todo ---- 队列准备 ----
+        # TODO ---- 队列准备 ----
         # ready, wait_seconds = self.rally.prepare()
         # if not ready:
         #     if wait_seconds > 0:

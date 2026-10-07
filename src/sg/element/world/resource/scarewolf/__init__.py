@@ -1,5 +1,5 @@
-from src.sg.element.world.resource.monster.monster_searcher import (
-    MonsterSearcher,
+from src.sg.element.world.resource.scarewolf.scarewolf_searcher import (
+    ScareWolfSearcher,
 )
 
-__all__ = ["MonsterSearcher"]
+__all__ = ["ScareWolfSearcher"]
