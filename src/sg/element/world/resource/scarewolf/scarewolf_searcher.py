@@ -10,8 +10,8 @@ class ScareWolfSearcher(BaseResourceSearcher):
     """
     恐狼搜索。
 
-    滑动查找能力（查找 → 滑动 → 再查找）由父类
-    BaseResourceSearcher.select_resource() 统一提供，
+    滑动查找能力（查找 → 滑动 → 再查找 → 点击）由父类
+    BaseResourceSearcher.select_resource_and_click() 统一提供，
     端点锚点与滑动配置也在父类中维护，子类按需覆写。
     """
 

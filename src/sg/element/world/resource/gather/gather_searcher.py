@@ -222,48 +222,25 @@ class ResourceGatherSearcher(BaseResourceSearcher):
             timeout=8.0,
         )
 
-    def select_resource(self, key: str) -> bool:
+    def select_resource_and_click(self, key: str) -> bool:
         """
-        在滑动区域内查找并点击指定资源图标。
+        在滑动区域内查找指定资源图标并点击。
         找不到则滑动资源栏继续找，最多 scroll_max_attempts 次。
+
+        查找复用父类 select_resource()（targets=单个资源元素，
+        匹配阈值用本类宽松的 resource_threshold），点击由本方法完成。
         """
         element = NORMAL_RESOURCES[key]
+        found = self.select_resource(targets=[element])
+        if found is None:
+            return False
+        self.task.click(found)
+        self.task._sleep(0.3)
+        return True
 
-        for attempt in range(self.scroll_max_attempts + 1):
-            if attempt == 0:
-                # 第一次用短等待，兼容界面动画未完成。
-                box = self.task._wait_element(
-                    element,
-                    timeout=2.0,
-                    box=self.task.box_of_screen(0, 0, 1, 1),
-                    threshold=self.resource_threshold,
-                )
-            else:
-                box = self.task._find(
-                    element,
-                    box=self.task.box_of_screen(0, 0, 1, 1),
-                    threshold=self.resource_threshold,
-                )
-
-            if box is not None:
-                self.task.log_info(f"搜索: 找到 {element.name}，点击")
-                self.task.click(box)
-                self.task._sleep(0.3)
-                return True
-
-            if attempt >= self.scroll_max_attempts:
-                self.task.log_info(
-                    f"搜索: 已滑动 {self.scroll_max_attempts} 次"
-                    f"仍未找到 {element.name}"
-                )
-                return False
-
-            self.task.log_info(
-                f"搜索: 未匹配到 {element.name}，滑动资源栏继续查找"
-            )
-            self._scroll("right")
-
-        return False
+    def get_resource_threshold(self) -> float:
+        # 资源图标形态多变，父类查找时用本类宽松阈值。
+        return self.resource_threshold
 
     def confirm_search(self) -> bool:
         """
@@ -300,7 +277,7 @@ class ResourceGatherSearcher(BaseResourceSearcher):
             if largebox:
                 self.task.click_box(largebox)
         else:
-            if not self.select_resource(key):
+            if not self.select_resource_and_click(key):
                 return False
         if not self.confirm_search():
             return False

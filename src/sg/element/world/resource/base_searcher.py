@@ -23,8 +23,10 @@ class BaseResourceSearcher:
         get_default_level()     -> 默认 None
 
     滑动查找：
-        select_resource() 内置 "查找 → 滑动 → 再查找" 循环，
-        最多滑动 scroll_max_attempts 次。
+        select_resource() 只负责 "查找 → 滑动 → 再查找"，
+        返回命中的 Box；select_resource_and_click() 在此之上
+        补充点击动作，两个动作解耦。最多滑动
+        scroll_max_attempts 次。
         滑动与端点锚点均按方向区分（direction 取 "right" / "left" /
         "up" / "down"，手指滑动方向与端点方向同名）。
         不需要滑动的子类把 scroll_max_attempts 设为 0 即可。
@@ -142,67 +144,128 @@ class BaseResourceSearcher:
             timeout=8.0,
         )
 
-    def select_resource(self) -> bool:
+    def select_resource(
+        self,
+        targets=None,
+        edge_elements=None,
+        scroll_direction="right",
+        scroll_step=None,
+    ):
         """
-        选择资源；找不到则沿资源栏滑动继续找。
+        查找目标元素（找不到则沿列表滑动继续找），返回命中的 Box。
+
+        只负责 "查找 + 滑动"，不点击；点击由 select_resource_and_click()
+        拿到返回的 Box 后完成，两个动作解耦。找不到返回 None。
+
+        参数：
+          targets           要匹配的对象集（SceneElement 列表），
+                            None 时取 [self.get_resource_element()]；
+                            列表顺序即匹配优先级，命中任一即返回。
+          edge_elements     上下左右端点锚点 {direction: [元素]}；
+                            只覆盖传入的方向，其余方向沿用实例配置
+                            （right/left/top/bottom_edge_elements）。
+          scroll_direction  未匹配时滑动的初始方向，取 "right" /
+                            "left" / "up" / "down"（手指滑动方向）。
+          scroll_step       每次滑动的步进幅度（屏幕相对 0~1），
+                            None 时用实例配置 scroll_from/to_x|y 的幅度。
 
         策略：
           1. 第一次先等 2 秒，避免界面刚打开动画未完成
-          2. 找不到就向右滑动资源栏，再尝试
+          2. 找不到就沿 scroll_direction 滑动，再尝试
           3. 最多滑动 scroll_max_attempts 次
 
-        资源栏是横向排列的，目标图标不一定总在初始视图中。
         游戏有惯性动画，滑一小段实际会多走一段，所以每次只滑一小段。
         """
-        element = self.get_resource_element()
+        if targets is None:
+            targets = [self.get_resource_element()]
+        if not targets:
+            raise ValueError("targets 不能为空")
+        if scroll_direction not in self._DIRECTION_NAMES:
+            raise ValueError(
+                f"未知滑动方向 {scroll_direction!r}，"
+                f"可选: {sorted(self._DIRECTION_NAMES)}"
+            )
 
         for attempt in range(self.scroll_max_attempts + 1):
-            # 第一次用短等待，捕获动画延迟的情况；
-            # 后续直接扫一帧，因为滑动后界面已经稳定
-            if attempt == 0:
-                box = self.task._wait_element(
-                    element,
-                    timeout=2.0,
-                    box=self.task.box_of_screen(0, 0, 1, 1),
-                    threshold=self.get_resource_threshold(),
-                )
-            else:
-                box = self.task._find(
-                    element,
-                    box=self.task.box_of_screen(0, 0, 1, 1),
-                    threshold=self.get_resource_threshold(),
-                )
-
-            if box is not None:
-                self.task.log_info(
-                    f"搜索: 找到 {element.name}，点击"
-                )
-                self.task.click(
-                    box, name=f"选择资源: {element.name}"
-                )
-                return True
+            for index, element in enumerate(targets):
+                if attempt == 0 and index == 0:
+                    # 首个目标用短等待，捕获界面打开动画延迟；
+                    # 其余目标直接扫一帧，等待本身已覆盖动画时间
+                    box = self.task._wait_element(
+                        element,
+                        timeout=2.0,
+                        box=self.task.box_of_screen(0, 0, 1, 1),
+                        threshold=self.get_resource_threshold(),
+                    )
+                else:
+                    box = self.task._find(
+                        element,
+                        box=self.task.box_of_screen(0, 0, 1, 1),
+                        threshold=self.get_resource_threshold(),
+                    )
+                if box is not None:
+                    self.task.log_info(f"搜索: 找到 {element.name}")
+                    return box
 
             # 已达最大滑动次数 → 失败
             if attempt >= self.scroll_max_attempts:
+                names = " / ".join(element.name for element in targets)
                 self.task.log_info(
                     f"搜索: 已滑动 {self.scroll_max_attempts} 次"
-                    f"仍未找到 {element.name}"
+                    f"仍未找到 {names}"
                 )
-                return False
+                return None
 
-            # 未找到 → 判断位置并滑动
-            if self._find_edge_anchor("right") is not None:
+            # 未找到 → 判断位置并沿初始方向滑动
+            direction_name = self._DIRECTION_NAMES[scroll_direction]
+            if self._find_edge_anchor(
+                scroll_direction,
+                elements=(
+                    edge_elements.get(scroll_direction)
+                    if edge_elements is not None
+                    else None
+                ),
+            ) is not None:
                 self.task.log_info(
-                    "搜索: 检测到资源栏右端锚点，向右滑动查找"
+                    f"搜索: 检测到{direction_name}端锚点，"
+                    f"向{direction_name}滑动查找"
                 )
             else:
                 self.task.log_info(
-                    f"搜索: 未匹配到 {element.name}，尝试向右滑动查找"
+                    f"搜索: 未匹配到目标元素，"
+                    f"尝试向{direction_name}滑动查找"
                 )
 
-            self._scroll("right")
+            self._scroll(
+                scroll_direction,
+                step=scroll_step,
+                edge_elements=edge_elements,
+            )
 
-        return False
+        return None
+
+    def select_resource_and_click(
+        self,
+        targets=None,
+        edge_elements=None,
+        scroll_direction="right",
+        scroll_step=None,
+    ) -> bool:
+        """
+        选择资源并点击：select_resource() 找到匹配 Box 后点击。
+
+        参数透传 select_resource()，见其文档。
+        """
+        box = self.select_resource(
+            targets=targets,
+            edge_elements=edge_elements,
+            scroll_direction=scroll_direction,
+            scroll_step=scroll_step,
+        )
+        if box is None:
+            return False
+        self.task.click(box, name="选择资源")
+        return True
 
     def select_level(self, level=None) -> bool:
         """选择级别。level 为 None 或无对应元素时跳过。"""
@@ -236,7 +299,7 @@ class BaseResourceSearcher:
         """执行一次完整搜索。"""
         if not self.search():
             return False
-        if not self.select_resource():
+        if not self.select_resource_and_click():
             return False
         if not self.select_level(level):
             return False
@@ -290,7 +353,7 @@ class BaseResourceSearcher:
                 return box
         return None
 
-    def _get_scroll_line(self, direction) -> float:
+    def _get_scroll_line(self, direction, elements=None) -> float:
         """
         获取滑动线坐标（屏幕相对 0~1）。
 
@@ -303,7 +366,7 @@ class BaseResourceSearcher:
         之所以不用固定值，是因为列表位置可能随设备分辨率/UI 缩放变化，
         用实际识别到的锚点更稳。
         """
-        box = self._find_edge_anchor(direction)
+        box = self._find_edge_anchor(direction, elements=elements)
         horizontal = direction in ("left", "right")
 
         if box is not None:
@@ -324,7 +387,7 @@ class BaseResourceSearcher:
         )
         return fallback
 
-    def _scroll(self, direction):
+    def _scroll(self, direction, step=None, edge_elements=None):
         """
         沿指定方向滑动列表：手指从屏幕中间向该方向滑一小段。
 
@@ -334,8 +397,11 @@ class BaseResourceSearcher:
           down   手指向下滑 → 内容下移，露出上方内容
 
         滑动线取锚点坐标（_get_scroll_line），配合短时长的快速滑动
-        触发惯性。滑动幅度取配置值 scroll_from/to_x/y；
+        触发惯性。滑动幅度：step 为 None 时取配置值
+        scroll_from/to_x|y 的跨度，否则取 step（屏幕相对 0~1）；
         反方向滑动取 1 - 配置值 的镜像。
+        edge_elements 传给 _get_scroll_line 定位锚点，
+        格式见 select_resource()。
         """
         if direction not in self._DIRECTION_NAMES:
             raise ValueError(
@@ -343,18 +409,33 @@ class BaseResourceSearcher:
                 f"可选: {sorted(self._DIRECTION_NAMES)}"
             )
 
+        line_elements = (
+            edge_elements.get(direction)
+            if edge_elements is not None
+            else None
+        )
+        line = self._get_scroll_line(direction, elements=line_elements)
+
+        horizontal = direction in ("left", "right")
+        if horizontal:
+            base = self.scroll_from_x
+            span = self.scroll_to_x - base if step is None else step
+        else:
+            base = self.scroll_from_y
+            span = self.scroll_to_y - base if step is None else step
+
         if direction == "right":
-            from_x, to_x = self.scroll_from_x, self.scroll_to_x
-            from_y = to_y = self._get_scroll_line(direction)
+            from_x, to_x = base, base + span
+            from_y = to_y = line
         elif direction == "left":
-            from_x, to_x = 1 - self.scroll_from_x, 1 - self.scroll_to_x
-            from_y = to_y = self._get_scroll_line(direction)
+            from_x, to_x = 1 - base, 1 - base - span
+            from_y = to_y = line
         elif direction == "up":
-            from_y, to_y = 1 - self.scroll_from_y, 1 - self.scroll_to_y
-            from_x = to_x = self._get_scroll_line(direction)
+            from_y, to_y = 1 - base, 1 - base - span
+            from_x = to_x = line
         else:  # down
-            from_y, to_y = self.scroll_from_y, self.scroll_to_y
-            from_x = to_x = self._get_scroll_line(direction)
+            from_y, to_y = base, base + span
+            from_x = to_x = line
 
         self.task.log_info(
             f"搜索: 向{self._DIRECTION_NAMES[direction]}滑动 "
