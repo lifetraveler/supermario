@@ -22,7 +22,7 @@ from src.sg.scene.elements import (
     GLOBAL_PALYER_PAGE_TEAM_ENTRY,
     GLOBAL_PALYER_PAGE_TEAM_ORG_ENTRY,
     GLOBAL_PLAYER_TEAM_POWER_AREA,
-    GLOBAL_PLAYER_TEAM_POWER_BIGGEST,
+    TEAM_POWER_BIGGEST,
     TEAM_HUNTING,
 )
 from src.sg.scene.scene_type import SceneType
@@ -314,7 +314,7 @@ class Player:
     def _switch_and_read_biggest(self) -> bool:
         """切换到最强编组并 OCR 实力，写入 task.player.team_power。"""
         if not self.task._wait_and_click(
-            GLOBAL_PLAYER_TEAM_POWER_BIGGEST, timeout=self.entry_timeout
+            TEAM_POWER_BIGGEST, timeout=self.entry_timeout
         ):
             self.task.log_error("未找到最强编组切换入口")
             return False

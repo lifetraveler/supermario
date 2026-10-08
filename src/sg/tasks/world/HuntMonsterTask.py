@@ -29,7 +29,7 @@ class HuntMonsterTask(SGBaseTask):
       3. 步骤失败时的恢复重试
 
     不再负责：
-      - 循环控制（由 GenericQueueTask / TaskQueue 负责）
+      - 循环控制（由 TaskQueue 负责）
       - 次数上限、体力下限（由队列配置驱动，Task 只读取）
       - 弹窗的具体处理逻辑（由 ActivityPopup 负责）
       - 体力的读取逻辑（由 Rally 负责）
@@ -46,7 +46,7 @@ class HuntMonsterTask(SGBaseTask):
         # 队列注入字段（由外部赋值）
         # ====================================================
         # 体力下限。<=0 表示不检查体力。
-        # 由 GenericQueueTask / TaskQueue 通过 kwargs 注入。
+        # 由 TaskQueue 通过 kwargs 注入。
         self.min_stamina = 0
 
         # 满员时是否召回。<=默认 False。
@@ -213,7 +213,7 @@ class HuntMonsterTask(SGBaseTask):
           通过 self.min_stamina / self.auto_recall 等字段注入。
           单独运行时这些字段保持默认（不检查）。
 
-          如果通过 GenericQueueTask 队列运行，不会走这里。
+          如果通过统一队列运行，不会走这里。
         """
         self.log_info(
             "========== 集结巨兽（独立模式） =========="

@@ -1222,8 +1222,8 @@ GLOBAL_PLAYER_TEAM_POWER_AREA = SceneElement(
 )
 
 # 编组界面：最强编组（切换目标）
-GLOBAL_PLAYER_TEAM_POWER_BIGGEST = SceneElement(
-    name="global_player_team_power_biggest",
-    resource_id="global_player_team_power_biggest",
+TEAM_POWER_BIGGEST = SceneElement(
+    name="team_power_biggest",
+    resource_id="team_power_biggest",
     desc="编组界面：最强编组切换",
 )

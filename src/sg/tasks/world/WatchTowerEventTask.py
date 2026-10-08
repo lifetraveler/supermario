@@ -97,7 +97,7 @@ class WatchTowerEventTask(SGBaseTask):
       - 步骤失败恢复交给 RecoveryHelper
       - 挑战事件的军队队列占用上限由队列注入 beast_queue_limit
     不负责：
-      - 任务次数与调度（由 GenericQueueTask / TaskQueue 负责）
+      - 任务次数与调度（由 TaskQueue 负责）
     =========================================================
     """
 

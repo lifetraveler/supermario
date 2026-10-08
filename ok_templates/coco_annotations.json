@@ -637,14 +637,20 @@
       "height": 1600
     },
     {
-      "id": 153,
-      "file_name": "106.png",
+      "id": 154,
+      "file_name": "107.png",
       "width": 900,
       "height": 1600
     },
     {
-      "id": 154,
-      "file_name": "107.png",
+      "id": 155,
+      "file_name": "108.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 156,
+      "file_name": "106.png",
       "width": 900,
       "height": 1600
     }
@@ -835,19 +841,6 @@
     {
       "id": 15,
       "image_id": 5,
-      "category_id": 37,
-      "bbox": [
-        619,
-        126,
-        66,
-        63
-      ],
-      "area": 4158,
-      "iscrowd": 0
-    },
-    {
-      "id": 16,
-      "image_id": 5,
       "category_id": 42,
       "bbox": [
         584,
@@ -859,7 +852,7 @@
       "iscrowd": 0
     },
     {
-      "id": 17,
+      "id": 16,
       "image_id": 5,
       "category_id": 10,
       "bbox": [
@@ -869,6 +862,19 @@
         41
       ],
       "area": 7257,
+      "iscrowd": 0
+    },
+    {
+      "id": 17,
+      "image_id": 5,
+      "category_id": 71,
+      "bbox": [
+        649,
+        1422,
+        120,
+        37
+      ],
+      "area": 4440,
       "iscrowd": 0
     },
     {
@@ -1185,15 +1191,15 @@
     },
     {
       "id": 42,
-      "image_id": 5,
-      "category_id": 71,
+      "image_id": 144,
+      "category_id": 200,
       "bbox": [
-        649,
-        1422,
-        120,
-        37
+        582,
+        214,
+        287,
+        55
       ],
-      "area": 4440,
+      "area": 15785,
       "iscrowd": 0
     },
     {
@@ -3240,20 +3246,7 @@
     {
       "id": 200,
       "image_id": 144,
-      "category_id": 200,
-      "bbox": [
-        582,
-        214,
-        287,
-        55
-      ],
-      "area": 15785,
-      "iscrowd": 0
-    },
-    {
-      "id": 201,
-      "image_id": 144,
-      "category_id": 201,
+      "category_id": 210,
       "bbox": [
         432,
         128,
@@ -3261,6 +3254,19 @@
         61
       ],
       "area": 3721,
+      "iscrowd": 0
+    },
+    {
+      "id": 201,
+      "image_id": 144,
+      "category_id": 37,
+      "bbox": [
+        627,
+        130,
+        57,
+        59
+      ],
+      "area": 3363,
       "iscrowd": 0
     },
     {
@@ -3352,6 +3358,32 @@
         41
       ],
       "area": 2870,
+      "iscrowd": 0
+    },
+    {
+      "id": 209,
+      "image_id": 155,
+      "category_id": 197,
+      "bbox": [
+        83,
+        719,
+        727,
+        457
+      ],
+      "area": 332239,
+      "iscrowd": 0
+    },
+    {
+      "id": 210,
+      "image_id": 155,
+      "category_id": 201,
+      "bbox": [
+        134,
+        301,
+        163,
+        260
+      ],
+      "area": 42380,
       "iscrowd": 0
     }
   ],
@@ -3538,7 +3570,7 @@
     },
     {
       "id": 37,
-      "name": "team_prepare_alliancemine",
+      "name": "team_prepare_cj",
       "supercategory": ""
     },
     {
@@ -4337,6 +4369,11 @@
       "supercategory": ""
     },
     {
+      "id": 197,
+      "name": "team_hero_select_area",
+      "supercategory": ""
+    },
+    {
       "id": 198,
       "name": "global_palyer_page_team_entry",
       "supercategory": ""
@@ -4353,7 +4390,7 @@
     },
     {
       "id": 201,
-      "name": "global_player_team_power_biggest",
+      "name": "team_hero_add_icon",
       "supercategory": ""
     },
     {
@@ -4394,6 +4431,11 @@
     {
       "id": 209,
       "name": "world_gather_reource_button_start",
+      "supercategory": ""
+    },
+    {
+      "id": 210,
+      "name": "team_power_biggest",
       "supercategory": ""
     }
   ]

@@ -1,0 +1,1560 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任务配置维护 · task_config.json</title>
+<style>
+:root{
+  --bg:#f2f4f8; --card:#ffffff; --line:#e5e9f0; --txt:#1f2430; --muted:#8a93a6;
+  --pri:#2563eb; --pri-weak:#e8efff; --danger:#e5484d; --warn:#f59e0b;
+  --radius:12px;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.5 "Segoe UI","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;}
+
+/* ---------- top bar ---------- */
+#topbar{position:sticky;top:0;z-index:40;background:#fff;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;gap:16px;padding:10px 20px;}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  display:grid;place-items:center;color:#fff;flex:none}
+.brand h1{font-size:15px;margin:0;font-weight:700;white-space:nowrap}
+#fileStatus{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52vw}
+.actions{margin-left:auto;display:flex;gap:8px;flex:none}
+
+/* ---------- buttons / inputs ---------- */
+.btn{padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--txt);
+  cursor:pointer;font-size:13px;font-family:inherit;transition:.12s}
+.btn:hover{border-color:#c9d2e3;background:#f7f9fd}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.primary:hover{background:#1d4ed8}
+.btn.danger{color:var(--danger);border-color:#f1c6c8}
+.btn.danger:hover{background:#fef2f2}
+.btn.small{padding:3px 9px;font-size:12px;border-radius:7px}
+.tin{border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:13px;font-family:inherit;
+  background:#fff;color:var(--txt);height:30px}
+.tin:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+textarea.tin{height:auto;resize:vertical;line-height:1.5}
+select.tin{cursor:pointer}
+input[type=number].tin{text-align:right}
+
+/* ---------- iOS switch ---------- */
+.switch{width:42px;height:24px;border-radius:999px;background:#d5dae5;border:none;position:relative;
+  cursor:pointer;transition:.15s;flex:none;padding:0}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:.15s}
+.switch.on{background:var(--pri)}
+.switch.on::after{left:20px}
+.switch:focus-visible{outline:2px solid var(--pri);outline-offset:2px}
+
+/* ---------- help tooltip ---------- */
+.help{width:16px;height:16px;border-radius:50%;background:#e4e9f2;color:#7c8698;font-size:11px;
+  display:inline-grid;place-items:center;position:relative;cursor:help;flex:none;user-select:none}
+.help:hover{background:#d6dde9}
+.help:hover::after{content:attr(data-tip);position:absolute;left:0;bottom:calc(100% + 8px);
+  background:#1f2430;color:#fff;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:400;
+  width:max-content;max-width:300px;white-space:pre-wrap;z-index:60;text-align:left;
+  box-shadow:0 6px 20px rgba(15,23,42,.25)}
+
+/* ---------- tabs ---------- */
+#tabs{display:flex;gap:6px;max-width:1080px;margin:14px auto 0;padding:0 20px}
+.tab{padding:8px 18px;border-radius:999px;border:1px solid transparent;background:transparent;
+  font-size:13.5px;color:#4b5568;cursor:pointer;font-family:inherit}
+.tab:hover{background:#e8ecf3}
+.tab.on{background:var(--pri);color:#fff;font-weight:600}
+.tab .cnt{font-size:11px;opacity:.75;margin-left:4px}
+
+/* ---------- layout ---------- */
+#content{max-width:1080px;margin:0 auto;padding:14px 20px 80px}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .grow{flex:1}
+.hint{font-size:12px;color:var(--muted)}
+.grow{flex:1}
+
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.card-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}
+.ticon{width:36px;height:36px;border-radius:10px;color:#fff;font-weight:700;font-size:15px;
+  display:grid;place-items:center;flex:none}
+.tmeta{min-width:0;flex:1}
+.ttitle{font-size:15px;font-weight:700;line-height:1.3}
+.tsub{font-size:12px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tstats{font-size:12px;color:#6b7688;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{border:none;background:transparent;color:#9aa3b5;font-size:13px;cursor:pointer;padding:6px;
+  transform:rotate(90deg);transition:.15s;flex:none;line-height:1}
+.card.open .chev{transform:rotate(-90deg)}
+.card-body{display:none;border-top:1px solid var(--line);padding:4px 16px 14px;background:#fdfdfe}
+.card.open .card-body{display:block}
+
+.sec{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin:14px 0 2px}
+.sec .extra{margin-left:auto;font-weight:400;font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;column-gap:48px}
+.field{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:46px;
+  border-bottom:1px solid #f0f2f7}
+.field:last-child{border-bottom:none}
+.flabel{font-size:13.5px;color:#2a3242;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--warn);display:inline-block;flex:none}
+.card-foot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:10px;
+  border-top:1px dashed var(--line)}
+
+/* segmented / chips */
+.segwrap{background:#f2f4f9;border-radius:10px;padding:5px;display:flex;gap:5px;flex-wrap:wrap}
+.segb{padding:5px 14px;border-radius:7px;border:1px solid transparent;background:transparent;
+  font-size:13px;color:#4b5568;cursor:pointer;font-family:inherit;white-space:nowrap}
+.segb:hover{background:#e8ecf3}
+.segb.on{background:var(--pri);color:#fff;font-weight:600}
+.chips{max-width:420px;justify-content:flex-end}
+
+/* sub blocks (machines) */
+.sub{border:1px solid var(--line);border-radius:10px;background:#fbfcfe;padding:10px 12px;margin:10px 0}
+.subhead{display:flex;align-items:center;gap:10px}
+.subicon{width:26px;height:26px;border-radius:7px;background:#eef2f9;display:grid;place-items:center;
+  font-size:12px;font-weight:700;color:#5b6474;flex:none}
+.subtitle{font-size:13.5px;font-weight:600}
+.submeta{flex:1;min-width:0}
+.badge{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--pri-weak);color:var(--pri);font-weight:600}
+.badge.gray{background:#eef1f6;color:#697386}
+
+/* param table (types tab) */
+.prow,.prowhead{display:grid;grid-template-columns:120px 140px 100px 130px 1fr 1.3fr 34px;
+  gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid #f0f2f7}
+.prowhead{font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line)}
+.prow .tin{width:100%}
+
+/* banner / toast / dialog */
+#banner{max-width:1080px;margin:12px auto -4px;padding:0 20px}
+.banner-err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;padding:10px 14px;
+  border-radius:10px;font-size:13px;margin-bottom:10px}
+.errlist{margin:6px 0 0;padding-left:18px;font-size:12.5px}
+#toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);
+  background:#1f2430;color:#fff;padding:9px 18px;border-radius:999px;font-size:13px;
+  opacity:0;pointer-events:none;transition:.2s;z-index:80;box-shadow:0 8px 24px rgba(15,23,42,.3)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+dialog{border:none;border-radius:14px;box-shadow:0 20px 60px rgba(15,23,42,.35);padding:18px 20px;
+  min-width:380px;max-width:560px;color:var(--txt)}
+dialog::backdrop{background:rgba(15,23,42,.35)}
+dialog h3{margin:0 0 12px;font-size:15px}
+.drow{display:flex;align-items:center;gap:10px;margin:10px 0}
+.drow label{width:90px;font-size:13px;color:#4b5568;flex:none}
+.drow .tin{flex:1}
+.dbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.pick{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:8px;cursor:pointer}
+.pick:hover{background:#f2f5fa}
+.pick input{margin-top:3px}
+.pk-name{font-size:13.5px;font-weight:600}
+.pk-desc{display:block;font-size:11.5px;color:var(--muted);font-weight:400;margin-top:1px}
+
+/* empty / source */
+.empty{background:var(--card);border:1px dashed #cdd5e1;border-radius:var(--radius);
+  padding:52px 20px;text-align:center;color:var(--muted)}
+.empty .big{font-size:15px;color:#4b5568;font-weight:600;margin-bottom:8px}
+.empty .btn{margin-top:14px}
+.srcwrap{display:flex;flex-direction:column;gap:8px}
+textarea.src{width:100%;height:60vh;min-height:400px;font:12.5px/1.55 Consolas,"Cascadia Mono",monospace;
+  border:1px solid var(--line);border-radius:10px;padding:12px;background:#fff;color:var(--txt);resize:vertical}
+textarea.src:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+
+/* drop hint */
+#dropHint{position:fixed;inset:0;background:rgba(37,99,235,.08);border:3px dashed var(--pri);
+  display:none;place-items:center;font-size:18px;font-weight:600;color:var(--pri);
+  z-index:90;pointer-events:none;background-color:rgba(242,246,255,.92)}
+#dropHint.show{display:grid}
+
+@media (max-width:760px){
+  .grid2{grid-template-columns:1fr}
+  .prow,.prowhead{grid-template-columns:1fr 1fr 1fr;grid-auto-rows:auto}
+}
+</style>
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h6M7 13h10M7 17h4"/></svg>
+    </div>
+    <div>
+      <h1>任务配置维护</h1>
+      <div id="fileStatus">未加载配置</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnOpen">打开配置</button>
+    <button class="btn primary" id="btnSave" disabled>保存</button>
+    <button class="btn" id="btnSaveAs" disabled>另存为</button>
+    <button class="btn" id="btnReload" disabled>还原</button>
+    <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+  </div>
+</header>
+
+<div id="banner"></div>
+<nav id="tabs"></nav>
+<main id="content"></main>
+
+<dialog id="dlg"></dialog>
+<div id="toast"></div>
+<div id="dropHint">松开加载 JSON 配置文件</div>
+
+<script>
+'use strict';
+/* =====================================================================
+ * task_config.json 维护界面
+ * 结构契约与 src/sg/tasks/config_loader/task_config_loader.py 对齐：
+ *   - task_types[]: type 唯一, defaults 六键齐全, cron 字符串,
+ *     params[]: name/attr 必填, attr 同类型内唯一, widget.type 白名单
+ *   - machines[]→apps[]→users[]→tasks[]: 实例 type 必须已定义,
+ *     params 键必须 ⊆ 定义, 运行时取第一条全 enabled 链
+ * ===================================================================== */
+
+const WIDGETS = ['switch','number','text','drop_down','multi_drop_down'];
+const DKEYS = ['count','max_active','requires_march_queue','next_trigger_delay','one_shot','cron'];
+const DLBL = {
+  count:'执行次数', max_active:'最大并发', requires_march_queue:'占用出征队列',
+  next_trigger_delay:'触发间隔(秒)', one_shot:'单次执行', cron:'Cron 表达式',
+};
+const DHELP = {
+  count:'任务总执行次数，0 表示不限',
+  max_active:'同时运行的最大实例数',
+  requires_march_queue:'执行时是否占用军队出征队列',
+  next_trigger_delay:'执行完成后到下次触发的间隔秒数',
+  one_shot:'启用后只执行一次然后停用',
+  cron:'Cron 表达式定时触发，留空表示不使用',
+};
+const PALETTE = [
+  ['#60a5fa','#2563eb'],['#34d399','#059669'],['#fbbf24','#d97706'],['#f472b6','#db2777'],
+  ['#a78bfa','#7c3aed'],['#22d3ee','#0891b2'],['#fb923c','#ea580c'],['#4ade80','#16a34a'],
+];
+
+const state = {
+  doc:null, fileName:null, fileHandle:null, loadedRaw:null, dirty:false,
+  sel:{m:0,a:0,u:0}, tab:'tasks',
+  expanded:new Set(),      // 任务卡: `${m}/${a}/${u}/${type}`
+  expandedTypes:new Set(), // 类型卡/机器卡: 'T:'+type / 'm'+index
+  filter:'',
+};
+const fsSupported = ('showOpenFilePicker' in window);
+let srcDirty = false;
+let dropDepth = 0;
+
+/* ---------------- tiny dom helpers ---------------- */
+const $ = id => document.getElementById(id);
+function el(tag, cls, txt){
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (txt != null) n.textContent = txt;
+  return n;
+}
+function btn(label, cls, onclick){
+  const b = el('button', 'btn' + (cls ? ' ' + cls : ''), label);
+  b.type = 'button';
+  if (onclick) b.onclick = onclick;
+  return b;
+}
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function isDiff(a, b){ return JSON.stringify(a) !== JSON.stringify(b); }
+function hashIdx(s){ let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % PALETTE.length; }
+function trim1(n){ return String(Math.round(n * 10) / 10).replace(/\.0$/, ''); }
+function fmtDur(s){
+  s = Number(s) || 0;
+  if (s === 0) return '0秒';
+  if (s >= 86400) return trim1(s / 86400) + '天';
+  if (s >= 3600)  return trim1(s / 3600) + '小时';
+  if (s >= 60)    return trim1(s / 60) + '分钟';
+  return trim1(s) + '秒';
+}
+function fmtVal(v){
+  if (typeof v === 'boolean') return v ? '开' : '关';
+  if (Array.isArray(v)) return v.length ? v.join('/') : '-';
+  if (v == null) return '-';
+  return String(v);
+}
+function toggleSet(set, key, on){ if (on) set.add(key); else set.delete(key); }
+
+/* ---------------- dirty / status ---------------- */
+function markDirty(){ state.dirty = true; refreshStatus(); refreshBanner(); }
+function markClean(){ state.dirty = false; refreshStatus(); refreshBanner(); }
+
+function refreshStatus(){
+  const s = $('fileStatus');
+  // 按钮可用性与数据/快照状态同步（markDirty/markClean/loadText 都汇聚到这里）
+  $('btnSave').disabled = !state.doc;
+  $('btnSaveAs').disabled = !state.doc;
+  $('btnReload').disabled = !state.loadedRaw;
+  if (!state.doc){ s.textContent = '未加载配置 — 点击「打开配置」'; return; }
+  const chain = firstEnabledChain();
+  const trail = chain
+    ? `${chain.m.name || '?'} / ${chain.a.package || '?'} / user ${chain.u.user_id ?? '?'}`
+    : '无生效链';
+  s.textContent = `${state.fileName || '未命名'}${state.dirty ? ' ● 未保存' : ''} ｜ 生效链：${trail}`;
+}
+
+function refreshBanner(){
+  const b = $('banner');
+  b.textContent = '';
+  if (!state.doc) return;
+  const errs = validateDoc(state.doc);
+  if (!errs.length) return;
+  const box = el('div', 'banner-err');
+  box.append(el('div', null, `结构校验：${errs.length} 个问题，保存前建议修复`));
+  const ul = el('ul', 'errlist');
+  errs.slice(0, 8).forEach(e => ul.append(el('li', null, e)));
+  if (errs.length > 8) ul.append(el('li', null, `… 其余 ${errs.length - 8} 条`));
+  box.append(ul);
+  b.append(box);
+}
+
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ---------------- chain access ---------------- */
+function firstEnabledChain(){
+  const d = state.doc;
+  if (!d || !Array.isArray(d.machines)) return null;
+  for (let mi = 0; mi < d.machines.length; mi++){
+    const m = d.machines[mi];
+    if (!m || !m.enabled) continue;
+    for (let ai = 0; ai < (m.apps || []).length; ai++){
+      const a = m.apps[ai];
+      if (!a || !a.enabled) continue;
+      for (let ui = 0; ui < (a.users || []).length; ui++){
+        const u = a.users[ui];
+        if (!u || !u.enabled) continue;
+        return { mi, ai, ui, m, a, u };
+      }
+    }
+  }
+  return null;
+}
+function clampSel(){
+  const d = state.doc;
+  if (!d){ state.sel = { m:0, a:0, u:0 }; return; }
+  const fe = firstEnabledChain();
+  if (fe){ state.sel = { m:fe.mi, a:fe.ai, u:fe.ui }; return; }
+  const ms = d.machines || [];
+  const m = Math.min(state.sel.m || 0, ms.length - 1);
+  if (m < 0){ state.sel = { m:0, a:0, u:0 }; return; }
+  const apps = ms[m].apps || [];
+  const a = Math.min(state.sel.a || 0, apps.length - 1);
+  if (a < 0){ state.sel = { m, a:0, u:0 }; return; }
+  const users = apps[a].users || [];
+  const u = Math.max(0, Math.min(state.sel.u || 0, users.length - 1));
+  state.sel = { m, a, u };
+}
+function chainObj(){
+  const d = state.doc;
+  if (!d) return null;
+  const ms = d.machines || [];
+  const m = ms[state.sel.m]; if (!m) return null;
+  const a = (m.apps || [])[state.sel.a]; if (!a) return null;
+  const u = (a.users || [])[state.sel.u]; if (!u) return null;
+  return { m, a, u, mi:state.sel.m, ai:state.sel.a, ui:state.sel.u };
+}
+function typeDef(type){
+  return (state.doc && state.doc.task_types || []).find(t => t.type === type) || null;
+}
+function eachTaskOfType(type, fn){
+  let n = 0;
+  const d = state.doc; if (!d) return 0;
+  (d.machines || []).forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u =>
+    (u.tasks || []).forEach(t => { if (t.type === type){ fn(t); n++; } }))));
+  return n;
+}
+
+/* ---------------- validation (mirror of loader) ---------------- */
+function validateDoc(doc){
+  const errs = [];
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return ['文档顶层必须是对象'];
+  const tt = doc.task_types;
+  if (!Array.isArray(tt) || !tt.length) errs.push('task_types 缺失或为空');
+  const seen = new Set();
+  (tt || []).forEach((t, i) => {
+    const w = `task_types[${i}]`;
+    if (!t || typeof t !== 'object'){ errs.push(`${w}: 条目必须是对象`); return; }
+    if (!t.type) errs.push(`${w}: 缺 type`);
+    else if (seen.has(t.type)) errs.push(`${w}: type 重复 "${t.type}"`);
+    if (t.type) seen.add(t.type);
+    const d = t.defaults;
+    if (!d || typeof d !== 'object'){ errs.push(`${w}.defaults 缺失`); }
+    else {
+      DKEYS.forEach(k => { if (!(k in d)) errs.push(`${w}.defaults 缺字段 ${k}`); });
+      if (typeof d.cron !== 'string') errs.push(`${w}.defaults.cron 必须是字符串`);
+    }
+    const attrs = new Set();
+    (t.params || []).forEach((p, pi) => {
+      if (!p || typeof p !== 'object'){ errs.push(`${w}.params[${pi}]: 必须是对象`); return; }
+      if (!p.name || !p.attr) errs.push(`${w}.params[${pi}]: 缺 name/attr`);
+      if (p.attr){
+        if (attrs.has(p.attr)) errs.push(`${w}.params attr 重复 "${p.attr}"`);
+        attrs.add(p.attr);
+      }
+      if (p.widget != null){
+        if (!p.widget || typeof p.widget !== 'object' || !WIDGETS.includes(p.widget.type))
+          errs.push(`${w}.params[${pi}].widget 非法: ${JSON.stringify(p.widget)}`);
+      }
+    });
+  });
+  if (!Array.isArray(doc.machines) || !doc.machines.length) errs.push('machines 缺失或为空');
+  let chain = false;
+  (doc.machines || []).forEach((m, mi) => {
+    if (!m || typeof m !== 'object'){ errs.push(`machines[${mi}]: 必须是对象`); return; }
+    const mw = `machines[${mi}](${m.name || '未命名'})`;
+    (m.apps || []).forEach((a, ai) => {
+      if (!a || typeof a !== 'object'){ errs.push(`${mw}.apps[${ai}]: 必须是对象`); return; }
+      (a.users || []).forEach((u, ui) => {
+        if (!u || typeof u !== 'object'){ errs.push(`${mw}.apps[${ai}].users[${ui}]: 必须是对象`); return; }
+        if (m.enabled && a.enabled && u.enabled) chain = true;
+        (u.tasks || []).forEach((t, ti) => {
+          if (!t || typeof t !== 'object'){ errs.push(`${mw} user[${ui}] tasks[${ti}]: 必须是对象`); return; }
+          if (!seen.has(t.type)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 type "${t.type}"`);
+          const def = (tt || []).find(x => x && x.type === t.type);
+          const attrs = new Set(((def && def.params) || []).map(p => p.attr));
+          Object.keys(t.params || {}).forEach(k => {
+            if (!attrs.has(k)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 未知参数 "${k}"`);
+          });
+        });
+      });
+    });
+  });
+  if (!chain) errs.push('没有任何 enabled 的 machine/app/user 链');
+  return errs;
+}
+function stringifyDoc(){ return JSON.stringify(state.doc, null, 2) + '\n'; }
+
+/* ---------------- generic controls ---------------- */
+function helpTip(text){ const s = el('span', 'help', '?'); s.dataset.tip = text; return s; }
+
+function makeSwitch(get, set){
+  const b = el('button', 'switch');
+  b.type = 'button';
+  b.setAttribute('role', 'switch');
+  const sync = () => b.classList.toggle('on', !!get());
+  sync();
+  b.onclick = () => { set(!get()); sync(); markDirty(); };
+  return b;
+}
+function numInput(get, set, opts = {}){
+  const i = document.createElement('input');
+  i.type = 'number'; i.className = 'tin';
+  if (opts.step) i.step = opts.step;
+  if (opts.min != null) i.min = opts.min;
+  if (opts.placeholder) i.placeholder = opts.placeholder;
+  if (opts.width) i.style.width = opts.width;
+  const v = get();
+  i.value = (v == null || v === '') ? '' : String(v);
+  i.addEventListener('input', () => set(i.value === '' ? null : Number(i.value)));
+  return i;
+}
+function bindText(get, set, opts = {}){
+  let i;
+  if (opts.multiline){
+    i = document.createElement('textarea'); i.className = 'tin'; i.rows = 2;
+  } else {
+    i = document.createElement('input'); i.type = 'text'; i.className = 'tin';
+  }
+  if (opts.placeholder) i.placeholder = opts.placeholder;
+  if (opts.width) i.style.width = opts.width;
+  const v = get();
+  i.value = (v == null) ? '' : String(v);
+  i.addEventListener('input', () => set(i.value));
+  return i;
+}
+function selInput(options, get, set){
+  const s = document.createElement('select'); s.className = 'tin';
+  const cur = String(get() ?? '');
+  let found = false;
+  options.forEach(o => {
+    const op = document.createElement('option');
+    op.value = String(o); op.textContent = String(o);
+    if (op.value === cur) found = true;
+    s.append(op);
+  });
+  if (!found && cur !== ''){
+    const op = document.createElement('option');
+    op.value = cur; op.textContent = cur + '（不在选项中）';
+    s.append(op);
+  }
+  s.value = cur;
+  s.addEventListener('change', () => set(s.value));
+  return s;
+}
+function segCtl(options, get, set){
+  const w = el('div', 'segwrap');
+  const sync = () => {
+    const cur = String(get() ?? '');
+    [...w.children].forEach(b => b.classList.toggle('on', b.dataset.v === cur));
+  };
+  options.forEach(o => {
+    const b = el('button', 'segb', String(o));
+    b.type = 'button'; b.dataset.v = String(o);
+    b.onclick = () => { set(o); sync(); };
+    w.append(b);
+  });
+  sync();
+  return w;
+}
+function chipCtl(options, get, set){
+  const w = el('div', 'segwrap chips');
+  const sync = () => {
+    const cur = (get() || []).map(String);
+    [...w.children].forEach(b => b.classList.toggle('on', cur.includes(b.dataset.v)));
+  };
+  options.forEach(o => {
+    const b = el('button', 'segb', String(o));
+    b.type = 'button'; b.dataset.v = String(o);
+    b.onclick = () => {
+      const cur = (get() || []).slice();
+      const ix = cur.findIndex(x => String(x) === b.dataset.v);
+      if (ix >= 0) cur.splice(ix, 1); else cur.push(o);
+      set(cur); sync();
+    };
+    w.append(b);
+  });
+  sync();
+  return w;
+}
+function coerceLike(ref, v){
+  if (typeof ref === 'number' && isFinite(Number(v))) return Number(v);
+  if (typeof ref === 'boolean') return !!v;
+  return v;
+}
+function inferKind(d){
+  if (typeof d === 'boolean') return 'switch';
+  if (typeof d === 'number') return 'number';
+  return 'text';
+}
+
+function fieldRow(label, help, ctl, diff){
+  const row = el('div', 'field');
+  const lab = el('label', 'flabel');
+  lab.append(el('span', null, label));
+  if (help) lab.append(helpTip(help));
+  if (diff){ const d = el('span', 'dot'); d.title = '与类型默认值不同'; lab.append(d); }
+  row.append(lab, ctl);
+  return row;
+}
+function secTitle(text, extra){
+  const s = el('div', 'sec');
+  s.append(el('span', null, text));
+  if (extra) s.append(el('span', 'extra', extra));
+  return s;
+}
+function makeCard(opt){
+  const card = el('section', 'card' + (opt.open ? ' open' : ''));
+  const head = el('div', 'card-head');
+  const ic = el('div', 'ticon', opt.iconChar || '?');
+  ic.style.background = `linear-gradient(135deg,${opt.grad[0]},${opt.grad[1]})`;
+  const meta = el('div', 'tmeta');
+  meta.append(el('div', 'ttitle', opt.title || ''));
+  if (opt.sub) meta.append(el('div', 'tsub', opt.sub));
+  if (opt.stats){ const st = el('div', 'tstats', opt.stats); st.title = opt.stats; meta.append(st); }
+  const chev = el('button', 'chev', '❯');
+  chev.type = 'button'; chev.title = '展开 / 收起';
+  head.append(ic, meta);
+  if (opt.switchCtl) head.append(opt.switchCtl);
+  head.append(chev);
+  const body = el('div', 'card-body');
+  const toggle = () => {
+    card.classList.toggle('open');
+    if (opt.onToggle) opt.onToggle(card.classList.contains('open'));
+  };
+  chev.onclick = toggle;
+  head.onclick = e => {
+    if (e.target.closest('button,input,select,textarea,label,a')) return;
+    toggle();
+  };
+  card.append(head, body);
+  return { card, body };
+}
+
+/* ---------------- field binders for the six default keys ---------------- */
+const NUM_STEP = { count:'1', max_active:'1', next_trigger_delay:'any' };
+function rowNum(obj, def, key, onChange){
+  const ctl = numInput(() => obj[key], v => { obj[key] = v == null ? 0 : v; if (onChange) onChange(); },
+    { step:NUM_STEP[key] || 'any', min:0 });
+  return fieldRow(DLBL[key], DHELP[key], ctl, def ? isDiff(obj[key], def[key]) : false);
+}
+function rowBool(obj, def, key, onChange){
+  const ctl = makeSwitch(() => !!obj[key], v => { obj[key] = !!v; if (onChange) onChange(); });
+  return fieldRow(DLBL[key], DHELP[key], ctl, def ? isDiff(obj[key], def[key]) : false);
+}
+function rowText(obj, def, key, onChange, opts){
+  const ctl = bindText(() => obj[key] ?? '', v => { obj[key] = v; if (onChange) onChange(); }, opts);
+  return fieldRow(DLBL[key], DHELP[key], ctl, def ? isDiff(obj[key], def[key]) : false);
+}
+function defaultsGrid(obj, defObj, onChange){
+  const g = el('div', 'grid2');
+  g.append(rowNum(obj, defObj, 'count', onChange));
+  g.append(rowNum(obj, defObj, 'max_active', onChange));
+  g.append(rowBool(obj, defObj, 'requires_march_queue', onChange));
+  g.append(rowNum(obj, defObj, 'next_trigger_delay', onChange));
+  g.append(rowBool(obj, defObj, 'one_shot', onChange));
+  g.append(rowText(obj, defObj, 'cron', onChange, { placeholder:'留空 = 不使用' }));
+  return g;
+}
+
+/* ---------------- task instance rendering ---------------- */
+function taskKeyOf(task){
+  return `${state.sel.m}/${state.sel.a}/${state.sel.u}/${task.type}`;
+}
+function statsLine(task, tt){
+  const bits = [];
+  bits.push(task.count === 0 ? '次数不限' : `${task.count} 次`);
+  bits.push(`并发 ${task.max_active}`);
+  bits.push(task.one_shot ? '单次' : `间隔 ${fmtDur(task.next_trigger_delay)}`);
+  if (task.cron) bits.push('cron');
+  if (task.requires_march_queue) bits.push('占队列');
+  const ps = tt.params.map(pd => {
+    const v = Object.prototype.hasOwnProperty.call(task.params || {}, pd.attr)
+      ? task.params[pd.attr] : pd.default;
+    return `${pd.name}: ${fmtVal(v)}`;
+  });
+  return bits.join(' · ') + (ps.length ? '　｜　' + ps.join(' · ') : '');
+}
+function paramField(task, tt, pd){
+  const attr = pd.attr;
+  const has = () => Object.prototype.hasOwnProperty.call(task.params || {}, attr);
+  const get = () => has() ? task.params[attr] : pd.default;
+  const set = v => { if (!task.params) task.params = {}; task.params[attr] = v; };
+  const wt = pd.widget ? pd.widget.type : inferKind(pd.default);
+  let ctl;
+  if (wt === 'switch'){
+    ctl = makeSwitch(() => !!get(), v => set(!!v));
+  } else if (wt === 'number'){
+    ctl = numInput(() => typeof get() === 'number' ? get() : '',
+      v => set(v == null ? (typeof pd.default === 'number' ? pd.default : 0) : v),
+      { step:'any', min:0 });
+  } else if (wt === 'drop_down'){
+    const opts = (pd.widget && pd.widget.options) || [];
+    const wrapped = v => set(coerceLike(get(), v));
+    ctl = (opts.length && opts.length <= 6)
+      ? segCtl(opts, get, wrapped)
+      : selInput(opts.length ? opts : [String(get() ?? '')], get, wrapped);
+  } else if (wt === 'multi_drop_down'){
+    ctl = chipCtl((pd.widget && pd.widget.options) || [], get, v => set(v));
+  } else {
+    ctl = bindText(() => get() ?? '', v => set(coerceLike(get(), v)));
+  }
+  return fieldRow(pd.name || attr, pd.desc || '', ctl, isDiff(get(), pd.default));
+}
+function taskCard(task, tt){
+  const key = taskKeyOf(task);
+  const sw = makeSwitch(() => !!task.enabled, v => { task.enabled = !!v; });
+  const { card, body } = makeCard({
+    iconChar: (tt.name_prefix || tt.type).slice(0, 1),
+    grad: PALETTE[hashIdx(task.type)],
+    title: tt.name_prefix || tt.type,
+    sub: tt.description || '',
+    stats: statsLine(task, tt),
+    switchCtl: sw,
+    open: state.expanded.has(key),
+    onToggle: o => toggleSet(state.expanded, key, o),
+  });
+  body.append(secTitle('调度设置'));
+  body.append(defaultsGrid(task, tt.defaults, null));
+  if (tt.params.length){
+    body.append(secTitle('参数'));
+    const g = el('div', 'grid2');
+    tt.params.forEach(pd => g.append(paramField(task, tt, pd)));
+    body.append(g);
+  }
+  const foot = el('div', 'card-foot');
+  foot.append(
+    btn('↑', 'small', () => moveTask(task, -1)),
+    btn('↓', 'small', () => moveTask(task, 1)),
+    btn('恢复默认', '', () => resetTask(task, tt)),
+    btn('删除任务', 'danger', () => removeTask(task, tt)),
+  );
+  body.append(foot);
+  return card;
+}
+function moveTask(task, dir){
+  const chain = chainObj(); if (!chain) return;
+  const arr = chain.u.tasks = chain.u.tasks || [];
+  const i = arr.indexOf(task);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= arr.length) return;
+  [arr[i], arr[j]] = [arr[j], arr[i]];
+  markDirty(); renderTaskList();
+}
+function resetTask(task, tt){
+  if (!confirm(`将「${tt.name_prefix || tt.type}」的调度与参数恢复为类型默认值？`)) return;
+  DKEYS.forEach(k => { task[k] = clone(tt.defaults[k]); });
+  const p = {};
+  tt.params.forEach(pd => { if (pd.default !== undefined) p[pd.attr] = clone(pd.default); });
+  task.params = p;
+  markDirty(); renderTaskList(); toast('已恢复默认');
+}
+function removeTask(task, tt){
+  if (!confirm(`删除任务实例「${tt.name_prefix || tt.type}」？`)) return;
+  const chain = chainObj(); if (!chain) return;
+  const arr = chain.u.tasks = chain.u.tasks || [];
+  const i = arr.indexOf(task);
+  if (i >= 0) arr.splice(i, 1);
+  state.expanded.delete(taskKeyOf(task));
+  markDirty(); renderContent(); toast('已删除');
+}
+function insertTask(user, type){
+  const tt = typeDef(type); if (!tt) return;
+  const d = tt.defaults;
+  const params = {};
+  tt.params.forEach(pd => { if (pd.default !== undefined) params[pd.attr] = clone(pd.default); });
+  const entry = {
+    type, enabled:false, params,
+    count:d.count, max_active:d.max_active, requires_march_queue:d.requires_march_queue,
+    next_trigger_delay:d.next_trigger_delay, one_shot:d.one_shot, cron:d.cron,
+  };
+  (user.tasks = user.tasks || []).push(entry);
+  state.expanded.add(`${state.sel.m}/${state.sel.a}/${state.sel.u}/${type}`);
+  markDirty(); renderContent(); toast('已添加 ' + (tt.name_prefix || type));
+}
+function addTaskDialog(){
+  const chain = chainObj(); if (!chain) return;
+  const have = new Set((chain.u.tasks || []).map(t => t.type));
+  const missing = (state.doc.task_types || []).filter(t => !have.has(t.type));
+  if (!missing.length){ toast('所有已定义类型均已添加'); return; }
+  const dlg = $('dlg'); dlg.textContent = '';
+  dlg.append(el('h3', null, '添加任务实例'));
+  const box = el('div', 'picklist');
+  let picked = missing[0].type;
+  missing.forEach((t, i) => {
+    const row = el('label', 'pick');
+    const r = document.createElement('input');
+    r.type = 'radio'; r.name = 'picktype'; r.checked = i === 0;
+    r.onchange = () => { picked = t.type; };
+    row.append(r);
+    const nm = el('span', 'pk-name', t.name_prefix || t.type);
+    const dsc = el('span', 'pk-desc', t.description || '');
+    nm.append(dsc);
+    row.append(nm);
+    box.append(row);
+  });
+  dlg.append(box);
+  const frow = el('div', 'dbtns');
+  frow.append(btn('取消', '', () => dlg.close()),
+              btn('添加', 'primary', () => { dlg.close(); insertTask(chain.u, picked); }));
+  dlg.append(frow);
+  dlg.showModal();
+}
+function chainSelects(){
+  const d = state.doc;
+  const wrap = el('div');
+  wrap.style.display = 'flex';
+  wrap.style.gap = '6px';
+  const mk = (list, getI, setI, label) => {
+    const s = document.createElement('select');
+    s.className = 'tin';
+    list.forEach((o, i) => {
+      const op = document.createElement('option');
+      op.value = String(i);
+      op.textContent = label(o, i) + (o && o.enabled ? '' : '（未启用）');
+      s.append(op);
+    });
+    s.value = String(getI());
+    s.addEventListener('change', () => { setI(Number(s.value)); clampSel(); renderTasksTab(); });
+    return s;
+  };
+  const ms = d.machines || [];
+  const m = ms[state.sel.m] || {};
+  const apps = m.apps || [];
+  const a = apps[state.sel.a] || {};
+  const users = a.users || [];
+  wrap.append(
+    mk(ms, () => state.sel.m, v => state.sel.m = v, (o, i) => o.name || `machine${i}`),
+    mk(apps, () => state.sel.a, v => state.sel.a = v, o => o.package || '(未设包名)'),
+    mk(users, () => state.sel.u, v => state.sel.u = v, o => 'user ' + (o.user_id ?? '?')),
+  );
+  return wrap;
+}
+function queueCard(u){
+  const q = u.queue = u.queue || {};
+  const { card, body } = makeCard({
+    iconChar:'队', grad:['#94a3b8','#475569'],
+    title:'队列设置', sub:'当前用户的调度器参数（user 级）',
+    stats:`tick ${q.tick_interval ?? 1}s · 失败后${q.continue_after_failure === false ? '停止' : '继续'}`,
+    switchCtl:null, open:true,
+  });
+  const g = el('div', 'grid2');
+  g.append(fieldRow('tick 间隔(秒)', '调度器轮询间隔',
+    numInput(() => q.tick_interval, v => { q.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
+  g.append(fieldRow('失败后继续', '任务失败后是否继续调度后续任务',
+    makeSwitch(() => q.continue_after_failure !== false, v => { q.continue_after_failure = !!v; }), false));
+  body.append(g);
+  return card;
+}
+function taskMatches(task, tt, q){
+  if (!q) return true;
+  q = q.toLowerCase();
+  return (tt.name_prefix || '').toLowerCase().includes(q)
+      || task.type.toLowerCase().includes(q)
+      || (tt.description || '').toLowerCase().includes(q);
+}
+function renderTaskList(){
+  const list = $('tasklist');
+  if (!list) return;
+  list.textContent = '';
+  const chain = chainObj();
+  if (!chain) return;
+  const tasks = chain.u.tasks || [];
+  if (!tasks.length){
+    const e = el('div', 'empty');
+    e.append(el('div', 'big', '该用户暂无任务'));
+    e.append(el('div', null, '点击上方「＋ 添加任务」从已定义的类型中添加'));
+    list.append(e);
+    return;
+  }
+  const nEn = tasks.filter(t => t.enabled).length;
+  const cnt = $('taskCount');
+  if (cnt) cnt.textContent = `${tasks.length} 个任务 · ${nEn} 已启用`;
+  let shown = 0;
+  tasks.forEach(task => {
+    const tt = typeDef(task.type);
+    if (!tt){
+      const c = el('section', 'card');
+      c.append(el('div', 'card-head', `未知类型: ${task.type}（定义缺失，运行会报错）`));
+      list.append(c);
+      return;
+    }
+    if (!taskMatches(task, tt, state.filter)) return;
+    shown++;
+    list.append(taskCard(task, tt));
+  });
+  if (!shown && state.filter){
+    const e = el('div', 'empty', `没有匹配「${state.filter}」的任务`);
+    list.append(e);
+  }
+}
+function expandAllTasks(){
+  const chain = chainObj(); if (!chain) return;
+  (chain.u.tasks || []).forEach(t => state.expanded.add(taskKeyOf(t)));
+  renderTaskList();
+}
+function collapseAllTasks(){
+  const chain = chainObj(); if (!chain) return;
+  (chain.u.tasks || []).forEach(t => state.expanded.delete(taskKeyOf(t)));
+  renderTaskList();
+}
+function renderTasksTab(){
+  const c = $('content'); c.textContent = '';
+  if (!state.doc){ c.append(emptyState()); return; }
+  const bar = el('div', 'toolbar');
+  if ((state.doc.machines || []).length){
+    bar.append(chainSelects());
+    const cnt = el('span', 'hint'); cnt.id = 'taskCount';
+    bar.append(cnt);
+  } else {
+    bar.append(el('span', 'hint', '尚无设备链，请到「设备链」页添加'));
+  }
+  bar.append(el('div', 'grow'));
+  const f = bindText(() => state.filter, v => { state.filter = v || ''; renderTaskList(); },
+    { placeholder:'搜索任务…', width:'170px' });
+  bar.append(f);
+  bar.append(btn('全部展开', '', expandAllTasks));
+  bar.append(btn('全部收起', '', collapseAllTasks));
+  const addB = btn('＋ 添加任务', 'primary', addTaskDialog);
+  addB.disabled = !chainObj();
+  bar.append(addB);
+  c.append(bar);
+
+  const chain = chainObj();
+  if (!chain){
+    c.append(el('div', 'empty', '未找到设备 / 应用 / 用户链，请到「设备链」页添加'));
+    return;
+  }
+  if (!(chain.m.enabled && chain.a.enabled && chain.u.enabled)){
+    const warn = el('div', 'banner-err', '当前选中的链未全部启用，运行时不会生效（加载器只消费第一条全 enabled 链）');
+    c.append(warn);
+  }
+  c.append(queueCard(chain.u));
+  const list = el('div'); list.id = 'tasklist';
+  c.append(list);
+  renderTaskList();
+}
+
+/* ---------------- type definitions tab ---------------- */
+function paramDefaultCtl(p){
+  const k = inferKind(p.default);
+  if (k === 'switch') return makeSwitch(() => !!p.default, v => { p.default = !!v; });
+  if (k === 'number') return numInput(() => typeof p.default === 'number' ? p.default : '',
+    v => { p.default = v == null ? 0 : v; }, { step:'any' });
+  return bindText(() => p.default ?? '', v => { p.default = v; });
+}
+function widgetSel(p){
+  const s = document.createElement('select'); s.className = 'tin';
+  const cur = p.widget ? p.widget.type : '';
+  [['', '(自动)']].concat(WIDGETS.map(w => [w, w])).forEach(([v, l]) => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = l; s.append(o);
+  });
+  s.value = cur;
+  s.addEventListener('change', () => {
+    const v = s.value;
+    p.widget = v ? { type:v, options:(p.widget && p.widget.options) || [] } : null;
+    markDirty(); renderContent();
+  });
+  return s;
+}
+function attrInput(tt, p){
+  const i = bindText(() => p.attr, () => {});
+  i.addEventListener('change', () => {
+    const nv = i.value.trim();
+    if (!nv || nv === p.attr){ i.value = p.attr; return; }
+    if (tt.params.some(x => x !== p && x.attr === nv)){
+      alert('attr 重复：' + nv); i.value = p.attr; return;
+    }
+    const old = p.attr;
+    p.attr = nv;
+    eachTaskOfType(tt.type, t => {
+      if (t.params && Object.prototype.hasOwnProperty.call(t.params, old)){
+        const v = t.params[old];
+        delete t.params[old];
+        t.params[nv] = v;
+      }
+    });
+    markDirty(); renderContent();
+  });
+  return i;
+}
+function prow(tt, p, index){
+  const row = el('div', 'prow');
+  row.append(bindText(() => p.name || '', v => { p.name = v; }, { placeholder:'参数名' }));
+  row.append(attrInput(tt, p));
+  row.append(paramDefaultCtl(p));
+  row.append(widgetSel(p));
+  row.append(bindText(() => (p.widget && p.widget.options || []).join(','),
+    v => { if (p.widget) p.widget.options = v.split(',').map(s => s.trim()).filter(Boolean); },
+    { placeholder:'选项,逗号分隔' }));
+  row.append(bindText(() => p.desc || '', v => { p.desc = v; }, { placeholder:'说明（悬停 ? 展示）' }));
+  row.append(btn('✕', 'danger small', () => {
+    if (!confirm(`删除参数「${p.name || p.attr}」？将同步清理实例引用。`)) return;
+    tt.params.splice(index, 1);
+    eachTaskOfType(tt.type, t => { if (t.params) delete t.params[p.attr]; });
+    markDirty(); renderContent();
+  }));
+  return row;
+}
+function prowHead(){
+  const h = el('div', 'prowhead');
+  ['参数名', 'attr', '默认值', '控件', '选项(逗号分隔)', '说明', ''].forEach(t => h.append(el('span', null, t)));
+  return h;
+}
+function typeRenameInput(tt){
+  const i = bindText(() => tt.type, () => {});
+  i.addEventListener('change', () => {
+    const nv = i.value.trim();
+    if (!nv || nv === tt.type){ i.value = tt.type; return; }
+    if ((state.doc.task_types || []).some(x => x !== tt && x.type === nv)){
+      alert('type 已存在：' + nv); i.value = tt.type; return;
+    }
+    const n = eachTaskOfType(tt.type, t => { t.type = nv; });
+    state.expandedTypes.delete(tt.type);
+    tt.type = nv;
+    state.expandedTypes.add(nv);
+    markDirty(); renderContent();
+    toast('已重命名为 ' + nv + (n ? `，同步 ${n} 处实例` : ''));
+  });
+  return i;
+}
+function deleteType(tt){
+  return () => {
+    const n = eachTaskOfType(tt.type, () => {});
+    const msg = n
+      ? `删除类型「${tt.type}」？将同时删除 ${n} 处实例引用。`
+      : `删除类型「${tt.type}」？`;
+    if (!confirm(msg)) return;
+    state.doc.machines.forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u => {
+      if (u.tasks) u.tasks = u.tasks.filter(t => t.type !== tt.type);
+    })));
+    const i = state.doc.task_types.indexOf(tt);
+    if (i >= 0) state.doc.task_types.splice(i, 1);
+    state.expandedTypes.delete(tt.type);
+    clampSel(); markDirty(); renderContent(); toast('已删除 ' + tt.type);
+  };
+}
+function typeCard(tt){
+  const open = state.expandedTypes.has('T:' + tt.type);
+  const { card, body } = makeCard({
+    iconChar:(tt.type || '?').slice(0, 1).toUpperCase(),
+    grad:PALETTE[hashIdx(tt.type)],
+    title:tt.type,
+    sub:tt.name_prefix || '',
+    stats:`${(tt.params || []).length} 个参数 ｜ 默认 ${tt.defaults.count === 0 ? '不限' : tt.defaults.count + ' 次'} · 并发 ${tt.defaults.max_active}${tt.defaults.one_shot ? ' · 单次' : ''}`,
+    switchCtl:null,
+    open,
+    onToggle:o => toggleSet(state.expandedTypes, 'T:' + tt.type, o),
+  });
+  body.append(secTitle('基本信息'));
+  const g1 = el('div', 'grid2');
+  g1.append(fieldRow('type', '类型标识（重命名会同步实例引用）', typeRenameInput(tt), false));
+  g1.append(fieldRow('名称前缀', '', bindText(() => tt.name_prefix || '', v => { tt.name_prefix = v; }), false));
+  body.append(g1);
+  body.append(fieldRow('描述', '', bindText(() => tt.description || '', v => { tt.description = v; }, { multiline:true, width:'100%' }), false));
+  body.append(secTitle('默认调度'));
+  body.append(defaultsGrid(tt.defaults, null, null));
+  body.append(secTitle('参数定义'));
+  if ((tt.params || []).length){
+    body.append(prowHead());
+    tt.params.forEach((p, i) => body.append(prow(tt, p, i)));
+  }
+  body.append(btn('＋ 添加参数', '', () => {
+    tt.params = tt.params || [];
+    tt.params.push({ name:'新参数', attr:'new_attr_' + (tt.params.length + 1), default:null, widget:null, desc:'' });
+    markDirty(); renderContent();
+  }));
+  const foot = el('div', 'card-foot');
+  foot.append(btn('删除类型', 'danger', deleteType(tt)));
+  body.append(foot);
+  return card;
+}
+function renderTypesTab(){
+  const c = $('content'); c.textContent = '';
+  if (!state.doc){ c.append(emptyState()); return; }
+  const bar = el('div', 'toolbar');
+  bar.append(el('span', 'hint', '类型定义是所有任务实例的模板：defaults 是字段覆盖链的兜底值，params 决定实例页的控件。'));
+  bar.append(el('div', 'grow'));
+  bar.append(btn('＋ 添加类型', 'primary', () => {
+    dlgForm('添加类型', [{ label:'type', value:'', placeholder:'如 My New Task' }], ([type]) => {
+      type = (type || '').trim();
+      if (!type) return;
+      if ((state.doc.task_types || []).some(t => t.type === type)){ alert('type 已存在'); return; }
+      state.doc.task_types = state.doc.task_types || [];
+      state.doc.task_types.push({
+        type, name_prefix:type, description:'',
+        defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'' },
+        params:[],
+      });
+      state.expandedTypes.add('T:' + type);
+      markDirty(); renderContent();
+    });
+  }));
+  c.append(bar);
+  const types = state.doc.task_types || [];
+  if (!types.length){ c.append(el('div', 'empty', '暂无类型定义')); return; }
+  types.forEach(tt => c.append(typeCard(tt)));
+}
+
+/* ---------------- machines tab ---------------- */
+function userBlock(a, m, ai, u, ui){
+  const fe = firstEnabledChain();
+  const isActive = fe && fe.m === m && fe.a === a && fe.u === u;
+  const box = el('div', 'sub');
+  const head = el('div', 'subhead');
+  head.append(el('div', 'subicon', 'U'));
+  const meta = el('div', 'submeta');
+  const title = el('div', 'subtitle', 'user ' + (u.user_id ?? ui));
+  meta.append(title);
+  head.append(meta);
+  if (isActive) head.append(el('span', 'badge', '生效链'));
+  head.append(el('span', 'badge gray', `${(u.tasks || []).length} 任务 · ${(u.tasks || []).filter(t => t.enabled).length} 启用`));
+  head.append(makeSwitch(() => !!u.enabled, v => { u.enabled = v; }));
+  head.append(btn('编辑任务', 'small', () => {
+    state.sel = { m:state.doc.machines.indexOf(m), a:(m.apps || []).indexOf(a), ui:ui };
+    state.sel.u = ui;
+    clampSel(); setTab('tasks');
+  }));
+  head.append(btn('✕', 'danger small', () => {
+    if (!confirm(`删除 user ${u.user_id ?? ui} 及其全部任务配置？`)) return;
+    a.users.splice(ui, 1);
+    clampSel(); markDirty(); renderContent();
+  }));
+  box.append(head);
+  const q = u.queue = u.queue || {};
+  const g = el('div', 'grid2');
+  g.append(fieldRow('user_id', '', numInput(() => u.user_id, v => { u.user_id = v == null ? 0 : v; }, { step:'1', min:0 }), false));
+  g.append(fieldRow('tick 间隔(秒)', '调度器轮询间隔',
+    numInput(() => q.tick_interval, v => { q.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
+  g.append(fieldRow('失败后继续', '任务失败后是否继续调度',
+    makeSwitch(() => q.continue_after_failure !== false, v => { q.continue_after_failure = !!v; }), false));
+  box.append(g);
+  return box;
+}
+function appBlock(m, a, ai){
+  const box = el('div', 'sub');
+  const head = el('div', 'subhead');
+  head.append(el('div', 'subicon', 'A'));
+  const meta = el('div', 'submeta');
+  meta.append(el('div', 'subtitle', a.package || '(未设置包名)'));
+  head.append(meta);
+  head.append(makeSwitch(() => !!a.enabled, v => { a.enabled = v; }));
+  head.append(btn('✕', 'danger small', () => {
+    if (!confirm(`删除应用「${a.package || ai}」及其用户？`)) return;
+    m.apps.splice(ai, 1);
+    clampSel(); markDirty(); renderContent();
+  }));
+  box.append(head);
+  const g = el('div', 'grid2');
+  g.append(fieldRow('package', '', bindText(() => a.package || '', v => { a.package = v; }), false));
+  box.append(g);
+  (a.users || []).forEach((u, ui) => box.append(userBlock(a, m, ai, u, ui)));
+  box.append(btn('＋ 添加用户', '', () => {
+    const next = (a.users || []).reduce((mx, u) => Math.max(mx, Number(u.user_id) || 0), 0);
+    dlgForm('添加用户', [{ label:'user_id', value:String(next), kind:'number' }], ([v]) => {
+      (a.users = a.users || []).push({ user_id:Number(v) || 0, enabled:false, queue:{ tick_interval:1, continue_after_failure:true }, tasks:[] });
+      markDirty(); renderContent();
+    });
+  }));
+  return box;
+}
+function machineCard(m, mi){
+  const fe = firstEnabledChain();
+  const key = 'm' + mi;
+  const sw = makeSwitch(() => !!m.enabled, v => { m.enabled = v; });
+  const { card, body } = makeCard({
+    iconChar:'M', grad:PALETTE[mi % PALETTE.length],
+    title:m.name || `machine${mi}`,
+    sub:'adb_serial: ' + (m.adb_serial || '-'),
+    stats:`${(m.apps || []).length} 个应用` + (fe && fe.mi === mi ? ' · 生效链' : ''),
+    switchCtl:sw,
+    open:state.expandedTypes.has(key),
+    onToggle:o => toggleSet(state.expandedTypes, key, o),
+  });
+  const g = el('div', 'grid2');
+  g.append(fieldRow('名称', '', bindText(() => m.name || '', v => { m.name = v; }), false));
+  g.append(fieldRow('ADB 序列', '如 127.0.0.1:7555，留空使用全局 adb 设置',
+    bindText(() => m.adb_serial || '', v => { m.adb_serial = v; }), false));
+  body.append(g);
+  body.append(secTitle('应用'));
+  (m.apps || []).forEach((a, ai) => body.append(appBlock(m, a, ai)));
+  body.append(btn('＋ 添加应用', '', () => {
+    dlgForm('添加应用', [{ label:'包名', value:'com.got.china' }], ([pkg]) => {
+      (m.apps = m.apps || []).push({ package:pkg || 'com.got.china', enabled:false, users:[] });
+      markDirty(); renderContent();
+    });
+  }));
+  const foot = el('div', 'card-foot');
+  foot.append(btn('删除机器', 'danger', () => {
+    if (!confirm(`删除机器「${m.name || mi}」及其全部配置？`)) return;
+    state.doc.machines.splice(mi, 1);
+    clampSel(); markDirty(); renderContent();
+  }));
+  body.append(foot);
+  return card;
+}
+function renderMachinesTab(){
+  const c = $('content'); c.textContent = '';
+  if (!state.doc){ c.append(emptyState()); return; }
+  const bar = el('div', 'toolbar');
+  bar.append(el('span', 'hint', '运行时使用第一条全部启用的 machine → app → user 链（加载器契约）。'));
+  bar.append(el('div', 'grow'));
+  bar.append(btn('＋ 添加机器', 'primary', () => {
+    const next = 'machine' + ((state.doc.machines || []).length + 1);
+    dlgForm('添加机器', [{ label:'名称', value:next }], ([name]) => {
+      state.doc.machines = state.doc.machines || [];
+      state.doc.machines.push({ name:name || next, enabled:false, adb_serial:'', apps:[] });
+      state.expandedTypes.add('m' + (state.doc.machines.length - 1));
+      markDirty(); renderContent();
+    });
+  }));
+  c.append(bar);
+  const list = state.doc.machines || [];
+  if (!list.length){ c.append(el('div', 'empty', '暂无机器，点击右上角「＋ 添加机器」')); return; }
+  list.forEach((m, mi) => c.append(machineCard(m, mi)));
+}
+
+/* ---------------- source tab ---------------- */
+function renderSourceTab(){
+  const c = $('content'); c.textContent = '';
+  if (!state.doc){ c.append(emptyState()); return; }
+  const bar = el('div', 'toolbar');
+  const hint = el('span', 'hint', srcDirty ? '有未应用的修改，切走会丢弃' : '与当前数据一致');
+  bar.append(btn('校验并应用', 'primary', () => {
+    let doc;
+    try { doc = JSON.parse(ta.value); }
+    catch (e){ alert('JSON 解析失败：' + e.message); return; }
+    const errs = validateDoc(doc);
+    if (errs.length && !confirm(`存在 ${errs.length} 个校验问题，仍要应用吗？\n- ` + errs.slice(0, 5).join('\n- '))) return;
+    state.doc = doc;
+    state.loadedRaw = stringifyDoc();
+    srcDirty = false;
+    clampSel(); markDirty(); setTab('tasks'); toast('已应用源码修改');
+  }));
+  bar.append(btn('从当前数据刷新', '', () => { ta.value = stringifyDoc(); srcDirty = false; hint.textContent = '与当前数据一致'; }));
+  bar.append(btn('复制全部', '', () => {
+    navigator.clipboard.writeText(ta.value).then(() => toast('已复制'), () => toast('复制失败'));
+  }));
+  bar.append(el('div', 'grow'));
+  bar.append(hint);
+  c.append(bar);
+  const ta = document.createElement('textarea');
+  ta.className = 'src';
+  ta.spellcheck = false;
+  ta.value = stringifyDoc();
+  ta.addEventListener('input', () => { srcDirty = true; hint.textContent = '有未应用的修改，切走会丢弃'; });
+  const wrap = el('div', 'srcwrap');
+  wrap.append(ta);
+  c.append(wrap);
+}
+
+/* ---------------- dialog helper ---------------- */
+function dlgForm(title, fields, onOk){
+  const dlg = $('dlg'); dlg.textContent = '';
+  dlg.append(el('h3', null, title));
+  const refs = [];
+  fields.forEach(f => {
+    const row = el('div', 'drow');
+    row.append(el('label', null, f.label));
+    const inp = document.createElement('input');
+    inp.className = 'tin';
+    if (f.kind === 'number'){ inp.type = 'number'; }
+    inp.value = f.value != null ? String(f.value) : '';
+    if (f.placeholder) inp.placeholder = f.placeholder;
+    refs.push(inp);
+    row.append(inp);
+    dlg.append(row);
+  });
+  const frow = el('div', 'dbtns');
+  const cancel = btn('取消', '', () => dlg.close());
+  const ok = btn('确定', 'primary', () => {
+    const vals = refs.map(r => r.value);
+    dlg.close();
+    onOk(vals);
+  });
+  frow.append(cancel, ok);
+  dlg.append(frow);
+  dlg.showModal();
+  refs[0] && refs[0].focus();
+}
+
+/* ---------------- session persistence ---------------- */
+const LS_KEY = 'taskConfigEditor.session';
+const IDB_NAME = 'taskConfigEditor';
+const IDB_STORE = 'handles';
+
+function idbOpen(){
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) return reject(new Error('indexedDB 不可用'));
+    const rq = indexedDB.open(IDB_NAME, 1);
+    rq.onupgradeneeded = () => { try { rq.result.createObjectStore(IDB_STORE); } catch (e){} };
+    rq.onsuccess = () => resolve(rq.result);
+    rq.onerror = () => reject(rq.error || new Error('IndexedDB 打开失败'));
+  });
+}
+async function idbGet(key){
+  try {
+    const db = await idbOpen();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const rq = tx.objectStore(IDB_STORE).get(key);
+        rq.onsuccess = () => resolve(rq.result || null);
+        rq.onerror = () => reject(rq.error);
+      });
+    } finally { db.close(); }
+  } catch (e){ return null; }
+}
+async function idbPut(key, val){
+  try {
+    const db = await idbOpen();
+    try {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(val, key);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } finally { db.close(); }
+    return true;
+  } catch (e){ return false; }
+}
+async function idbDel(key){
+  try {
+    const db = await idbOpen();
+    try {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(key);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+    } finally { db.close(); }
+  } catch (e){ /* ignore */ }
+}
+function readSnapshot(){
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if (s && typeof s.text === 'string' && s.text) return s;
+  } catch (e){ /* ignore */ }
+  return null;
+}
+function persistSession(){
+  if (!state.doc || state.loadedRaw == null) return;
+  try {
+    localStorage.setItem(LS_KEY,
+      JSON.stringify({ name: state.fileName, text: state.loadedRaw, ts: Date.now() }));
+  } catch (e){ /* 配额满等忽略 */ }
+}
+async function rememberHandle(handle){
+  if (handle) await idbPut('last', handle);
+}
+async function restoreSession(){
+  const handle = await idbGet('last');
+  if (handle){
+    try {
+      await handle.getFile(); // 文件仍存在？
+      let perm = 'prompt';
+      if (handle.queryPermission) perm = await handle.queryPermission({ mode:'readwrite' });
+      if (perm !== 'granted' && handle.requestPermission){
+        // 刷新/进入页面属于用户手势上下文：主动补一次授权，
+        // 成功则保存路径无需再弹任何窗。用户拒绝也不阻塞，退快照。
+        try {
+          perm = await handle.requestPermission({ mode:'readwrite' });
+        } catch (e){ /* 无手势等场景退快照 */ }
+      }
+      if (perm === 'granted'){
+        const file = await handle.getFile();
+        loadText(await file.text(), file.name, handle);
+        return true;
+      }
+      const snap = readSnapshot(); // 暂无授权：内容用快照，句柄留作保存时重新授权
+      if (snap){
+        loadText(snap.text, snap.name, handle);
+        toast('已恢复上次会话（保存时需重新授权）');
+        return true;
+      }
+    } catch (e){
+      if (e && e.name === 'NotFoundError') await idbDel('last'); // 文件被移动/删除
+    }
+  }
+  const snap = readSnapshot();
+  if (snap){ loadText(snap.text, snap.name, null); return true; }
+  return false;
+}
+
+/* ---------------- file io ---------------- */
+function emptyState(){
+  const e = el('div', 'empty');
+  e.append(el('div', 'big', '打开 configs/task_config.json 开始编辑'));
+  e.append(el('div', null, '支持：右上角「打开配置」/ 拖拽 JSON 文件到页面'));
+  if (location.protocol.startsWith('http')){
+    e.append(el('div', null, '当前经 HTTP 访问但未取到 ../configs/task_config.json，请手动选择文件'));
+  } else {
+    e.append(el('div', null, '提示：在项目根目录运行 python -m http.server 后访问 /tools/task_config_editor.html 可自动加载'));
+  }
+  const b = btn('选择配置文件', 'primary', openPicker);
+  e.append(b);
+  if (!fsSupported){
+    e.append(el('div', null, '当前浏览器不支持直接回写文件，保存时将下载副本（建议使用 Edge / Chrome）'));
+  }
+  return e;
+}
+async function openPicker(){
+  if (!fsSupported){ $('fileInput').click(); return; }
+  let handle;
+  try {
+    [handle] = await window.showOpenFilePicker({
+      types:[{ description:'JSON', accept:{ 'application/json':['.json'] } }],
+    });
+  } catch (e){ if (e.name !== 'AbortError') toast('打开失败：' + e.message); return; }
+  try {
+    const file = await handle.getFile();
+    loadText(await file.text(), file.name, handle);
+  } catch (e){ toast('读取失败：' + e.message); }
+}
+function loadText(text, name, handle){
+  let doc;
+  try { doc = JSON.parse(text); }
+  catch (e){ toast('JSON 解析失败：' + e.message); return; }
+  state.doc = doc;
+  state.loadedRaw = text;
+  state.fileName = name || 'task_config.json';
+  state.fileHandle = handle || null;
+  state.expanded.clear();
+  state.expandedTypes.clear();
+  state.filter = '';
+  srcDirty = false;
+  clampSel();
+  const chain = chainObj();
+  if (chain && (chain.u.tasks || []).length){
+    const t = chain.u.tasks.find(t => t.enabled) || chain.u.tasks[0];
+    if (t) state.expanded.add(taskKeyOf(t));
+  }
+  markClean();
+  persistSession();
+  if (handle) rememberHandle(handle);
+  setTab('tasks');
+  toast('已加载 ' + state.fileName);
+}
+async function doSave(saveAs = false){
+  if (!state.doc){ toast('未加载配置'); return; }
+  const errs = validateDoc(state.doc);
+  if (errs.length && !confirm(`存在 ${errs.length} 个校验问题，仍要保存吗？\n- ` + errs.slice(0, 5).join('\n- '))) return;
+  const text = stringifyDoc();
+
+  // 优先：本地保存服务（task_config_server.py）—— 直接写盘，零弹窗
+  if (await saveViaServer(text)) return;
+
+  // 次选：File System Access 句柄（file:// 打开 + 已授权）—— 直接回写
+  if (state.fileHandle && !saveAs){
+    try {
+      let perm = await state.fileHandle.queryPermission({ mode:'readwrite' });
+      if (perm !== 'granted') perm = await state.fileHandle.requestPermission({ mode:'readwrite' });
+      if (perm === 'granted'){
+        const w = await state.fileHandle.createWritable();
+        await w.write(text);
+        await w.close();
+        state.loadedRaw = text;
+        persistSession();
+        markClean(); toast('已保存到 ' + state.fileName);
+        return;
+      }
+    } catch (e){ toast('直接保存失败：' + e.message); }
+  }
+
+  // 兜底：另存为（每次弹窗）/ 下载副本
+  if (fsSupported && saveAs){
+    try {
+      const h = await window.showSaveFilePicker({
+        suggestedName:state.fileName || 'task_config.json',
+        types:[{ description:'JSON', accept:{ 'application/json':['.json'] } }],
+      });
+      const w = await h.createWritable();
+      await w.write(text);
+      await w.close();
+      state.fileHandle = h;
+      state.fileName = h.name;
+      state.loadedRaw = text;
+      rememberHandle(h);
+      persistSession();
+      markClean(); toast('已保存到 ' + h.name);
+      return;
+    } catch (e){ if (e.name === 'AbortError') return; }
+  }
+  download(text);
+}
+
+let serverSaveOk = null;         // null=未探测 / true=可用 / false=不可用
+async function saveViaServer(text){
+  if (serverSaveOk === false) return false;
+  if (!location.protocol.startsWith('http')) return false;
+  try {
+    const r = await fetch('/api/task_config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: text,
+    });
+    if (r.ok){
+      const j = await r.json().catch(() => ({}));
+      if (j.ok){
+        serverSaveOk = true;
+        state.loadedRaw = text;
+        state.fileHandle = null;   // 磁盘已是最新，避免句柄路径写出旧权限分支
+        persistSession();
+        markClean(); toast('已保存到 ' + (j.path || state.fileName));
+        return true;
+      }
+    }
+  } catch (e){ /* 无保存服务（python -m http.server 等静态托管） */ }
+  serverSaveOk = false;
+  return false;
+}
+
+function download(text){
+  const blob = new Blob([text], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = state.fileName || 'task_config.json';
+  a.click();
+  state.loadedRaw = text;
+  persistSession();
+  markClean(); toast('已下载副本 ' + a.download);
+}
+function reloadDoc(){
+  if (!state.loadedRaw){ toast('没有可还原的快照'); return; }
+  if (state.dirty && !confirm('放弃当前未保存的修改？')) return;
+  loadText(state.loadedRaw, state.fileName, state.fileHandle);
+}
+
+/* ---------------- tabs & boot ---------------- */
+const TABS = [
+  ['tasks', '任务实例'],
+  ['types', '类型定义'],
+  ['machines', '设备链'],
+  ['source', 'JSON 源码'],
+];
+function renderTabs(){
+  const nav = $('tabs'); nav.textContent = '';
+  TABS.forEach(([id, label]) => {
+    const b = el('button', 'tab' + (state.tab === id ? ' on' : ''), label);
+    b.type = 'button';
+    b.onclick = () => setTab(id);
+    nav.append(b);
+  });
+}
+function setTab(t){
+  if (state.tab === 'source' && t !== 'source' && srcDirty && !confirm('源码有未应用的修改，放弃并切换？')) return;
+  state.tab = t;
+  renderTabs();
+  renderContent();
+}
+function renderContent(){
+  if (!state.doc){
+    const c = $('content'); c.textContent = '';
+    c.append(emptyState());
+    return;
+  }
+  ({ tasks:renderTasksTab, types:renderTypesTab, machines:renderMachinesTab, source:renderSourceTab })[state.tab]();
+}
+
+async function init(){
+  $('btnOpen').onclick = openPicker;
+  $('btnSave').onclick = () => doSave(false);
+  $('btnSaveAs').onclick = () => doSave(true);
+  $('btnReload').onclick = reloadDoc;
+  $('fileInput').addEventListener('change', async e => {
+    const f = e.target.files[0];
+    if (f) loadText(await f.text(), f.name, null);
+    e.target.value = '';
+  });
+  window.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){
+      e.preventDefault();
+      doSave(false);
+    }
+  });
+  window.addEventListener('beforeunload', e => {
+    if (state.dirty){ e.preventDefault(); e.returnValue = ''; }
+  });
+  ['dragenter', 'dragover'].forEach(ev => window.addEventListener(ev, e => {
+    e.preventDefault();
+    dropDepth++;
+    $('dropHint').classList.add('show');
+  }));
+  window.addEventListener('dragleave', e => {
+    dropDepth = Math.max(0, dropDepth - 1);
+    if (!dropDepth) $('dropHint').classList.remove('show');
+  });
+  window.addEventListener('drop', e => {
+    e.preventDefault();
+    dropDepth = 0;
+    $('dropHint').classList.remove('show');
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) f.text().then(t => loadText(t, f.name, null));
+  });
+  renderTabs();
+  renderContent();
+  // 会话恢复优先：handle(已授权) → localStorage 快照 → HTTP 默认路径
+  if (await restoreSession()) return;
+  if (location.protocol.startsWith('http')){
+    try {
+      const r = await fetch('../configs/task_config.json', { cache:'no-store' });
+      if (r.ok) loadText(await r.text(), 'configs/task_config.json', null);
+    } catch (e){ /* file picker fallback */ }
+  }
+}
+init();
+
+/* test hook */
+window.__tc = { state, validateDoc, stringifyDoc, loadText, insertTask, chainObj, typeDef };
+</script>
+</body>
+</html>

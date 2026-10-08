@@ -18,10 +18,13 @@ from src.scheduler.task_queue import TaskQueue
 #   只需在 _build_factories() 里告诉它"要跑哪些工厂"。
 #
 # 继承关系：
-#   SGBaseTask          ← 提供 log_info / sleep / paused / exit_is_set / info_set
+#   SGBaseTask      ← 提供 log_info / sleep / paused / exit_is_set / info_set
 #     └── QueueTaskBase ← 本类
-#           └── GenericQueueTask ← 通用注册表版本
-#                 └── 各业务薄壳（HuntMonsterTroop / DailyChest / ...）
+#           └── UnifiedQueue ← JSON 配置驱动的统一入口
+#
+# 配置源钩子：
+#   _queue_global_params() 默认读 ok-script GUI 配置；
+#   JSON 驱动的子类（UnifiedQueue）覆写为读 task_config.json。
 # =============================================================================
 class QueueTaskBase(SGBaseTask):
     def __init__(self, *args, **kwargs):
@@ -55,21 +58,42 @@ class QueueTaskBase(SGBaseTask):
         self.queue = None
         self._factories = []
 
+    def _queue_global_params(self):
+        """
+        队列全局参数（tick_interval / continue_after_failure）的配置源钩子。
+
+        默认实现读 ok-script GUI 配置（老行为，薄壳任务不受影响）；
+        JSON 驱动的子类覆写本方法，从 TaskConfigLoader 的解析结果取值。
+        返回 dict：{"tick_interval": float, "continue_after_failure": bool}
+        """
+        return {
+            "tick_interval": float(self.config.get("Tick Interval", 1.0)),
+            "continue_after_failure": bool(
+                self.config.get("Continue After Failure", True)
+            ),
+        }
+
     # =========================================================================
     # 子类接口
     # =========================================================================
+
+    def _reload_config(self):
+        """
+        每次 run() 启动前的配置刷新钩子，默认空操作。
+
+        子类配置源是文件（如 UnifiedQueue 的 task_config.json）时覆写：
+        从磁盘重读并更新内部状态，保证 webui 改完配置、
+        不重启程序、直接重跑任务即生效。
+        抛出的异常（配置结构非法等）会在任务启动时直接失败，
+        与 __init__ 时解析失败的语义一致。
+        """
 
     def _build_factories(self):
         """
         子类实现：把 TaskFactory 追加到 self._factories。
 
-        为什么要让子类实现？
-            因为"要跑哪些工厂、每个工厂什么参数"是业务信息，
-            基类无法预知。把这一步交给子类，
-            基类就彻底与业务解耦了。
-
-        典型实现（GenericQueueTask 里）：
-            遍历 TASK_REGISTRY，把启用的类型转成 TaskFactory。
+        典型实现（UnifiedQueue 里）：
+            把 task_config.json 中启用的类型转成 TaskFactory。
         """
         raise NotImplementedError
 
@@ -98,15 +122,21 @@ class QueueTaskBase(SGBaseTask):
             app=self._app,
             scene=self.scene,
         )
-        # 全局失败策略：GUI 配置注入队列。
-        self.queue.continue_after_failure = bool(
-            self.config.get("Continue After Failure", True)
-        )
+        # 全局失败策略 / 调度间隔：默认读 GUI 配置；
+        # 子类可覆写 _queue_global_params() 换配置源（如 JSON 文件）。
+        params = self._queue_global_params()
+        self.queue.continue_after_failure = bool(params["continue_after_failure"])
         self.queue.start()
 
         # ---------------------------------------------------------------------
+        # 1.5 配置重载钩子：每次 run 都给子类机会刷新配置源。
+        #     JSON 驱动的子类（UnifiedQueue）覆写为从磁盘重读，
+        #     保证 webui 改完配置后不重启程序、直接重跑任务即生效。
+        # ---------------------------------------------------------------------
+        self._reload_config()
+
+        # ---------------------------------------------------------------------
         # 2. 让子类填充工厂
-        #    先 clear 是为了防止 run() 被重复调用时残留旧工厂。
         # ---------------------------------------------------------------------
         self._factories.clear()
         self._build_factories()
@@ -114,7 +144,7 @@ class QueueTaskBase(SGBaseTask):
             self.queue.add_factory(factory)
         self._log_factories_summary()
 
-        tick_interval = float(self.config.get("Tick Interval", 1.0))
+        tick_interval = float(self._queue_global_params()["tick_interval"])
 
         # ---------------------------------------------------------------------
         # 3. 主循环
@@ -152,7 +182,7 @@ class QueueTaskBase(SGBaseTask):
 
         采用循环展开而非逐项 info_set，是为了：
             - 快照新增字段时无需改这里
-            - 与 GenericQueueTask 的"字段自动扩展"理念保持一致
+            - 与快照字段自动扩展的理念保持一致
         """
         if self.queue is None:
             return

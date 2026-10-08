@@ -22,16 +22,19 @@ trigger_keywords:
 
 # Skill A：自动化框架架构基础（稳定层）
 
-## 一、分层架构
-
 ```
 ┌─────────────────────────────────────────┐
 │ Caller / GUI / 配置                       │
 └────────────────────┬────────────────────┘
                      ▼
 ┌─────────────────────────────────────────┐
-│ TaskQueue / GenericQueueTask             │
-│ 循环、次数、并发、trigger_time、配置注入   │
+│ TaskQueue / TaskFactory                   │
+│ 循环、次数、并发、trigger_time            │
+└────────────────────┬────────────────────┘
+                     ▼
+┌─────────────────────────────────────────┐
+│ UnifiedQueue（QueueTaskBase 子类）        │
+│ 消费 task_config.json → TaskFactory       │
 └────────────────────┬────────────────────┘
                      ▼
 ┌─────────────────────────────────────────┐
@@ -113,20 +116,25 @@ Task 只做三件事：
 
 ## 四、个性化参数传递
 
-### 4.1 两个 extra_config
+### 4.1 定义与实例
 
-| 名称 | 层级 | 作用 |
+| 名称 | 位置 | 作用 |
 |---|---|---|
-| 注册文件里的 `extra_config` | GUI 声明 | 用户可见配置项，每项必须带 `attr` |
+| `task_types[].params[]` | task_config.json 定义段 | 用户可见配置项声明（name/attr/default/widget/desc） |
+| `machines[].apps[].users[].tasks[]` | task_config.json 实例段 | 每设备/应用/分身实际执行的覆盖值 |
 | `task.extra_config` | 运行时 | 个性化参数容器，`types.SimpleNamespace()` |
 
 ### 4.2 数据流
 
 ```
-kwargs
-  → factory.create(executor, app, scene, **kwargs)
-  → setattr(task, k, v)              # 注入 Task 本体，防 __slots__
-  → setattr(task.extra_config, k, v) # 注入个性化容器
+configs/task_config.json
+  task_types[].params[]: {"name": "Monster Level", "attr": "monster_level",
+                          "default": 1, "widget": {...}, "desc": "..."}
+  machines[].apps[].users[].tasks[]: {"type": "...", "enabled": true,
+                                      "params": {"monster_level": 1}, ...}
+  → 加载器覆盖链：tasks 条目字段 → task_types[].defaults → params[].default
+  → UnifiedQueue._build_factories() 生成 TaskFactory(kwargs=params)
+  → factory.create: setattr(task, k, v) + setattr(task.extra_config, k, v)
   → 领域方法 getattr(extra_config, 'name', self.xxx_default)
 ```
 
@@ -138,31 +146,12 @@ kwargs
 4. `setattr(task.extra_config, k, v)` 不加 try-except（失败即架构错误）。
 5. 领域任务禁止反向 import 聚合任务类（防循环依赖）。
 
----
+### 4.4 关键约束
 
-## 五、配置注入
-
-### 5.1 注册到实例的路径
-
-```
-register_task_type(extra_config={
-    "Monster Level": {
-        "attr": "monster_level",  # ← 必须！实际属性名
-        "default": 1,
-        ...
-    }
-})
-  → GUI 显示 "Monster Level"
-  → 用户改值
-  → 通过 kwargs 传入 factory.create
-  → setattr(task, "monster_level", value)
-```
-
-### 5.2 关键约束
-
-- 字典的 key 是 GUI 显示名，`attr` 才是实际注入的属性名。**缺 `attr` 会注入到错误属性上**。
-- `default_kwargs` 的 key 必须与 Task `__init__` 注入字段一一对应。
-- `default_kwargs` 默认值应与 Task 内默认值一致。
+- `params[].name` 是显示名，`attr` 才是实际注入的属性名。**缺 `attr` 会注入到错误属性上**。
+- params 的 key 必须与 Task `__init__` 注入字段一一对应，默认值应与 Task 内默认值一致。
+- widget 显式声明渲染方式：`switch / number / text / drop_down{options} / multi_drop_down{options}`。
+- 实例条目只写用户改过的值，缺省字段运行时回退定义段。
 
 ---
 
@@ -183,24 +172,47 @@ register_task_type(extra_config={
 
 ---
 
-## 七、注册机制
+## 七、注册机制（JSON 配置驱动）
 
 ### 7.1 设计意图
 
 - `TaskQueue` 不认识任何业务名词。
-- 业务方只负责 `register_task_type` 注册。
-- 队列按 `TASK_REGISTRY` 调度。
+- 业务定义全部在 `configs/task_config.json`（webui 直接读写控制参数）。
+- 代码侧只保留 `task_type_map.TASK_TYPE_MAP`（type 短 id → 任务类）；
+  JSON 里禁止写 import 路径 / 类名。
 
-### 7.2 注册文件路径
+### 7.2 配置结构（单文件双段）
 
-`src/sg/tasks/registrations/{任务名}.py`
+```
+configs/task_config.json
+├─ version: 1
+├─ task_types[]   定义段（等价于旧 registrations/reg_*.py）
+│    {type, name_prefix, description,
+│     defaults{count,max_active,requires_march_queue,
+│               next_trigger_delay,one_shot,cron},
+│     params[{name,attr,default,widget,desc}]}
+└─ machines[]    实例段（多设备/多应用/多分身 schema）
+     {name, enabled, adb_serial,      ← adb -s 预留，未消费
+      apps[{package, enabled,
+            users[{user_id, enabled,  ← adb --user 预留，未消费
+                   queue{tick_interval,continue_after_failure},
+                   tasks[{type,enabled,params,...覆盖字段}]}]}]}
+```
 
-### 7.3 必须项
+### 7.3 新增一种任务的三个动作
 
-- `key`（唯一）、`task_class`、`name_prefix`
-- `default_count` / `default_requires_march_queue` / `default_next_trigger_delay`
-- `extra_config` 每项必须有 `attr`
-- 在 `registrations/__init__.py` import 使其生效
+1. 写任务类（SGBaseTask 子类）。
+2. `task_config.json` 的 `task_types[]` 加定义段。
+3. `task_type_map.TASK_TYPE_MAP` 加一行映射。
+
+是否启用、跑几次由 `machines` 段的 `tasks[]` 条目决定。
+
+### 7.4 加载与校验
+
+- 加载器 `src/sg/tasks/config_loader/`：结构校验在启动即抛
+  `TaskConfigError`（缺文件 / type 重复 / 引用未定义类型 / widget 非法）。
+- 本期只消费第一条 enabled 的 machine→app→user 链；
+  多设备 `adb -s` / 分身 `--user` 派发是后续功能，schema 已预留。
 
 ---
 
@@ -221,6 +233,7 @@ register_task_type(extra_config={
 | 2026-10-01 | 配置折叠开关：每类任务新增 "{key}: Expanded"（**默认 True=展开**），sub_configs 两级链控 Enabled→Expanded→详情（Count/Max Active/Next Trigger Delay/One Shot/Cron/extra_config）。Enabled=False 全收起；Enabled=True 时由 Expanded 决定详情显隐。旧配置文件里的 Expanded: false（旧默认值迁移产物）已在 configs/UnifiedQueue.json 手工翻为 true | 新增 bool 默认 True（展开）；Config.verify_config 自动迁移旧配置文件缺失键；_build_factories 不读 Expanded，调度行为不变 |
 | 2026-10-04 | ADB 手势集成：`ADBInteraction` 新增手势方法（scroll_page/fling/scroll_horizontal/pinch_in/pinch_out/zoom/two_finger_gesture/drag/long_click/double_click/swipe_points），原 scroll(direction) 更名 **scroll_page** 避让 `BaseInteraction.scroll(x, y, count)` 滚轮契约（否则 ADB 设备上 scroll_relative 会把参数误读成 direction/percent/duration）；新增 `width/height` property 透写 `device_width/device_height`（DeviceManager do_start 重连时写 `.width/.height`，不透写则缓存陈旧）。`BaseInteraction` 补手势存根：不支持的后端安全降级（drag 默认委托 swipe）。`ExecutorOperation` 按 click 模式集成同一组手势：统一 `_resolve_point`（Box/0~1 相对/像素/元组）+ `_gesture` 分发（调试框 + reset_scene + after_sleep + 不支持时告警跳过返回 False） | 新增方法默认不改变现有调用；`scroll_relative`/`scroll` 滚轮行为 100% 兼容；老 `swipe`/`click` 路径未动 |
 | 2026-10-04 | u2 3.7.0 兼容修复（真机联调发现）：① `_gesture` 打包规则——点序列手势（swipe_points/two_finger_gesture）的坐标必须打包成**单个元组参数**或**每点一个元组**下发，禁止拍平成标量位置参数（会顶掉后面的 duration 形参报 got multiple values）；② `ADBInteraction.pinch_in/out` 改走 `u2()` 根 UiObject（u2 3.x 把 pinch 从 Device 挪到 UiObject，但 server 端 pinchIn/pinchOut RPC 仍在，真机验证可用）；③ `two_finger_gesture` 的 `gesture` RPC 已被 u2 server 移除（-32601），改为从四点向量推导 pinch_in/pinch_out（跨度收拢=捏合/撑开=张开，percent 按跨度比折算），非缩放双指轨迹不再支持 | swipe/drag/long_click/double_click/swipe_points 调用面不变；two_finger_gesture 语义收窄为缩放类双指；真机 127.0.0.1:16416 全部 11 项手势验证通过 |
+| 2026-10-08 | 注册机制 JSON 化：业务定义从 `registrations/reg_*.py`（15 个文件 + `register_task_type`/`TASK_REGISTRY`）外置为 `configs/task_config.json` 单文件双段（`task_types` 定义段 + `machines` 实例段，多设备/多应用/多分身 schema 预留 `adb_serial`/`user_id`，本期只消费第一条 enabled 链）。新增 `task_type_map.TASK_TYPE_MAP`（type→类，代码侧唯一映射）与 `config_loader/`（解析 + 覆盖链 task→defaults→params.default + 启动即抛 `TaskConfigError`）；`UnifiedQueue` 直接继承 `QueueTaskBase` 并覆写 `_queue_global_params()` 钩子（基类默认仍读 GUI 配置），`GenericQueueTask` 注册表删除；用户在旧面板的调值（Hunt Monster count=10 等）由迁移脚本写入实例段，`Expanded` 展示态丢弃 | 调度器（TaskQueue/TaskFactory）零改动；JSON 驱动的工厂经冒烟验证 10/10 任务 DONE；老 GUI 配置 UnifiedQueue.json 废弃删除；webui 只需读写 task_config.json |
 
 **变更前必问**：
 
