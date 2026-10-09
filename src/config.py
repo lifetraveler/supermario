@@ -120,4 +120,5 @@ config = {
         # ["src.tasks.MyOneTimeTask", "MyOneTimeTask"],
        
     ],
+    'custom_tabs':[ ["src.ui.HtmlExplorerTab", "HtmlExplorerTab"]]
 }

@@ -60,6 +60,7 @@
 | R-002 | 恐狼出击（道具触发型，占军队队列，不可并行） | 先于本文档 | 已实现 | `tasks/world/HuntScareWolfTask.py` |
 | R-003 | 采集 | 先于本文档 | 已实现 | `tasks/world/GatherTask.py` |
 | R-004 | 联盟捐献：捐材料换联盟币；次数 10 分钟恢复 1 次、上限 25 次，捐完 150 分钟循环一次；不占军队队列、不可并行、间隔 9000 秒 | 2026-09-26 | 已实现（待真机验证） | [tasks/league/LeagueTechDonateTask-需求文档.md](../src/sg/tasks/league/LeagueTechDonateTask-需求文档.md) |
+| R-005 | GUI 内嵌 HTML 浏览器页签：custom_tabs 注册、默认地址可配置、JS↔Python 双向通讯 | 2026-10-09 | 已实现（用户已验证） | [src/ui/HtmlExplorerTab.py](../src/ui/HtmlExplorerTab.py) |
 
 > 编号规则：`R-XXX` 递增；历史需求补录时按文档创建日期顺延编号。
 
@@ -118,6 +119,7 @@
 | C-002 | 2026-09-26 | 设计 | 捐献按钮点击方式变更：由"每次点击前特征匹配"改为"首次特征匹配记录 bbox，后续按 bbox 位置直接点击，不再重匹配" | R-004 | 每次捐献后游戏弹出 tip 遮挡特征区域，特征重匹配会失败；位置点击不受弹层影响 |
 | C-003 | 2026-09-26 | 文档 | 修正 `LEAGUE_TECH_UPDATE_REMAIN_TIMES` 注释 id（53→82），确认其 resource_id 为小写 `league_tech_update_remain_times` 与 coco 标注一致 | R-004 | 特征匹配按 resource_id 查找，与 coco 不一致会导致匹配不到 |
 | C-004 | 2026-09-26 | 设计 | 联盟捐献进一步去特征匹配：剩余次数读取由 `_wait_element`（特征匹配）改为 `get_box_by_name(resource_id)` 直接取 bbox；捐献按钮同样改 `get_box_by_name` 取 bbox，按 OCR 次数定长点击，点完重读、不为 0 递归续捐。捐献交互界面内全程无特征匹配 | R-004 | `_wait_element` 底层仍是特征匹配，捐献后弹出的 tip 遮挡特征会失败；`get_box_by_name` 按 resource_id 直接取标注 bbox，不做图像匹配，不受弹层影响（补充说明：该方法可直接按 resource_id 取 box，初版遗漏） |
+| C-005 | 2026-10-09 | 需求 | 新增内嵌浏览器页签 `HtmlExplorerTab`（R-005）：① 走框架 `custom_tabs` 机制注册（`init_class_by_name` 无参实例化 → 注入 `executor` → `addSubInterface`），`src/config.py` 增加 `["src.ui.HtmlExplorerTab", "HtmlExplorerTab"]`；② 默认地址持久化在 `configs/HtmlExplorerTab.json`（`ok.Config`，键 `default_url`），历史记录键 `history`（最近 20 条去重）；③ JS↔Python 双向通讯用 QWebChannel：JS→Python `window.pybridge.call_py(JSON.stringify({name,args}))` 分发到 `on_message(name,args)`，Python→JS `push_event(name,args)` 经 `bridge.event` 信号推 JSON；④ **懒加载**：`__init__` 只建纯 Qt 工具栏，`QWebEngineView/Profile/Page/Channel` 全部延迟到首次 `showEvent`（`_ensure_web_view`）；⑤ Mica 兼容：首次 show 先 `_disable_mica_backdrop`（`setMicaEffectEnabled(False)` + 不透明主题背景 + DWM 重置：`DwmExtendFrameIntoClientArea(MARGINS(0,0,0,0))` 撤玻璃延伸、属性 1029 写 0、属性 38 写 DWMSBT_NONE、accent policy 关闭）再建 WebEngine；⑥ 入口 `main.py`/`main_debug.py` 在 `ok.OK()` 之前调用 `_ensure_webengine_runtime()`（`QtWebEngineQuick.initialize()`，进程级一次） | R-005 | QWebEngineView 是原生子窗口（独立 HWND），在 Mica 透明背板激活时破坏整窗 DWM 合成：黑条出现在所有页签（左侧导航+顶部标题栏），且从启动即存在；而 `qframelesswindow.removeBackgroundEffect` 只关 accent policy，不撤 `setMicaEffect` 留下的 `MARGINS(16777215,16777215,0,0)` 玻璃延伸与 Mica 背板属性（build<22523 用未公开属性 1029，build≥22523 用 38），首次修复只清 38 且挂在 showEvent 上（启动路径未覆盖、用户系统 22621 未生效），故拆为懒加载方案：启动零 WebEngine 保证其余页签画面正常，首次打开浏览器页签时先撤 Mica 再建原生窗口。另：`windowEffect` 是 frameless 窗口实例属性（`qframelesswindow/windows/__init__.py:29`），非 `win32_utils` 模块成员 |
 
 ---
 
