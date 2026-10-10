@@ -37,6 +37,7 @@ class UnifiedQueue(QueueTaskBase):
         self.description = "统一调度 task_config.json 中启用的任务类型"
         self.icon = FluentIcon.SYNC
         self.group_name="奔奔王国"
+        self.group_icon=FluentIcon.CAFE
 
         # ------------------------------------------------------------------
         # 启动即解析配置：错误（缺文件 / 结构非法 / 引用未定义类型 /

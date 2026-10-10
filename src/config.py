@@ -120,5 +120,8 @@ config = {
         # ["src.tasks.MyOneTimeTask", "MyOneTimeTask"],
        
     ],
-    'custom_tabs':[ ["src.ui.HtmlExplorerTab", "HtmlExplorerTab"]]
+    'custom_tabs':[ 
+                    ["src.ui.TaskConfigEditorTab", "TaskConfigEditorTab"],
+                    # ["src.ui.HtmlExplorerTab", "HtmlExplorerTab"] # 这个是html浏览页面，为了编辑配置文件设计的，但是会破坏gui界面外观，暂时禁用
+                    ]
 }
