@@ -719,6 +719,8 @@ class TaskConfigEditorTab(CustomTab):
                 self.task_list_lay.addItem(spacer)
             else:
                 self.task_list_lay.addStretch(1)
+            # 挪卡/重建后强制重算（不动卡片几何，宽度仍由布局铺满）
+            self.task_list_lay.activate()
 
     def _group_header(self, text, objname):
         h = self._sec_header(text)
@@ -765,10 +767,10 @@ class TaskConfigEditorTab(CustomTab):
         info.addWidget(StrongBodyLabel(tt.get("name_prefix") or task.get("type") or "?"))
         if tt.get("description"):
             desc = BodyLabel(tt["description"])
-            desc.setWordWrap(True)
+            desc.setWordWrap(False)
             info.addWidget(desc)
         stats = BodyLabel(self._task_stats(task, tt))
-        stats.setWordWrap(True)
+        stats.setWordWrap(False)
         info.addWidget(stats)
         head.addLayout(info, 1)
         sw = SwitchButton("启用")
@@ -1823,6 +1825,11 @@ class TaskConfigEditorTab(CustomTab):
         else:
             self.expanded.discard(key)
         btn.setIcon(FluentIcon.CARE_UP_SOLID if open_ else FluentIcon.CARE_DOWN_SOLID)
+        # 显隐切换后触发布局重算（updateGeometry 只失效缓存，不锁死尺寸）
+        card = body.parentWidget()
+        if card is not None:
+            card.layout().activate()
+            card.updateGeometry()
 
     def _set_num(self, obj, key, text):
         for cast in (int, float):
