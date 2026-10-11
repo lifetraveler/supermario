@@ -157,6 +157,12 @@ OVERALL_STAMINA_CURRENT = SceneElement(
     desc="当前体力box",
 )
 
+WORLD_GATHER_RESOURCE_LARGE_GATHERED_NOW = SceneElement(
+    name="召回",
+    resource_id="world_gather_resource_large_gathered_now",
+    desc="召回",
+)
+
 
 # ============================================================
 # 补充：根据 COCO categories 更新
@@ -1226,4 +1232,43 @@ TEAM_POWER_BIGGEST = SceneElement(
     name="team_power_biggest",
     resource_id="team_power_biggest",
     desc="编组界面：最强编组切换",
+)
+
+# ============================================================
+# 城堡黄金炼制（Golden Refine）
+# ============================================================
+
+# 任务列表：黄金炼制图标（列表检索标志）
+GLOBAL_TASK_LIST_ICON_GOLDEN = SceneElement(
+    name="global_task_list_icon_golden",
+    resource_id="global_task_list_icon_golden",
+    desc="黄金炼制：任务列表图标",
+)
+
+# 任务列表：冒险图标（列表滑到底部标志）
+GLOBAL_TASK_LIST_ICON_ADVENTURE = SceneElement(
+    name="global_task_list_icon_adventure",
+    resource_id="global_task_list_icon_adventure",
+    desc="黄金炼制：任务列表底部标志（冒险）",
+)
+
+# 任务列表：黄金炼制入口按钮
+GLOBAL_TASK_LIST_ICON_GOLDEN_ENTRY = SceneElement(
+    name="global_task_list_icon_golden_entry",
+    resource_id="global_task_list_icon_golden_entry",
+    desc="黄金炼制：任务列表入口按钮",
+)
+
+# 黄金炼制界面：剩余次数区域（OCR）
+CITY_DAILY_TASK_BUTTON_GOLDEN_GET_TIMES = SceneElement(
+    name="city_daily_task_button_golden_get_times",
+    resource_id="city_daily_task_button_golden_get_times",
+    desc="黄金炼制：剩余次数区域（OCR）",
+)
+
+# 黄金炼制界面：领取按钮
+CITY_DAILY_TASK_BUTTON_GOLDEN_GET = SceneElement(
+    name="city_daily_task_button_golden_get",
+    resource_id="city_daily_task_button_golden_get",
+    desc="黄金炼制：领取按钮",
 )

@@ -12,6 +12,7 @@ task_type_map —— type 短 id → 任务类 的代码侧映射。
 映射 key 必须与 task_config.json 的 task_types[].type 完全一致。
 """
 
+from src.sg.tasks.city.GoldenRefineTask import GoldenRefineTask
 from src.sg.tasks.daily.ClaimMailRewardTask import ClaimMailRewardTask
 from src.sg.tasks.daily.ClaimStaminaTask import ClaimStaminaTask
 from src.sg.tasks.daily.LeaderRewardTask import LeaderRewardTask
@@ -34,6 +35,7 @@ TASK_TYPE_MAP = {
     "Claim Stamina":         ClaimStaminaTask,
     "Gather Island Water":   GatherIslandWaterTask,
     "Gather Resource Troop": GatherResourceTask,
+    "Golden Refine":         GoldenRefineTask,
     "Hunt Beast Troop":      HuntBeastTask,
     "Hunt Elite Rebels Troop": HuntEliteRebelsTask,
     "Hunt Monster Troop":    HuntMonsterTask,

@@ -604,3 +604,39 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - `team_select_area` 相对区域按 900x1600 截图目测（出征页顶部标签行），其他分辨率未验证。
 - 按出发类型差异化处理队列/英雄/兵力（HUNT vs GATHER）为预留设计：本版 GATHER 只记日志+选队，兵力/英雄不动；后续在此分叉。
 - 采集确认面板点"开始采集"后是否必然进入出征配置页（而非直接派兵），需实机确认；若部分资源点直接派兵，`_dispatch_troop` 需加"出征页存在性"前置判断。
+
+## [2026-10-12] 城堡黄金炼制（Golden Refine）
+
+### 原始需求
+一次性每日任务：进入主页面，点击 tasklist（global_button_tasklist），在弹出的列表中检索 global_task_list_icon_golden；未检索到则向上滑动继续检索，循环进行。若检索到 global_task_list_icon_adventure 说明列表已滑到底，此时仍未找到 golden 则任务已完成。检索到则点击特征（全屏匹配）global_task_list_icon_golden_entry 进入黄金炼制界面，根据 city_daily_task_button_golden_get_times 特征位置 OCR 剩余次数，循环对应次数点击 city_daily_task_button_golden_get，完成后退回主界面。不占队列、每日一次、不可并行。
+
+### 变更点
+- 新增 5 个 SceneElement（`src/sg/scene/elements.py`）：`GLOBAL_TASK_LIST_ICON_GOLDEN`（列表检索标志）、`GLOBAL_TASK_LIST_ICON_ADVENTURE`（列表底部标志）、`GLOBAL_TASK_LIST_ICON_GOLDEN_ENTRY`（入口按钮，全屏匹配点击）、`CITY_DAILY_TASK_BUTTON_GOLDEN_GET_TIMES`（剩余次数 OCR 区域）、`CITY_DAILY_TASK_BUTTON_GOLDEN_GET`（领取按钮）。
+- 新增 `GoldenRefineTask`（继承 `SGBaseTask`，`src/sg/tasks/city/`）：编排 前台 → 清弹窗 → 回主界面 → 开任务列表 → 滚动检索 → 点入口 → OCR 次数 → 循环领取 → 回主界面。业务步骤全部 `_step` 包裹。
+- 列表检索策略：golden 找到 → 点入口；adventure 出现且无 golden → `task_list_bottom_reached=True`，视为任务已完成（成功，不算失败）；滑动上限 10 次（1/4 屏/次）。
+- 进入炼制界面以 `CITY_DAILY_TASK_BUTTON_GOLDEN_GET_TIMES` 特征等待确认（点入口后 6s 内出现）；`_in_golden_page()` 特征判定决定是否执行领取。
+- OCR 次数解析兼容 `'3/5'`、`'3'`、`'1,200/2,000'`、空白；无结果/不可解析按 0 处理（跳过领取，不算失败）。
+- 注册：`task_type_map.py` 加 `"Golden Refine"` 映射；`task_config.json` 加定义段（count=1、max_active=1、requires_march_queue=false、next_trigger_delay=86400、params=[]，无个性化参数）。
+
+### 修复点
+- 无（新任务，未改动既有文件逻辑）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（追加 5 个元素）
+- `src/sg/tasks/city/GoldenRefineTask.py`（新增）
+- `src/sg/tasks/task_type_map.py`（加映射行）
+- `configs/task_config.json`（加 task_types 定义段 + machines 实例段条目，实例段为调度器实际消费入口）
+
+### 测试
+- 独立模式：未跑（需游戏前台与真实画面；`py_compile` 通过）。
+- 队列模式：未跑（同上）。
+- 导入/注册验证：通过 —— `TASK_TYPE_MAP['Golden Refine']` 解析到 `GoldenRefineTask`，5 个元素 resource_id 非空，task_config.json JSON 合法。
+- 解析逻辑单测：通过 —— 8 组用例（斜杠/纯数字/千分位/空白/非法/空/None/0）全部符合预期。
+- 配置加载验证：通过 —— `TaskConfigLoader.load()` 解析出 Golden Refine 实例条目，字段覆盖链正确（requires_march_queue 继承定义段 defaults）。
+
+### 遗留 / 风险
+- 实机未验证：golden/adventure 图标特征匹配阈值（0.8）与列表滑动节奏（1.5s settle）需真实画面确认。
+- `_ensure_main_scene` 复用 ESC 方案；若 tasklist 打开时 ESC 行为不同（关闭列表 vs 退出游戏弹窗），依赖 RecoveryHelper 兜底，需实机确认。
+- adventure 图标若在其他任务列表条目中复用（非底部专属），会出现"提前判定到底"的误判，需实机确认其唯一性。
+
+---
