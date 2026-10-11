@@ -248,7 +248,26 @@ class RecoveryHelper:
         if now - self._last_esc_time < self.esc_cooldown:
             return False
         return self._press_esc_raw()
+    
+    def _try_press_esc_times(self,times=1) -> bool:
+        """
+        按 ESC 关闭当前浮层。
 
+        受 esc_cooldown 限制。实际的按键动作委托给 _press_esc_raw，
+        后者也被"补按 ESC 关闭退出游戏弹窗"复用。
+        返回：
+          True  —— 真的按下去了
+          False —— 还在冷却中，或按键发送异常
+        """
+        while times>0:
+            now = time.time()
+            times-=1
+            if now - self._last_esc_time < self.esc_cooldown:
+                return False
+            self._press_esc_raw()
+            self.task._sleep(1.5)
+        return True
+    
     def _press_esc_raw(self) -> bool:
         """
         不带冷却地按一次 ESC，并更新 _last_esc_time。

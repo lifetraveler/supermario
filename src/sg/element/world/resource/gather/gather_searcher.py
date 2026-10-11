@@ -85,6 +85,7 @@ class ResourceGatherSearcher(BaseResourceSearcher):
         # 本次检测到的大型资源 key（"wood"/"stone"/…）；None = 无大型矿。
         # 同一任务实例只检测一次（大型矿当天不变）。
         self.large_resource_type = None
+        self.resource_level = 8
 
         # 计划生成回调：Task 注入；首轮面板打开后由 run_for 触发一次。
         # 回调签名 plan_provider(large_key) -> plan list。
@@ -222,7 +223,7 @@ class ResourceGatherSearcher(BaseResourceSearcher):
             timeout=8.0,
         )
 
-    def select_resource_and_click(self, key: str) -> bool:
+    def select_resource_and_click(self, key: str,scroll_direction:str) -> bool:
         """
         在滑动区域内查找指定资源图标并点击。
         找不到则滑动资源栏继续找，最多 scroll_max_attempts 次。
@@ -231,7 +232,7 @@ class ResourceGatherSearcher(BaseResourceSearcher):
         匹配阈值用本类宽松的 resource_threshold），点击由本方法完成。
         """
         element = NORMAL_RESOURCES[key]
-        found = self.select_resource(targets=[element])
+        found = self.select_resource(targets=[element],scroll_direction=scroll_direction)
         if found is None:
             return False
         self.task.click(found)
@@ -276,9 +277,13 @@ class ResourceGatherSearcher(BaseResourceSearcher):
         # 如果由大资源，先采集大型资源    
             if largebox:
                 self.task.click_box(largebox)
+                self.task.sleep(1)
+                
         else:
-            if not self.select_resource_and_click(key):
+            if not self.select_resource_and_click(key,scroll_direction='left'):
                 return False
+        if not self.select_level(self.resource_level):
+            return False    
         if not self.confirm_search():
             return False
         return True

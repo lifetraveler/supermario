@@ -653,6 +653,18 @@
       "file_name": "106.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 157,
+      "file_name": "109.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 158,
+      "file_name": "110.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -713,12 +725,12 @@
       "image_id": 2,
       "category_id": 6,
       "bbox": [
-        450,
+        466,
         1087,
-        88,
-        88
+        72,
+        120
       ],
-      "area": 7744,
+      "area": 8640,
       "iscrowd": 0
     },
     {
@@ -726,12 +738,12 @@
       "image_id": 2,
       "category_id": 8,
       "bbox": [
-        237,
+        276,
         1079,
-        141,
+        65,
         128
       ],
-      "area": 18048,
+      "area": 8320,
       "iscrowd": 0
     },
     {
@@ -1493,12 +1505,12 @@
       "image_id": 2,
       "category_id": 65,
       "bbox": [
-        46,
+        82,
         1075,
-        137,
+        69,
         132
       ],
-      "area": 18084,
+      "area": 9108,
       "iscrowd": 0
     },
     {
@@ -3385,6 +3397,58 @@
       ],
       "area": 42380,
       "iscrowd": 0
+    },
+    {
+      "id": 211,
+      "image_id": 157,
+      "category_id": 211,
+      "bbox": [
+        219,
+        1442,
+        214,
+        66
+      ],
+      "area": 14124,
+      "iscrowd": 0
+    },
+    {
+      "id": 212,
+      "image_id": 158,
+      "category_id": 212,
+      "bbox": [
+        20,
+        715,
+        179,
+        45
+      ],
+      "area": 8055,
+      "iscrowd": 0
+    },
+    {
+      "id": 213,
+      "image_id": 158,
+      "category_id": 213,
+      "bbox": [
+        221,
+        768,
+        315,
+        66
+      ],
+      "area": 20790,
+      "iscrowd": 0
+    },
+    {
+      "id": 214,
+      "image_id": 158,
+      "category_id": 214,
+      "bbox": [
+        18,
+        845,
+        126,
+        63
+      ],
+      "area": 7938,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -4436,6 +4500,26 @@
     {
       "id": 210,
       "name": "team_power_biggest",
+      "supercategory": ""
+    },
+    {
+      "id": 211,
+      "name": "world_gather_resource_large_gathered_now",
+      "supercategory": ""
+    },
+    {
+      "id": 212,
+      "name": "global_task_list_icon_golden",
+      "supercategory": ""
+    },
+    {
+      "id": 213,
+      "name": "global_task_list_icon_golden_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 214,
+      "name": "global_task_list_icon_adventure",
       "supercategory": ""
     }
   ]

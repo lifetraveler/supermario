@@ -1,0 +1,25 @@
+{
+    "Drop Down Config": "Drop Down Value 1",
+    "Boolean Config": true,
+    "Integer Config": 1,
+    "Float Config": 1.1,
+    "String Config": "String Value",
+    "Text Edit Config": "Text Edit Value",
+    "Folder Selector Config": "",
+    "File Selector Config": "",
+    "List Config": [
+        "List Value 1",
+        "List Value 2"
+    ],
+    "Drop Down Options Config": [
+        "Available Drop Down Value 1"
+    ],
+    "Multi Selection Config": [
+        "Multi Selection Value 1",
+        "Multi Selection Value 2"
+    ],
+    "Sub Boolean Config": false,
+    "Sub String Config": "Sub String Value",
+    "Sub Float Config": 2.2,
+    "Game Hotkey Config": {}
+}

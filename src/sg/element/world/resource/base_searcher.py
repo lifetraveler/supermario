@@ -83,7 +83,7 @@ class BaseResourceSearcher:
         # 滑动线兜底值（屏幕相对）。
         # 横向滑动（left/right）用 y 线，纵向滑动（up/down）用 x 线；
         # 对应方向锚点没匹配到时启用。
-        self.scroll_default_y = 0.85
+        self.scroll_default_y = 0.71
         self.scroll_default_x = 0.5
 
         # ====================================================

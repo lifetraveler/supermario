@@ -19,7 +19,7 @@ __pycache__/
 data/
 ok_tasks/
 *$py.class
-configs/
+# configs/
 paddle_model/
 ok/
 *.dat
