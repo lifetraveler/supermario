@@ -560,3 +560,47 @@ Beast challenge 在 kill 前根据界面 `beast_time_way` 区域 OCR 单程行�
 - 新增 GatherResourceTask（采集资源）+ Gather 领域对象 + reg_gather_resource 注册；PetTreasureHuntTask/LeaderRewardTask/ClaimMailRewardTask 小调整；elements.py +181 行（含 gather/切萨雷/领主）；coco_annotations.json +486 行（新增特征图 10 张）。
 - 测试隔离：SGTestTask 文件类用例使用独立临时文件，`game_temp_data.json.test` 用后即删。
 - 验证：26 个 py 文件 py_compile 全过；TASK_REGISTRY 16 项全任务 `_step` 归属基类（无副本遮蔽）；`_step` 三种调用形态（无参/kwargs 透传/with_recovery=False）行为单测全过；Beast.select_team 未配置/并发>1 跳过路径验证通过。
+
+## [2026-10-11] 采集出征派遣复用 Rally（troop_start 出发类型封装）
+
+### 原始需求
+GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复用 Rally，给 Rally 加出发类型，区分野怪（集结）与资源采集，对应队列/英雄/兵力做相应处理。把 rally_config 的 apply（调整队伍/英雄/兵力）与 rally 的 _hunt_expedition（点集结出发）封装成一个方法 `troop_start`，入参 team_group_name / team_task_type / team_hero。apply 的选队子方法按传入队伍名 OCR 识别队伍选择区域：有则点击选取，无则不改（本版先按"没有"处理，"有"分支预留）。本版兵力、英雄不改。
+
+### 变更点
+- `Rally`（src/sg/element/overall/tasklist/worldtask/troop/rally.py）：
+  - 新增 `ExpeditionType` 枚举（HUNT=hunt 野怪/集结，GATHER=gather 资源采集）。
+  - 新增 `troop_start(team_group_name=None, team_task_type=None, team_hero=None)`：封装 `config.apply` + `_hunt_expedition`；`_normalize_expedition_type` 做类型归一化（None→HUNT，字符串按值匹配，非法值报错返回 False）。运行时状态 `last_expedition_type`。
+  - `execute()` 尾段改为委托 `troop_start(team_task_type=HUNT)`——四个狩猎任务（HuntMonster/HuntScareWolf/HuntEliteRebels/CesareFight）调用点行为不变。
+  - `_hunt_expedition` 点击日志去掉写死的"发起巨兽远征"文案，改为中性"点击出征/远征按钮"。
+- `RallyConfig`（rally_config.py）：
+  - 新增 `team_select_area`（出征页顶部预设标签行相对区域 0.03,0.07→0.82,0.13，无独立特征标注）与 `team_select_click_enabled`（预留开关，本版 False）。
+  - `select_team(team_group_name)`：传队伍名走 OCR 选队 `_select_team_by_name`；不传走旧 team_element 特征路径。
+  - `_select_team_by_name`：OCR 区域 → 精确命中优先/子串兜底匹配；命中且开关开启→点击选中（预留"有"分支），未命中/开关关闭→沿用系统默认。选不到队不算失败，恒返回 True（点击失败除外）。
+  - `apply(team_group_name, team_hero)` / `adjust_heroes(team_hero)` 增参透传；team_hero 本版仅日志说明不生效。
+- `GatherResourceTask`（world/GatherResourceTask.py）：点"开始采集"后新增 `_step(self._dispatch_troop, "出征派遣")`；`_dispatch_troop` 调 `rally.troop_start(team_group_name, GATHER)`。注入字段 `team_group_name`（默认 None=系统默认队伍）。
+- `configs/task_config.json`：Gather Resource Troop 定义段 params 新增 `Team Group Name`（attr=team_group_name，default=null，widget=null）；description 补充派遣说明。实例段无需改（loader 自动回退 default）。
+- `troop/__init__.py` 导出 `ExpeditionType`。
+
+### 修复点
+- 新代码缺陷（桩测试暴露）：`_select_team_by_name` 纯子串匹配会把相邻标签碎片误判命中（查 "cj" 命中 "xcj"，且其 x 更靠前被误选）。修复为排序键 `（非精确命中, x）`——精确匹配优先，子串兜底。
+
+### 涉及文件
+- `src/sg/element/overall/tasklist/worldtask/troop/rally.py`
+- `src/sg/element/overall/tasklist/worldtask/troop/rally_config.py`
+- `src/sg/element/overall/tasklist/worldtask/troop/__init__.py`
+- `src/sg/tasks/world/GatherResourceTask.py`
+- `configs/task_config.json`
+- `scripts/test_troop_start_stub.py`（新增，脱框架桩测试）
+
+### 测试
+- `py_compile` 4 个改动 py 全过；`task_config.json` JSON 合法。
+- 导入链：troop 包（Rally/RallyConfig/ExpeditionType）、GatherResourceTask、TASK_TYPE_MAP 15 类型、5 个 Rally 使用方任务回归导入全过。
+- 桩测试 11/11 PASS：类型归一化 3 例（None→HUNT/"gather"→GATHER/非法→False 短路）、成功路径 apply→expedition 顺序、apply 失败短路、OCR 选队 4 例（未命中沿用默认/命中+开关关不点击/命中+开关开点击精确命中/OCR 异常容错）、旧路径 team_element 回归。
+- 配置加载校验：gather params 定义 team_group_name，实例条目覆盖链回退 default=null。
+- 实机：未验证（需游戏前台）。
+
+### 遗留 / 风险
+- "有队伍名则点击选中"分支由 `team_select_click_enabled` 开关预留（本版 False），实机验证 OCR 命中可靠后置 True 启用。
+- `team_select_area` 相对区域按 900x1600 截图目测（出征页顶部标签行），其他分辨率未验证。
+- 按出发类型差异化处理队列/英雄/兵力（HUNT vs GATHER）为预留设计：本版 GATHER 只记日志+选队，兵力/英雄不动；后续在此分叉。
+- 采集确认面板点"开始采集"后是否必然进入出征配置页（而非直接派兵），需实机确认；若部分资源点直接派兵，`_dispatch_troop` 需加"出征页存在性"前置判断。

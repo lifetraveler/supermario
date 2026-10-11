@@ -9,7 +9,10 @@ from src.sg.element.overall.tasklist.worldtask.troop.rally_config import (
 from src.sg.element.overall.tasklist.worldtask.troop.rally_timer import (
     RallyTimer,
 )
-from src.sg.element.overall.tasklist.worldtask.troop.rally import Rally
+from src.sg.element.overall.tasklist.worldtask.troop.rally import (
+    ExpeditionType,
+    Rally,
+)
 from src.sg.element.overall.tasklist.worldtask.troop.troop import Troop
 
 __all__ = [
@@ -18,6 +21,6 @@ __all__ = [
     "MarchQueueSlot",
     "RallyConfig",
     "RallyTimer",
-    "Rally",
+    "ExpeditionType",
     "Troop",
 ]

@@ -1,3 +1,5 @@
+from enum import Enum
+
 from src.sg.element.overall.tasklist.worldtask.troop.march_queue import (
     MarchQueue,
 )
@@ -19,12 +21,21 @@ from src.sg.scene.elements import (
 )
 
 
+class ExpeditionType(Enum):
+    """出发类型：HUNT=野怪/集结（巨兽、恐狼、叛军精锐、切萨雷），
+    GATHER=资源采集（野外采集派遣）。"""
+
+    HUNT = "hunt"
+    GATHER = "gather"
+
+
 class Rally:
     """
     军队集结领域对象。
     组合：RallyConfig + MarchQueue + RallyTimer。
     对外接口：
       prepare()              -> (ready, wait_seconds)
+      troop_start(...)         -> bool  配置队伍并发起出征（集结/采集共用入口）
       execute()              -> bool
       estimate_wait()        -> float
       has_enough_stamina()   -> bool
@@ -37,6 +48,9 @@ class Rally:
         self.timer = RallyTimer(task)
         
         self.default_stamina = 200
+
+        # 运行时状态：最近一次 troop_start 的出发类型
+        self.last_expedition_type = None
 
     # --------------------------------------------------------
     # 队列准备
@@ -91,13 +105,6 @@ class Rally:
                 break
             else:
                 return False
-        # 1. 进入集结页面
-        # if not task._wait_and_click(
-        #     BUTTON_RALLY_GIANT_BEAST,
-        #     name="集结巨兽",
-        #     threshold=0.5,
-        # ):
-        #     return False
 
         # 2. 确认集结
         if not task._wait_and_click(
@@ -106,15 +113,8 @@ class Rally:
         ):
             return False
 
-        # 3. 集结配置
-        if not self.config.apply():
-            return False
-
-        # 4. 发起远征（读行军时间后点击）
-        if not self._hunt_expedition():
-            return False
-
-        return True
+        # 3-4. 集结配置 + 发起远征（封装在 troop_start，出发类型=野怪集结）
+        return self.troop_start(team_task_type=ExpeditionType.HUNT)
 
     def _hunt_expedition(self) -> bool:
         task = self.task
@@ -126,8 +126,59 @@ class Rally:
         # 点击前读一次行军时间
         self.timer.read_march_time(time_box)
 
-        task.log_info("点击元素: 发起巨兽远征")
-        return task.click(box, name="发起巨兽远征")
+        task.log_info("点击出征/远征按钮")
+        return task.click(box)
+
+    # --------------------------------------------------------
+    # 配置 + 出征（采集/集结共用入口）
+    # --------------------------------------------------------
+
+    def troop_start(self, team_group_name=None, team_task_type=None,
+                    team_hero=None) -> bool:
+        """
+        队伍配置 + 出征派遣：封装 RallyConfig.apply（队伍/英雄/兵力）
+        与 _hunt_expedition（点出征按钮）为一个入口。
+
+        参数：
+          team_group_name 出征页顶部预设队伍名（如 "cj"）。OCR 匹配
+                          队伍选择区域：命中且开关开启 → 点击选中；
+                          未命中 / 未提供 → 沿用系统默认队伍。
+          team_task_type  ExpeditionType：HUNT=野怪/集结，GATHER=资源采集。
+                          本版本仅记录与日志；队列/英雄/兵力的按类型
+                          差异化处理为预留分支。
+          team_hero       英雄调整（本版本不生效，预留）。
+
+        返回：True = 配置完成并已点击出征。
+        """
+        etype = self._normalize_expedition_type(team_task_type)
+        if etype is None:
+            return False
+        self.last_expedition_type = etype
+        self.task.log_info(
+            f"出发派遣: 类型={etype.value}, "
+            f"队伍={team_group_name or '系统默认'}"
+        )
+
+        # 1. 队伍 / 英雄 / 兵力配置
+        if not self.config.apply(
+            team_group_name=team_group_name, team_hero=team_hero
+        ):
+            return False
+
+        # 2. 出征（读行军时间后点击）
+        return self._hunt_expedition()
+
+    def _normalize_expedition_type(self, team_task_type):
+        """归一化出发类型：None→HUNT；ExpeditionType 原样；字符串按值匹配。"""
+        if team_task_type is None:
+            return ExpeditionType.HUNT
+        if isinstance(team_task_type, ExpeditionType):
+            return team_task_type
+        try:
+            return ExpeditionType(str(team_task_type).lower())
+        except ValueError:
+            self.task.log_error(f"未知出发类型: {team_task_type!r}")
+            return None
 
     # --------------------------------------------------------
     # 等待时间

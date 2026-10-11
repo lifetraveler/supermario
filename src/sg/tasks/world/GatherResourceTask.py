@@ -8,9 +8,10 @@
   - 资源选择：大型资源优先（滑动区域内 OCR 检测"大型"），
     普通资源按 面包 → 木材 → 石头 → 铁矿 循环，
     起始偏移 = 当天日期 % 4，跳过与大型资源同类型的普通矿。
-  - 每轮：重新打开搜索面板 → 选资源 → 确认搜索 →
-    OCR 预计采集时间 → 点"开始采集"。
+  - 每轮：重新打开搜索面板 → 选资源 → 确认搜索 → OCR 采集时间 → 开始采集
   - 等级选择 TODO 待实现：使用游戏默认已选等级。
+  - 开始采集后进入出征配置页：复用 Rally.troop_start 派遣
+    （GATHER 类型，OCR 选队 / 系统默认，英雄兵力不动）。
   - 无空闲军队队列 → FAILED，原因"没有采集队列"。
 
 流程：
@@ -21,7 +22,8 @@
   4. 检测大型资源（滑动区域 OCR，当天缓存一次）
   5. 计算采集计划（大型优先 + 日期余数循环普通资源，最多 4 个）
   6. 循环计划：每轮重开搜索面板 → 选资源 → 确认 → OCR 时间 → 开始采集
-  7. 全部派出（或计划耗尽）→ SUCCESS
+  7. 每轮开始采集后：出征配置页 → Rally.troop_start（OCR 选队/默认 + 出征）
+  8. 全部派出（或计划耗尽）→ SUCCESS
 """
 
 import types
@@ -32,6 +34,10 @@ from src.scheduler.task_status import InteractionResult
 from src.sg.helper.recovery import RecoveryHelper
 
 from src.sg.element.overall.activity.popup import ActivityPopup
+from src.sg.element.overall.tasklist.worldtask.troop.rally import (
+    ExpeditionType,
+    Rally,
+)
 from src.sg.element.overall.tasklist.worldtask.troop.troop import Troop
 from src.sg.element.world.resource.gather.gather_searcher import (
     ResourceGatherSearcher,
@@ -42,6 +48,7 @@ from src.sg.scene.elements import (
     BUTTON_GOTO_WORLDMAP,
     WORLD_GATHER_REOURCE_TIME_AREA,
     WORLD_GATHER_REOURCE_BUTTON_START,
+    WORLD_GATHER_RESOURCE_LARGE_GATHERED_NOW,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -52,8 +59,9 @@ class GatherResourceTask(SGBaseTask):
 
     =========================================================
     职责边界：
-      - 只做业务编排：进荒野 → 读队列 → 规划 → 逐个搜索 → 开始采集
+      - 只做业务编排：进荒野 → 读队列 → 规划 → 逐个搜索 → 开始采集 → 出征派遣
       - 队列数量读取交给 Troop（空闲 = 最大 - 有效）
+      - 出征派遣交给 Rally（GATHER 类型，OCR 选队 / 系统默认，英雄兵力不动）
       - 大型资源检测 / 采集计划 / 搜索选资源交给 ResourceGatherSearcher
       - 弹窗处理交给 ActivityPopup
       - 等级选择 TODO 待实现（游戏默认已选等级）
@@ -91,11 +99,15 @@ class GatherResourceTask(SGBaseTask):
         # 军队队列：OCR 读取 有效/最大 数量
         self.troop = Troop(self)
 
+        # 出征派遣：开始采集后配置队伍并发起出征（复用 Rally）
+        self.rally = Rally(self)
+
         # 资源搜索：大型资源检测 + 采集计划 + 搜索面板选资源
         self.searcher = ResourceGatherSearcher(self)
 
-        # 运行时状态：最后一轮 OCR 的预计采集时间（秒），仅日志/展示。
-        self.last_gather_seconds = None
+        # 队列注入字段：出征页预设队伍名（OCR 匹配；未命中沿用系统默认）。
+        # None/空 = 不传队伍名，走系统默认。
+        self.team_group_name = None
 
         # 运行时状态：本轮空闲队列数快照（计划生成回调使用）。
         self.free_slots_snapshot = 0
@@ -186,6 +198,12 @@ class GatherResourceTask(SGBaseTask):
                 self.log_error(self.last_error)
                 return False
 
+        # 如果发现召回特征，则说明已经在采集中
+        if self._wait_element(WORLD_GATHER_RESOURCE_LARGE_GATHERED_NOW,with_recovery=False,timeout=2):
+            self.log_error("该资源已经在采集中")
+            self.recovery._try_press_esc_times(2)
+            return True
+
         # ---- OCR 预计采集时间（暂存展示） ----
         self._read_gather_time()
 
@@ -195,14 +213,29 @@ class GatherResourceTask(SGBaseTask):
             self.log_error(self.last_error)
             return False
 
-        
-        # TODO---- 开始采集队列选择出发派遣,复用rally，给rally里加一个出发类型，区分开是野怪也还是资源采集，然后对应队列，英雄，兵力做相应的处理 ----
-        
+        # ---- 出征派遣：选队（OCR）→ 出征 ----
+        if not self._step(self._dispatch_troop, "出征派遣"):
+            self.last_error = "出征派遣失败"
+            self.log_error(self.last_error)
+            return False
         name = RESOURCE_NAMES.get(
             key, RESOURCE_NAMES.get(self._last_planned_key(), "?")
         )
         self.log_info(f"采集已开始: {name}")
         return True
+
+
+    def _dispatch_troop(self) -> bool:
+        """
+        出征派遣：点"开始采集"进入出征配置页后，
+        复用 Rally.troop_start 完成 队伍选择（OCR）→ 出征点击。
+        出发类型 = GATHER（资源采集）。
+        """
+        return self.rally.troop_start(
+            team_group_name=self.team_group_name,
+            team_task_type=ExpeditionType.GATHER,
+        )
+
 
     def _first_plan_key(self):
         """首轮调用：计划生成后取出并返回第一个资源；计划为空返回 None。"""
@@ -217,6 +250,7 @@ class GatherResourceTask(SGBaseTask):
         return getattr(self, "_last_plan_key", None)
 
     def _read_gather_time(self):
+         
         """
         OCR world_gather_reource_time_area 读取预计采集时间，暂存展示。
         读取失败不影响流程（时间仅用于日志 / info 展示）。
