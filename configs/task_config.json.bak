@@ -441,6 +441,26 @@
                   "cron": ""
                 },
                 {
+                  "type": "Leader Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Train Soldier",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
                   "type": "Cesare Fight",
                   "enabled": false,
                   "params": {
@@ -488,16 +508,6 @@
                   "count": 0,
                   "max_active": 1,
                   "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Leader Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
                   "one_shot": false,
                   "cron": ""
                 },
@@ -559,16 +569,6 @@
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Train Soldier",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": true,
                   "cron": ""
                 }
               ]
