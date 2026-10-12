@@ -1308,3 +1308,68 @@ GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY = SceneElement(
     resource_id="global_task_list_soldier_train_entry",
     desc="士兵训练：任务列表入口按钮",
 )
+
+# id: 219
+# 主界面：超值活动入口
+GLOBAL_ENTRY_GREATVALUE_ACTIVITY = SceneElement(
+    name="global_entry_greatvalue_activity",
+    resource_id="global_entry_greatvalue_activity",
+    desc="超值活动：主界面入口",
+)
+
+# id: 220
+# 超值活动：银行存取头部入口（区域定位与灰度特征同名）
+GLOBAL_SSS_ACTIVITY_HEAD = SceneElement(
+    name="global_sss_activity_head",
+    resource_id="global_sss_activity_head",
+    desc="银行存取：超值活动头部入口",
+)
+
+# id: 221
+# 银行存取：存期选择 1 天
+ACTIVITY_TAG_BANK_SAVE_1DAY = SceneElement(
+    name="activity_tag_bank_save_1day",
+    resource_id="activity_tag_bank_save_1day",
+    desc="银行存取：存期 1 天",
+)
+
+# id: 222
+# 银行存取：存期选择 7 天
+ACTIVITY_TAG_BANK_SAVE_7DAY = SceneElement(
+    name="activity_tag_bank_save_7day",
+    resource_id="activity_tag_bank_save_7day",
+    desc="银行存取：存期 7 天",
+)
+
+# id: 223
+# 银行存取：存期选择 15 天
+ACTIVITY_TAG_BANK_SAVE_15DAY = SceneElement(
+    name="activity_tag_bank_save_15day",
+    resource_id="activity_tag_bank_save_15day",
+    desc="银行存取：存期 15 天",
+)
+
+# id: 224
+# 银行存取：存期选择 30 天
+ACTIVITY_TAG_BANK_SAVE_30DAY = SceneElement(
+    name="activity_tag_bank_save_30day",
+    resource_id="activity_tag_bank_save_30day",
+    desc="银行存取：存期 30 天",
+)
+
+# id: 225
+# 银行存取：确认存储按钮
+ACTIVITY_TAG_BANK_BUTTON_SAVE = SceneElement(
+    name="activity_tag_bank_button_save",
+    resource_id="activity_tag_bank_button_save",
+    desc="银行存取：确认存储按钮",
+)
+# id: 225
+# 银行存取：确认存储按钮
+ACTIVITY_TAG_BANK_ICON_NOT_SELECT = SceneElement(
+    name="activity_tag_bank_icon_not_select",
+    resource_id="activity_tag_bank_icon_not_select",
+    desc="银行存取：银行标记",
+)
+
+

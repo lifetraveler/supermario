@@ -75,14 +75,30 @@ todo
 
 10. done 黄金炼制
 
-11. 日常银行存取
+
+11. done 日常银行存取
+银行自动存取功能，主界面 的 超值活动global_entry_greatvalue_activity 进入活动选择界面，在区域 global_sss_activity_head 内按照灰度去搜索特征 global_sss_activity_head，未找到，则向左滑，反复循环匹配，最多6次滑动，未找到则结束。如果找到，则点击 特征global_sss_activity_head，然后根据参数bankdays来选择哪一个存储方式。参数值有1，7，15，30，分别对应特征区域 activity_tag_bank_save_1day，activity_tag_bank_save_7day，activity_tag_bank_save_15day，activity_tag_bank_save_30day，默认是 activity_tag_bank_save_1day。 点击后，弹出确定界面，点击特征元素 activity_tag_bank_button_save进行存储。最后退回到主界面。
 
 12. 打熊
 
-13. 士兵训练 zhongdian
+13.done 士兵训练 zhongdian
+进入主页面，点开 tasklist ，弹出任务列表以后，在global_task_list_search_area box内，是按照之前 循环检索 global_task_list_soldier_training_icon，未检索到向上滑动，直到找到这一项目。找到后，点击 global_task_list_soldier_train_entry 跳转到 兵营，然后点击 city_building_soldier_entry 位置，弹出交互按钮，全屏检索 city_building_soldier_button_train 按钮（如果没有检索到，再次点击city_building_soldier_entry位置重试一次），。点击city_building_soldier_button_train跳转到 训练界面。然后依次处理 soldier_tag_infantry，soldier_tag_archer,soldier_tag_infantry_cavalry三个标签（操作逻辑一致，后面我只举一个页签的例子）。匹配到 对应的页签，比如 soldier_tag_infantry，这里匹配的时候传入 use_gray_scale=true，灰度匹配即可，忽略颜色的影响。检索到对应标签，点击。跳转到对应操作界面。如果此时可以训练，则检索并点击 soldier_button_trainnow 训练按钮。如果找不到这个按钮特征，说明正在训练或者无法训练。全部处理完以后，回到主界面。
 
 14. 帮助
 
 15. 治疗
 
-16. 
+16. 自动领取仓库奖励
+进入world主界面，然后点开 tasklist, 按照循环上滑 在 global_task_list_search_area 检索特征值 city_task_list_warehouse_entry，如果滑动到底部（判断标志global_task_list_down_edge）还未检索到则说明不允许领取，返回失败，不需要重试。如果检索到特征值，则点击特征即可。然后跳转到领取成功界面，在这里，ocr city_task_list_warehouse_next_reward_time区域，获取到下一次领取的时间，返回主界面，任务返回成功以及下一次任务时间。
+
+17. 自动进行免费英雄招募
+
+18. 免费礼包领取
+从主界面点击 city_daily_free_reward_entry 区域，进入储值中心，开始 进入循环， 退出条件为 city_daily_free_reward_area区域 检索不到未领取标记city_daily_free_reward_buy_center_remind。进入循环后，开始在city_daily_free_reward_mask_area区域进行ocr，来获取到当前处于什么礼包下，如果是 ocr出文字包含 随心自选 ，则在这个礼包下（其他礼包，我在后续给出要检索的特征，检索点击后续的流程一致），则点击 city_daily_free_reward_buy_center_box，随后 全局检索特征值，是否进入领取成功界面，如果进入，则点击一次成功标。如果未进入，则不需要处理。而是在city_daily_free_reward_area区域检索 city_daily_free_reward_buy_center_remind_left或者 city_daily_free_reward_buy_center_remind，检索到以后,进行点击，进入下一个活动tag。
+礼包特征
+
+随心自选: city_daily_free_reward_buy_center_box
+每日特惠: city_daily_free_reward_buy_center_box_1
+每周特惠: 待定
+
+19. 

@@ -52,6 +52,36 @@
       "params": []
     },
     {
+      "type": "Bank Save",
+      "name_prefix": "Bank Save银行存取",
+      "description": "日常银行存取。Enter the greatvalue activity, find the bank head by gray-scale scrolling search, pick the save period and confirm the deposit.",
+      "defaults": {
+        "count": 1,
+        "max_active": 1,
+        "requires_march_queue": false,
+        "next_trigger_delay": 86400,
+        "one_shot": false,
+        "cron": ""
+      },
+      "params": [
+        {
+          "name": "Bank Days",
+          "attr": "bankdays",
+          "default": 1,
+          "widget": {
+            "type": "drop_down",
+            "options": [
+              1,
+              7,
+              15,
+              30
+            ]
+          },
+          "desc": "存期天数：1/7/15/30，默认 1 天。"
+        }
+      ]
+    },
+    {
       "type": "Golden Refine",
       "name_prefix": "Golden Refine黄金炼制",
       "description": "城堡黄金炼制。Open the task list, scroll to find the golden refine entry, claim all remaining golden refines.",
@@ -381,12 +411,12 @@
               },
               "tasks": [
                 {
-                  "type": "Train Soldier",
+                  "type": "Golden Refine",
                   "enabled": true,
                   "params": {},
                   "count": 1,
                   "max_active": 1,
-                  "next_trigger_delay": 0,
+                  "next_trigger_delay": 86400,
                   "one_shot": true,
                   "cron": ""
                 },
@@ -478,16 +508,6 @@
                   "cron": ""
                 },
                 {
-                  "type": "Golden Refine",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
                   "type": "Hunt Monster Troop",
                   "enabled": false,
                   "params": {
@@ -563,6 +583,26 @@
                 },
                 {
                   "type": "Leader Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Train Soldier",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Bank Save",
                   "enabled": false,
                   "params": {},
                   "count": 1,

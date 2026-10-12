@@ -12,23 +12,24 @@ task_type_map —— type 短 id → 任务类 的代码侧映射。
 映射 key 必须与 task_config.json 的 task_types[].type 完全一致。
 """
 
+from src.sg.tasks.city.BankSaveTask import BankSaveTask
 from src.sg.tasks.city.GoldenRefineTask import GoldenRefineTask
 from src.sg.tasks.city.TrainSoldierTask import TrainSoldierTask
-from src.sg.tasks.daily.ClaimMailRewardTask import ClaimMailRewardTask
 from src.sg.tasks.daily.ClaimStaminaTask import ClaimStaminaTask
+from src.sg.tasks.daily.ClaimMailRewardTask import ClaimMailRewardTask
 from src.sg.tasks.daily.LeaderRewardTask import LeaderRewardTask
-from src.sg.tasks.daily.PetTreasureHuntTask import PetTreasureHuntTask
 from src.sg.tasks.daily.PunishClaimTask import PunishClaimTask
-from src.sg.tasks.island.GatherIslandWaterTask import GatherIslandWaterTask
+from src.sg.tasks.daily.PetTreasureHuntTask import PetTreasureHuntTask
 from src.sg.tasks.league.LeagueRewardBoxTask import LeagueRewardBoxTask
 from src.sg.tasks.league.LeagueTechDonateTask import LeagueTechDonateTask
+from src.sg.tasks.island.GatherIslandWaterTask import GatherIslandWaterTask
 from src.sg.tasks.world.CesareFightTask import CesareFightTask
-from src.sg.tasks.world.GatherResourceTask import GatherResourceTask
 from src.sg.tasks.world.HuntBeastTask import HuntBeastTask
-from src.sg.tasks.world.HuntEliteRebelsTask import HuntEliteRebelsTask
+from src.sg.tasks.world.GatherResourceTask import GatherResourceTask
 from src.sg.tasks.world.HuntMonsterTask import HuntMonsterTask
-from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
+from src.sg.tasks.world.HuntEliteRebelsTask import HuntEliteRebelsTask
 from src.sg.tasks.world.WatchTowerEventTask import WatchTowerEventTask
+from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -37,6 +38,7 @@ TASK_TYPE_MAP = {
     "Gather Island Water":   GatherIslandWaterTask,
     "Gather Resource Troop": GatherResourceTask,
     "Golden Refine":         GoldenRefineTask,
+    "Bank Save":             BankSaveTask,
     "Hunt Beast Troop":      HuntBeastTask,
     "Hunt Elite Rebels Troop": HuntEliteRebelsTask,
     "Hunt Monster Troop":    HuntMonsterTask,

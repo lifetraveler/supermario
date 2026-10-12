@@ -700,3 +700,43 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - 无（流程文档变更，运行时行为不变）。
 
 ---
+
+## [2026-10-12] 日常银行存取（Bank Save）
+
+### 原始需求
+待办任务.txt 任务区 11：银行自动存取。主界面点击超值活动 global_entry_greatvalue_activity 进入活动选择界面，在区域 global_sss_activity_head 内按灰度搜索特征 global_sss_activity_head（区域与特征同名：get_box_by_name 定位区域 bbox，区域内灰度 _find），未找到向左滑 1/4 屏反复循环匹配，最多 6 次滑动，未找到则结束。找到后点击该特征，按参数 bankdays（1/7/15/30，默认 1）选择存期标签 activity_tag_bank_save_{1,7,15,30}day，点击弹出确定界面后点击 activity_tag_bank_button_save 完成存储，最后退回主界面。
+
+### 决策记录
+- 三核心参数：requires_march_queue=false（纯 UI）、next_trigger_delay=86400（每日）、不可并行 count=1 无 max_active。
+- 滑动耗尽语义：6 次未找到 → 标记 FAILED（用户确认"照常 FAILED 等下轮"，不做 RETRY/宽容处理）。
+- 灰度查找：区域 bbox + 区域内 use_gray_scale=True（用户确认 bbox 区域+区域内灰度方案）。
+
+### 变更点
+- 新增 `src/sg/element/overall/activity/bank.py`：Bank 领域对象（open_activity / find_bank_head / pick_save_days / confirm_save），SAVE_DAY_ELEMENTS 存期映射，参数化 scroll_max=6 / scroll_step=0.25。
+- 新增 `src/sg/tasks/city/BankSaveTask.py`：BankSaveTask 聚合任务（业务编排，全部业务步骤 _step 包裹，run_interaction 返回 (InteractionResult, wait_seconds)，保留 _run_once / run 双入口）。
+- `src/sg/scene/elements.py` 补录 7 个 SceneElement（id 219-225）：GLOBAL_ENTRY_GREATVALUE_ACTIVITY、GLOBAL_SSS_ACTIVITY_HEAD、ACTIVITY_TAG_BANK_SAVE_{1,7,15,30}DAY、ACTIVITY_TAG_BANK_BUTTON_SAVE，全部对应 coco 标注类别（id 100/174-177/192/219）。
+- `src/sg/tasks/task_type_map.py` 加 "Bank Save" 映射。
+- `configs/task_config.json`：task_types[] 加定义段（params 含 bankdays drop_down [1,7,15,30]），machines 实例段加 enabled=true 条目（params={} 用默认 1 天）。
+- 新增 `scripts/test_bank_save_stub.py`：27 项行为桩测试（脱框架）。
+
+### 修复点
+- 无（新任务开发，无既有行为回归；task_type_map 编辑过程中挤掉的 9 条 import / "Hunt Beast Troop" 映射行已全部补回并经双向一致性冒烟验证）。
+
+### 涉及文件
+- `src/sg/element/overall/activity/bank.py`（新增）
+- `src/sg/tasks/city/BankSaveTask.py`（新增）
+- `src/sg/scene/elements.py`（元素补录）
+- `src/sg/tasks/task_type_map.py`（映射）
+- `configs/task_config.json`（定义段 + 实例条目）
+- `scripts/test_bank_save_stub.py`（新增）
+
+### 测试
+- 独立模式（桩）：`scripts/test_bank_save_stub.py` 27 PASS / 0 FAIL——入口点击、区域 bbox+灰度查找（含区域缺失变体）、滑动 6 次耗尽、存期选择（合法/非法）、确认存储、run_interaction 编排（SUCCESS/FAILED/last_error）、run/_run_once 双入口、步骤顺序断言。
+- 注册冒烟：`config_loader.load()` + `parse_document()` 通过，18 类 JSON↔TASK_TYPE_MAP 双向一致，Bank Save 实例 enabled=true、params.bankdays=1。
+- 实机队列模式：未测（需真机验证，见遗留）。
+
+### 遗留 / 风险
+- 区域与特征同名的灰度查找依赖游戏截图模板质量，实机若出现区域 bbox 偏移需微调 head_threshold=0.8。
+- 实机未验证：独立模式 run 与队列调度需真机跑一次确认（尤其存期弹窗特征首次识别）。
+
+---
