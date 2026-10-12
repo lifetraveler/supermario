@@ -640,3 +640,63 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - adventure 图标若在其他任务列表条目中复用（非底部专属），会出现"提前判定到底"的误判，需实机确认其唯一性。
 
 ---
+
+## [2026-10-12] 士兵训练（Train Soldier）
+
+### 原始需求
+进入主页面，点开任务列表，在 global_task_list_search_area 区域内循环检索 global_task_list_soldier_training_icon（未检索到向上滑动，直到找到）。找到后点击 global_task_list_soldier_train_entry 跳转兵营，点击 city_building_soldier_entry 位置弹出交互按钮，全屏检索 city_building_soldier_button_train（检索不到时重新点击入口位置重试一次），点击后跳转训练界面。依次处理 soldier_tag_infantry / soldier_tag_archer / soldier_tag_cavalry 三个标签（逻辑一致）：灰度匹配（use_gray_scale=true，忽略颜色影响）检索到标签后点击进入，可训练则点击 soldier_button_trainnow，找不到训练按钮说明正在训练或无法训练（跳过）。全部处理完后回到主界面。
+
+调度参数：不占军队队列、一次性（one_shot）、不可并行。
+
+### 变更点
+- `SGBaseTask` 通用能力：`_find` / `_wait_element` / `_wait_and_click` / `_wait_and_click_all_screen` 新增 `use_gray_scale` 参数（默认 False，向后兼容），透传 ok 框架 `find_one` 的灰度匹配。
+- `elements.py` 新增 id 215-218 元素：`GLOBAL_TASK_LIST_SOLDIER_TRAINING_ICON` / `GLOBAL_TASK_LIST_SEARCH_AREA` / `CITY_BUILDING_SOLDIER_BUTTON_TRAIN` / `GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY`。
+- `elements.py` id 44 修正命名：`CITY_BUILDING_BUTTON_TRAIN` → `CITY_BUILDING_SOLDIER_ENTRY`（与 coco 标注 `city_building_soldier_entry` 对齐；旧名在标注中不存在匹配不到模板，且全库无调用方）。
+- 新增 `TrainSoldierTask`（`src/sg/tasks/city/`，继承 SGBaseTask）：任务列表滚动检索 → 点入口进兵营 → 点入口 bbox 弹交互按钮（bbox 兜底重试 1 次）→ 进训练界面 → 三兵种标签灰度匹配逐个尝试立即训练 → ESC 回主界面。全部业务步骤 `_step` 包裹；兵种标签匹配不到 / 训练按钮检索不到均跳过不阻断。
+- 注册：`task_type_map.TASK_TYPE_MAP` 加 `"Train Soldier"` 映射；`task_config.json` `task_types[]` 加定义段（count=1，max_active=1，requires_march_queue=false，one_shot=true，params=[]）。实例段未添加——用户在 webui 中按需启用。
+
+### 修复点
+- 修复 `task_type_map.py` 编辑过程中误插入的重复 `"Golden Refine"` 行（曾顶掉 `"Leader Reward"` 行），已恢复 17 项映射与 task_config.json 完全一致。
+
+### 涉及文件
+- `src/sg/tasks/SGBaseTask.py`（灰度参数透传）
+- `src/sg/scene/elements.py`（id 44 改名 + id 215-218 新增）
+- `src/sg/tasks/city/TrainSoldierTask.py`（新增）
+- `src/sg/tasks/task_type_map.py`（加映射）
+- `configs/task_config.json`（加定义段）
+
+### 测试
+- 独立模式：未跑（需游戏前台与真实画面；`py_compile` 全部通过）。
+- 队列模式：未跑（同上）。
+- 导入/注册验证：通过 —— `config_loader.load()` 17 类型解析成功；`TASK_TYPE_MAP` 与 `task_config.json` 双向一致；`Train Soldier` 定义段 one_shot=True / requires_march_queue=False / class=TrainSoldierTask；`UnifiedQueue` 构建通过；灰度参数签名四方法默认值均为 False。
+
+### 遗留 / 风险
+- 实机未验证：训练图标 / 入口 / 兵营交互按钮的特征匹配阈值（0.8）、列表滑动节奏（1.5s settle）、兵种标签灰度匹配效果需真实画面确认。
+- 标注数据中 `city_building_soldier_entry`（id 44）与 `city_building_button_train` 旧名不同源，若有外部工具仍按旧名检索需同步。
+- 第三个兵种标签按现有元素 `SOLDIER_TAG_CAVALRY`（标注名 `soldier_tag_cavalry`）处理；若游戏内另有"步兵骑兵"混合页签需补独立元素。
+
+---
+
+## [2026-10-12] 士兵训练实例挂载 + Skill B 注册流程修订
+
+### 原始需求
+新任务开发完以后，配置文件也要跟上：`configs/task_config.json` 的 `machines[].users[].tasks[]` 必须同步加 `{"type": "Train Soldier", "enabled": true}` 实例条目，后续新任务自动处理，固化进开发流程。
+
+### 变更点
+- `configs/task_config.json` 实例段追加 Train Soldier 条目（enabled=true，count=1，one_shot=true，next_trigger_delay=0，params={}）——任务启用后即可进调度。
+- `.agents/skills/new-task-development/SKILL.md` 注册机制整体修订（原第六章 reg_*.py 模板已随 4be06a9 架构变更过时）：
+  - 第六章重写为"JSON 配置驱动注册三动作"：TASK_TYPE_MAP 映射 + task_types[] 定义段 + machines 实例条目（enabled: true），并明确"三个动作缺一不可，新任务开发完必须同步实例条目"。
+  - 流程总览（一）第 6/7 步改为注册三动作；检查清单（九）注册项替换为六键 defaults / attr / 实例段挂载 / 双向一致性冒烟；指令模板（十）注册路径与约束同步。
+  - §7.6 `_click_box` 引用修正为 `self.click(box)`（基类无 `_click_box`，今日实现时已实测确认）。
+
+### 涉及文件
+- `configs/task_config.json`（实例条目）
+- `.agents/skills/new-task-development/SKILL.md`（注册流程修订）
+
+### 测试
+- 通过 —— 实例条目加载验证：`config_loader.load()` 解析出 `enabled=True, count=1, one_shot=True, params={}`；JSON 合法（17 任务实例）。
+
+### 遗留 / 风险
+- 无（流程文档变更，运行时行为不变）。
+
+---

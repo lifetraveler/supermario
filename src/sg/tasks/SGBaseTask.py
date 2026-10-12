@@ -281,7 +281,7 @@ class SGBaseTask(MyBaseTask):
     # 通用工具：查找
     # ========================================================
 
-    def _find(self, element, threshold=0.8,box=None):
+    def _find(self, element, threshold=0.8, box=None, use_gray_scale=False):
         """
         按 SceneElement 的 resource_id 查找一个 box。
 
@@ -289,12 +289,17 @@ class SGBaseTask(MyBaseTask):
           - find_one 接受 feature_name 字符串
           - _find 接受 SceneElement 对象，直接取 resource_id，
             调用方不用每次都写 element.resource_id
+
+        use_gray_scale: 灰度匹配，忽略颜色影响（默认 False，
+        行为与旧调用完全一致）。
         """
         return self.find_one(
             feature_name=element.resource_id,
             threshold=threshold,
             box=box,
+            use_gray_scale=use_gray_scale,
         )
+
 
     # ========================================================
     # 等待层共用：恢复 + 异常转换
@@ -332,11 +337,7 @@ class SGBaseTask(MyBaseTask):
                 f"[{context}] 恢复触发中断: {e}，"
                 f"抛出 TaskRestartRequested 交由 TaskQueue 处理"
             )
-            raise TaskRestartRequested(str(e)) from e
 
-    # ========================================================
-    # 等待元素
-    # ========================================================
     def _wait_element(
         self,
         element,
@@ -345,6 +346,7 @@ class SGBaseTask(MyBaseTask):
         threshold=0.8,
         with_recovery=True,
         box=None,
+        use_gray_scale=False,
     ):
         """
         循环等待某个 SceneElement 出现。
@@ -415,7 +417,8 @@ class SGBaseTask(MyBaseTask):
         while time.time() < deadline:
             for elem in elements:
                 box_found = self._find(
-                    elem, threshold=threshold, box=box
+                    elem, threshold=threshold, box=box,
+                    use_gray_scale=use_gray_scale,
                 )
                 if box_found is not None:
                     self.log_info(f"元素已出现: {elem.name}")
@@ -443,6 +446,7 @@ class SGBaseTask(MyBaseTask):
 
         self.log_info(f"等待元素超时: {names}")
         return None
+
       
     # ========================================================
     # 等待并点击
@@ -458,6 +462,7 @@ class SGBaseTask(MyBaseTask):
         after_click_wait=None,
         with_recovery=True,
         box=None,
+        use_gray_scale=False,
     ) -> bool:
         """
         _wait_element 的语法糖 + 点击。
@@ -466,6 +471,7 @@ class SGBaseTask(MyBaseTask):
           1. 调用 _wait_element 等元素出现
           2. 出现后调用 self.click 点击
           3. 点击后短暂等待 after_click_wait，让下一步的帧更新
+
 
         参数里 name 是点击动作的日志名，默认用 element.name。
         after_click_wait 默认用 self.after_click_wait。
@@ -484,7 +490,8 @@ class SGBaseTask(MyBaseTask):
             interval=interval,
             threshold=threshold,
             with_recovery=with_recovery,
-            box=box
+            box=box,
+            use_gray_scale=use_gray_scale,
         )
 
         if box is None:
@@ -518,7 +525,8 @@ class SGBaseTask(MyBaseTask):
         threshold=0.8,
         after_click_wait=None,
         with_recovery=True,
-        box=None
+        box=None,
+        use_gray_scale=False
     ) -> bool:
       box=self.box_of_screen(0, 0, 1, 1)
       return self._wait_and_click(element,
@@ -528,7 +536,8 @@ class SGBaseTask(MyBaseTask):
         threshold=0.8,
         after_click_wait=after_click_wait,
         with_recovery=True,
-        box=box)
+        box=box,
+        use_gray_scale=use_gray_scale)
       
 
     # ========================================================

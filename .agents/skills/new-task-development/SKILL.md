@@ -25,20 +25,15 @@ trigger_keywords:
 ## 一、开发流程总览
 
 ```
-1. 明确业务场景→ 决定任务的三个核心参数 → 补充描述清楚需求，需要确认
+1. 明确业务场景 → 决定任务的三个核心参数 → 补充描述清楚需求，需要确认
 2. 拆解流程 → 列出步骤序列
 3. 识别可复用领域对象 → 决定哪些新写、哪些复用
 4. 编写领域对象（Searcher / 交互领域）
 5. 编写聚合任务类（组合 + 编排）
-6. 编写注册文件
-7. 挂载到 registrations/__init__.py
-8. 测试：独立模式 → 队列模式
-9. 收尾：归档需求 / 变更点 / 修复点到项目需求文档，并提示是否 git commit & push
+6. 注册三动作：TASK_TYPE_MAP 映射 + task_config.json 定义段 + 实例条目（enabled: true）
+7. 测试：独立模式 → 队列模式
+8. 收尾：归档需求 / 变更点 / 修复点到项目需求文档，并提示是否 git commit & push
 ```
-### 开
-
-
----
 
 ## 二、开工前必答的三个问题
 
@@ -353,81 +348,96 @@ def run_interaction(self, extra_config=None):
 
 ---
 
-## 六、注册文件编写
+## 六、任务注册（JSON 配置驱动）
 
-### 6.1 模板
+> 2026-10-09 起，旧 `registrations/reg_*.py` + `GenericQueueTask.register_task_type`
+> 已删除。注册 = 代码侧映射一行 + task_config.json 两段，共三个动作（Skill A §7.3）。
+
+### 6.1 三个动作
+
+**① `src/sg/tasks/task_type_map.py` —— TASK_TYPE_MAP 加一行映射**：
 
 ```python
-from src.sg.tasks.queue.GenericQueueTask import GenericQueueTask
-from src.sg.tasks.world.XxxTask import XxxTask
+from src.sg.tasks.city.XxxTask import XxxTask
 
-GenericQueueTask.register_task_type(
-    key="Xxx Troop",                    # 唯一标识
-    task_class=XxxTask,
-    name_prefix="Xxx",                  # 队列显示名前缀
-    default_count=6,
-    default_max_active=2,               # 不可并行时删掉这一行
-    default_requires_march_queue=True,
-    default_next_trigger_delay=0.0,
-    default_kwargs={                    # 不在 GUI 暴露的固定参数
-        "auto_recall": False,
-        "min_stamina": 0,
-    },
-    description="Xxx。...",
-    extra_config={                      # GUI 可见配置项
-        "Monster Level": {
-            "attr": "monster_level",    # ← 必须！
-            "default": 1,
-            "desc": "级别。",
-            "type": {
-                "type": "drop_down",
-                "options": ["1", "2", "3", "4", "5"],
-            },
-        },
-        "Auto Recall": {
-            "attr": "auto_recall",      # ← 必须！
-            "default": False,
-            "desc": "满员时是否召回。",
-        },
-        "Min Stamina": {
-            "attr": "min_stamina",      # ← 必须！
-            "default": 0,
-            "desc": "体力下限，0 表示不检查。",
-        },
-    },
-)
+TASK_TYPE_MAP = {
+    ...,
+    "Xxx Troop": XxxTask,   # key 必须与 task_config.json 的 type 完全一致
+}
 ```
 
-### 6.2 决策表
+**② `configs/task_config.json` —— task_types[] 加定义段**：
 
-| 情况 | 调整 |
+```json
+{
+  "type": "Xxx Troop",
+  "name_prefix": "Xxx某某",
+  "description": "一句话描述。",
+  "defaults": {
+    "count": 6,
+    "max_active": 2,
+    "requires_march_queue": true,
+    "next_trigger_delay": 0,
+    "one_shot": false,
+    "cron": ""
+  },
+  "params": [
+    {
+      "name": "Monster Level",
+      "attr": "monster_level",
+      "default": 1,
+      "widget": {"type": "drop_down", "options": [1, 2, 3]},
+      "desc": "级别。"
+    }
+  ]
+}
+```
+
+**③ `configs/task_config.json` —— machines[].apps[].users[].tasks[] 加实例条目（enabled: true）**：
+
+```json
+{
+  "type": "Xxx Troop",
+  "enabled": true,
+  "params": {},
+  "count": 6,
+  "max_active": 2,
+  "next_trigger_delay": 0,
+  "one_shot": false,
+  "cron": ""
+}
+```
+
+实例条目三个动作缺一不可：只做 ①② 不做 ③，任务不会进调度。
+新任务开发完成后 **必须同步加 enabled=true 的实例条目**（用户明确不要的除外）。
+params 留空 `{}` 表示全部用定义段默认值。
+
+### 6.2 defaults 决策表
+
+| 情况 | defaults 调整 |
 |---|---|
-| 不能并行 | 删 `default_max_active`，`default_count=1` |
-| 有级别 / 子类型 | `extra_config` 加 `type: drop_down` |
-| 无级别 | **不加** `monster_level` 相关字段 |
-| 不占队列 | `default_requires_march_queue=False` |
-| 每日一次 | `default_next_trigger_delay=86400` |
+| 不能并行 | `count=1`，`max_active=1` |
+| 有级别 / 子类型 | `params[]` 加 `widget: {"type": "drop_down", "options": [...]}` |
+| 无级别 | **不加** level 相关 params |
+| 不占队列 | `requires_march_queue=false` |
+| 每日一次 | `next_trigger_delay=86400`（或 one_shot=true + cron） |
+| 一次性 | `one_shot=true`，`count=1` |
 
-### 6.3 GUI 支持的类型
-
-```python
-"foo": True                              # bool → switch
-"foo": 5                                 # int → spin box
-"foo": 1.5                               # float → double spin
-"foo": "text"                            # str → line edit
-"foo": ["a", "b"]                        # list → editable list
-
-{"type": "drop_down", "options": [...]}
-{"type": "multi_selection", "options": [...]}
-{"type": "text_edit"}
-```
-
-### 6.4 挂载
+### 6.3 params widget 类型（loader 白名单）
 
 ```python
-# src/sg/tasks/registrations/__init__.py
-from src.sg.tasks.registrations import xxx_task
+PARAM_WIDGETS = {"switch", "number", "text", "drop_down", "multi_drop_down"}
+# widget: null 或缺省 = 按默认值类型推断；switch(bool) / number(int,float) / text(str)
+# drop_down / multi_drop_down 必须带 options 列表
 ```
+
+### 6.4 加载与校验契约（config_loader）
+
+- `defaults` 六键（count / max_active / requires_march_queue / next_trigger_delay / one_shot / cron）**缺一不可**，缺失启动即抛 `TaskConfigError`。
+- `params[]` 每项必须有 `name` + `attr`；`attr` 重复也抛。
+- 实例条目引用未定义 type、params 出现定义段没有的键 → 启动即抛。
+- `attr` 是实际注入 Task 的属性名，必须与 Task `__init__` 注入字段一一对应。
+
 
 ---
 
@@ -516,7 +526,7 @@ _go_to_event_object 的 forward 检索
 | 等页面整体切换 | `_wait_scene` |
 | 等文字出现 | `wait_ocr` |
 | 长等待（行军几分钟） | `_sleep` |
-| 特征匹配失败，游戏强制居中 | `get_box_by_name` + `_click_box`（业务特例） |
+| 特征匹配失败，游戏强制居中 | `get_box_by_name` + `self.click(box)`（业务特例） |
 | 全屏扫描并点击 | `_wait_and_click_all_screen(...)`，或显式 `box=self.box_of_screen(0, 0, 1, 1)` |
 
 ---
@@ -528,7 +538,7 @@ _go_to_event_object 的 forward 检索
 - **特点**：使用 `MonsterSearcher` 做"搜索资源 → 选巨兽 → 选级别 → 确认"。
 - **流程**：前台 → 清弹窗 → 体力检查 → 进荒野 → 队列准备 → 搜索 → 集结 → 估算等待。
 - **注入字段**：`min_stamina` / `auto_recall` / `monster_level`。
-- **注册**：`default_max_active=2`（可并行），`extra_config` 含 drop_down 级别。
+- **注册**：定义段 `max_active=2`（可并行），`params[]` 含 drop_down 级别（attr=monster_level）。
 
 ### 8.2 HuntScareWolfTask（道具触发型）
 
@@ -536,9 +546,8 @@ _go_to_event_object 的 forward 检索
   - 不用 `MonsterSearcher`，改用道具触发恐狼刷新。
   - 新增 `_ensure_main_scene()`：按 ESC 兜底回主界面（幂等）。
   - `_use_scare_wolf_claw()`：背包 → 其他标签 → 点狼爪 → 使用 → 等世界资源界面。
-  - `_click_scare_wolf()`：多候选特征匹配；失败则按 bbox 直接点。
   - `Rally` 完全复用。
-- **注册**：不可并行，删 `default_max_active`，`count=1`，无级别配置。
+- **注册**：不可并行 `count=1`，`max_active=1`，无级别 params。
 
 ```python
 def _ensure_main_scene(self) -> bool:
@@ -611,16 +620,19 @@ def _click_scare_wolf(self) -> bool:
 - [ ] `_run_once` / `run` 两个入口已保留
 - [ ] 多元素等待用列表传入，不串行两次调用
 - [ ] bbox 兜底逻辑放本文件，不动基类
-- [ ] 注册文件 `extra_config` 每项有 `attr`
-- [ ] `default_kwargs` 与 Task 注入字段一一对应
-- [ ] 不可并行时删 `default_max_active`，`count=1`
-- [ ] `registrations/__init__.py` 已 import
+- [ ] `TASK_TYPE_MAP` 已加映射，key 与 task_config.json 的 type 完全一致
+- [ ] task_config.json `task_types[]` 定义段 defaults 六键齐全
+- [ ] `params[]` 每项有 `attr`，与 Task 注入字段一一对应
+- [ ] 不可并行时 `count=1`，`max_active=1`
+- [ ] **实例段 `machines[].users[].tasks[]` 已加 enabled=true 条目**（新任务开发完必须跟上）
+- [ ] 注册冒烟：`config_loader.load()` 通过 + TASK_TYPE_MAP 与 JSON 双向一致
 - [ ] 先测独立模式 `run()`，再测队列模式
 - [ ] `self.click(box)` 未传 `name`
 - [ ] `_wait_and_click` 未传 `name`，按需传 `timeout / with_recovery / box`
 - [ ] 全屏扫描显式 `box=self.box_of_screen(0, 0, 1, 1)`，优先 `_wait_and_click_all_screen`
 - [ ] 流程结束已归档本次需求 / 变更点 / 修复点到项目需求文档
 - [ ] 已提示用户是否 `git commit & push`，未确认不执行
+
 ---
 
 ## 十、给 AI 的指令模板
@@ -631,7 +643,7 @@ def _click_scare_wolf(self) -> bool:
 需求：<一句话描述新任务>
 
 新任务类路径：src/sg/tasks/<category>/<XxxTask>.py
-注册文件路径：src/sg/tasks/registrations/<xxx>.py
+注册路径：task_type_map.py 加映射 + configs/task_config.json（定义段 + enabled 实例条目）
 
 已定：
 - 是否占队列：<是/否>
@@ -653,9 +665,10 @@ def _click_scare_wolf(self) -> bool:
 4. 保留 _run_once / run 两个入口
 5. 多元素等待用列表传入 _wait_and_click
 6. 特例逻辑（bbox 兜底等）放本文件
-7. 注册文件 extra_config 每项必须带 attr
-8. default_kwargs 与 Task 注入字段一致
+7. task_config.json params[] 每项必须带 attr，与 Task 注入字段一致
+8. 定义段 defaults 六键齐全；实例条目 enabled=true 一并写入
 9. 领域对象不反向 import 聚合任务类
+10. 新任务开发完成必须同步实例段挂载，配置文件跟上代码
 ```
 
 ## 十一、流程收尾：需求归档与 Git 提示

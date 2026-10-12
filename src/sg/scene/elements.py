@@ -385,10 +385,10 @@ CITY_BUILDING_BUTTON_CLICK_HERE = SceneElement(
 )
 
 # id: 44
-CITY_BUILDING_BUTTON_TRAIN = SceneElement(
-    name="city_building_button_train",
-    resource_id="city_building_button_train",
-    desc="城市建筑按钮：训练",
+CITY_BUILDING_SOLDIER_ENTRY = SceneElement(
+    name="city_building_soldier_entry",
+    resource_id="city_building_soldier_entry",
+    desc="城市建筑：士兵训练入口（点击弹出交互按钮）",
 )
 
 # id: 45
@@ -1271,4 +1271,40 @@ CITY_DAILY_TASK_BUTTON_GOLDEN_GET = SceneElement(
     name="city_daily_task_button_golden_get",
     resource_id="city_daily_task_button_golden_get",
     desc="黄金炼制：领取按钮",
+)
+
+# ============================================================
+# 士兵训练（Train Soldier）
+# ============================================================
+
+# id: 215
+# 任务列表：士兵训练图标（列表检索标志）
+GLOBAL_TASK_LIST_SOLDIER_TRAINING_ICON = SceneElement(
+    name="global_task_list_soldier_training_icon",
+    resource_id="global_task_list_soldier_training_icon",
+    desc="士兵训练：任务列表图标",
+)
+
+# id: 216
+# 任务列表：检索区域（global_task_list_search_area）
+GLOBAL_TASK_LIST_SEARCH_AREA = SceneElement(
+    name="global_task_list_search_area",
+    resource_id="global_task_list_search_area",
+    desc="士兵训练：任务列表检索区域",
+)
+
+# id: 217
+# 兵营交互按钮：训练（点击跳转训练界面）
+CITY_BUILDING_SOLDIER_BUTTON_TRAIN = SceneElement(
+    name="city_building_soldier_button_train",
+    resource_id="city_building_soldier_button_train",
+    desc="士兵训练：兵营交互训练按钮",
+)
+
+# id: 218
+# 任务列表：士兵训练入口按钮
+GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY = SceneElement(
+    name="global_task_list_soldier_train_entry",
+    resource_id="global_task_list_soldier_train_entry",
+    desc="士兵训练：任务列表入口按钮",
 )

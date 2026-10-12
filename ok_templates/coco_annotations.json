@@ -1243,14 +1243,14 @@
     {
       "id": 45,
       "image_id": 16,
-      "category_id": 44,
+      "category_id": 217,
       "bbox": [
         568,
-        872,
+        874,
         82,
-        88
+        74
       ],
-      "area": 7216,
+      "area": 6068,
       "iscrowd": 0
     },
     {
@@ -1259,11 +1259,11 @@
       "category_id": 49,
       "bbox": [
         394,
-        1513,
+        1558,
         114,
-        82
+        37
       ],
-      "area": 9348,
+      "area": 4218,
       "iscrowd": 0
     },
     {
@@ -1272,11 +1272,11 @@
       "category_id": 47,
       "bbox": [
         686,
-        1523,
+        1558,
         94,
-        72
+        37
       ],
-      "area": 6768,
+      "area": 3478,
       "iscrowd": 0
     },
     {
@@ -1285,11 +1285,11 @@
       "category_id": 48,
       "bbox": [
         103,
-        1513,
+        1556,
         135,
-        82
+        44
       ],
-      "area": 11070,
+      "area": 5940,
       "iscrowd": 0
     },
     {
@@ -3449,6 +3449,58 @@
       ],
       "area": 7938,
       "iscrowd": 0
+    },
+    {
+      "id": 215,
+      "image_id": 14,
+      "category_id": 215,
+      "bbox": [
+        18,
+        608,
+        171,
+        45
+      ],
+      "area": 7695,
+      "iscrowd": 0
+    },
+    {
+      "id": 216,
+      "image_id": 14,
+      "category_id": 216,
+      "bbox": [
+        0,
+        297,
+        555,
+        776
+      ],
+      "area": 430680,
+      "iscrowd": 0
+    },
+    {
+      "id": 217,
+      "image_id": 14,
+      "category_id": 218,
+      "bbox": [
+        237,
+        665,
+        98,
+        35
+      ],
+      "area": 3430,
+      "iscrowd": 0
+    },
+    {
+      "id": 218,
+      "image_id": 16,
+      "category_id": 44,
+      "bbox": [
+        343,
+        616,
+        202,
+        128
+      ],
+      "area": 25856,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -3669,7 +3721,7 @@
     },
     {
       "id": 44,
-      "name": "city_building_button_train",
+      "name": "city_building_soldier_entry",
       "supercategory": ""
     },
     {
@@ -4520,6 +4572,26 @@
     {
       "id": 214,
       "name": "global_task_list_icon_adventure",
+      "supercategory": ""
+    },
+    {
+      "id": 215,
+      "name": "global_task_list_soldier_training_icon",
+      "supercategory": ""
+    },
+    {
+      "id": 216,
+      "name": "global_task_list_search_area",
+      "supercategory": ""
+    },
+    {
+      "id": 217,
+      "name": "city_building_soldier_button_train",
+      "supercategory": ""
+    },
+    {
+      "id": 218,
+      "name": "global_task_list_soldier_train_entry",
       "supercategory": ""
     }
   ]

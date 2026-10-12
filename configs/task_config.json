@@ -346,6 +346,20 @@
           "desc": "挑战类事件最多占用的军队队列数，0 表示跳过挑战类。"
         }
       ]
+    },
+    {
+      "type": "Train Soldier",
+      "name_prefix": "Train Soldier士兵训练",
+      "description": "士兵训练。Train soldiers via task list entry, try train-now for each soldier tag.",
+      "defaults": {
+        "count": 1,
+        "max_active": 1,
+        "requires_march_queue": false,
+        "next_trigger_delay": 0,
+        "one_shot": true,
+        "cron": ""
+      },
+      "params": []
     }
   ],
   "machines": [
@@ -367,7 +381,17 @@
               },
               "tasks": [
                 {
-                  "type": "Golden Refine",
+                  "type": "Gather Island Water",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 1,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Punish Claim",
                   "enabled": true,
                   "params": {},
                   "count": 1,
@@ -377,17 +401,63 @@
                   "cron": ""
                 },
                 {
-                  "type": "Hunt Monster Troop",
+                  "type": "League Tech Donate",
                   "enabled": true,
-                  "params": {
-                    "monster_level": 1,
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 5,
+                  "params": {},
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 1800,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Mail Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "League Reward Box",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Pet Treasure Hunt",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Leader Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Train Soldier",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
                   "max_active": 1,
                   "next_trigger_delay": 0,
-                  "one_shot": false,
+                  "one_shot": true,
                   "cron": ""
                 },
                 {
@@ -442,16 +512,6 @@
                   "cron": ""
                 },
                 {
-                  "type": "Leader Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
                   "type": "Hunt Scare Wolf Troop",
                   "enabled": false,
                   "params": {
@@ -463,16 +523,6 @@
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Punish Claim",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
                   "cron": ""
                 },
                 {
@@ -488,56 +538,6 @@
                   "cron": ""
                 },
                 {
-                  "type": "Gather Island Water",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 1,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Tech Donate",
-                  "enabled": false,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 1800,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Mail Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Reward Box",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Pet Treasure Hunt",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
                   "type": "Gather Resource Troop",
                   "enabled": false,
                   "params": {},
@@ -545,6 +545,30 @@
                   "max_active": 1,
                   "next_trigger_delay": 86400,
                   "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Golden Refine",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Monster Troop",
+                  "enabled": false,
+                  "params": {
+                    "monster_level": 1,
+                    "auto_recall": false,
+                    "min_stamina": 0
+                  },
+                  "count": 5,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
                   "cron": ""
                 }
               ]
