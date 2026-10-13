@@ -73,3 +73,8 @@ working_images/
 
 # 游戏临时数据（运行时生成）
 game_temp_data.json
+
+# ok 框架运行时产物
+configs/_ok.json
+configs/*.bak
+configs/ClaimBuyCenterRewardTask.json
