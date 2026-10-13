@@ -471,7 +471,7 @@ class HuntMonsterTask(SGBaseTask):
             if not self._wait_and_click(
                 BUTTON_GOTO_WORLDMAP,
                 name="进入荒野",
-                timeout=6.0,
+                timeout=2.0,
             ):
                 return False
 

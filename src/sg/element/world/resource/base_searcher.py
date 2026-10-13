@@ -282,7 +282,7 @@ class BaseResourceSearcher:
         return self.task._wait_and_click(
             element,
             name=f"选择级别 {level}",
-            timeout=6.0,
+            timeout=2.0,
         )
 
     def confirm_position(self) -> bool:

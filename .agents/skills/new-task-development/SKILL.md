@@ -68,7 +68,7 @@ trigger_keywords:
 | **目标** | 识别什么 / 跳转到哪 | 检测到世界地图场景 |
 | **资源 id** | `SceneElement` 的 `resource_id` | `BUTTON_GOTO_WORLDMAP` |
 | **交互方式** | 点 / 滑 / OCR / 等待 / 按键 | `_wait_and_click` |
-| **超时 / 阈值** | 步骤级超时 | `timeout=6.0` |
+| **超时 / 阈值** | 步骤级超时 | `timeout=2.0` |
 | **失败后** | 继续 / 重试 / 中止 | 用 `_step` 包，返回 False → FAILED |
 
 ### 3.2 常见步骤模板
@@ -82,38 +82,38 @@ def enter_target_scene(self) -> bool:
         return True
     if scene.type == SceneType.CITY:
         if not self._wait_and_click(BUTTON_GOTO_WORLDMAP,
-                                    name="进入荒野", timeout=6.0):
+                                    name="进入荒野", timeout=2.0):
             return False
         return self._wait_scene(SceneType.WORLD_MAP, timeout=10.0)
     return False
 
 # 2. 打开某面板
 def open_panel(self) -> bool:
-    if not self._wait_and_click(BUTTON_PANEL, name="面板入口", timeout=6.0):
+    if not self._wait_and_click(BUTTON_PANEL, name="面板入口", timeout=2.0):
         return False
     self._sleep(0.5)
     return True
 
 # 3. 面板内切换标签
 def switch_tab(self) -> bool:
-    return self._wait_and_click(PANEL_TAB_OTHER, name="其他标签", timeout=6.0)
+    return self._wait_and_click(PANEL_TAB_OTHER, name="其他标签", timeout=2.0)
 
 # 4. 选中目标（多候选）
 def select_target(self) -> bool:
     return self._wait_and_click(
-        [TARGET_A, TARGET_B], name="目标", timeout=6.0,
+        [TARGET_A, TARGET_B], name="目标", timeout=2.0,
     )
 
 # 5. 使用道具
 def use_item(self) -> bool:
-    if not self._wait_and_click(ITEM, name="道具", timeout=6.0):
+    if not self._wait_and_click(ITEM, name="道具", timeout=2.0):
         return False
     self._sleep(0.5)
-    return self._wait_and_click(ITEM_BUTTON_USE, name="使用按钮", timeout=6.0)
+    return self._wait_and_click(ITEM_BUTTON_USE, name="使用按钮", timeout=2.0)
 
 # 6. 特征失败 → bbox 兜底（仅当游戏强制居中）
 def click_by_feature_or_bbox(self) -> bool:
-    if self._wait_and_click([ELEM_A, ELEM_B], name="目标", timeout=6.0):
+    if self._wait_and_click([ELEM_A, ELEM_B], name="目标", timeout=2.0):
         self._sleep(0.8)
         return True
     self.log_info("特征未匹配，改用 bbox 坐标点击")
@@ -151,7 +151,7 @@ class XxxDomain:
         self.task = task
 
         # 参数
-        self.timeout = 6.0
+        self.timeout = 2.0
 
         # 用户注入字段
         self.some_element = None
@@ -550,19 +550,19 @@ def _ensure_main_scene(self) -> bool:
     return False
 
 def _use_scare_wolf_claw(self) -> bool:
-    if not self._wait_and_click(BUTTON_BACKPACK, name="背包按钮", timeout=6.0):
+    if not self._wait_and_click(BUTTON_BACKPACK, name="背包按钮", timeout=2.0):
         return False
     self._sleep(0.5)
     if not self._wait_and_click(BUTTON_BACKPACK_TAB_OTHER,
-                                name="背包-其他标签", timeout=6.0):
+                                name="背包-其他标签", timeout=2.0):
         return False
     self._sleep(0.5)
     if not self._wait_and_click(ITEM_SCARE_WOLF_CLAW,
-                                name="狼爪道具", timeout=6.0):
+                                name="狼爪道具", timeout=2.0):
         return False
     self._sleep(0.5)
     if not self._wait_and_click(ITEM_SCARE_WOLF_CLAW_BUTTON_USE,
-                                name="狼爪-使用按钮", timeout=6.0):
+                                name="狼爪-使用按钮", timeout=2.0):
         return False
     self._sleep(1.0)
     if not self._wait_scene(SceneType.WORLD_MAP, timeout=10.0, interval=0.5):
@@ -573,7 +573,7 @@ def _use_scare_wolf_claw(self) -> bool:
 def _click_scare_wolf(self) -> bool:
     if self._wait_and_click(
         [WORLD_RESOURCE_SCARE_WOLF, WORLD_RESOURCE_SCARE_WOLF_1],
-        name="恐狼", timeout=6.0,
+        name="恐狼", timeout=2.0,
     ):
         self._sleep(0.8)
         return True

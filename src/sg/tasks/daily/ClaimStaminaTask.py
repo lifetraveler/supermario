@@ -134,7 +134,7 @@ class ClaimStaminaTask(SGBaseTask):
         """点击主界面用户头像，进入用户界面。"""
         if not self._wait_and_click(
             GLOBAL_PLAYER_HEADPHOTO,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False
@@ -145,7 +145,7 @@ class ClaimStaminaTask(SGBaseTask):
         """点击用户界面的体力入口按钮，进入体力领取界面。"""
         if not self._wait_and_click(
             GLOBAL_PAGE_PLAYER_STAMINA_BUTTON_ADD,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False

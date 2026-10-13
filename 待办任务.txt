@@ -93,7 +93,7 @@ todo
 
 17. 自动进行免费英雄招募
 
-18. 免费礼包领取
+18. done 免费礼包领取
 从主界面点击 city_daily_free_reward_entry 区域，进入储值中心，开始 进入循环， 退出条件为 city_daily_free_reward_area 区域 检索不到未领取标记city_daily_free_reward_buy_center_remind。进入循环后，开始在city_daily_free_reward_mask_area区域进行ocr，来获取到当前处于什么礼包下，如果是 ocr出文字包含 随心自选 ，则在这个礼包下（其他礼包，我在后续给出要检索的特征，检索点击后续的流程一致），则点击 city_daily_free_reward_buy_center_box，随后 全局检索特征值，是否进入领取成功界面，如果进入，则点击一次成功标。如果未进入，则不需要处理。而是在city_daily_free_reward_area区域检索 city_daily_free_reward_buy_center_remind_left或者 city_daily_free_reward_buy_center_remind，检索到以后,进行点击，进入下一个活动tag。
 礼包特征
 

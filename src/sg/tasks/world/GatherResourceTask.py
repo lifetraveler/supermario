@@ -140,7 +140,7 @@ class GatherResourceTask(SGBaseTask):
         if scene.type == SceneType.CITY:
             self.log_info("当前在主城，准备进入荒野")
             if not self._wait_and_click(
-                BUTTON_GOTO_WORLDMAP, timeout=6.0
+                BUTTON_GOTO_WORLDMAP, timeout=2.0
             ):
                 return False
             return self._wait_scene(

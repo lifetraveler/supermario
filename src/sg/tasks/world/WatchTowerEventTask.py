@@ -200,7 +200,7 @@ class WatchTowerEventTask(SGBaseTask):
 
         if scene.type == SceneType.CITY:
             if not self._wait_and_click(
-                BUTTON_GOTO_WORLDMAP, timeout=6.0
+                BUTTON_GOTO_WORLDMAP, timeout=2.0
             ):
                 return False
             return self._wait_scene(

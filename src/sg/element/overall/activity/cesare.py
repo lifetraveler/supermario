@@ -46,7 +46,7 @@ class Cesare:
 
         # ---- 参数 ----
         # 全屏匹配便捷入口的超时
-        self.entry_timeout = 6.0
+        self.entry_timeout = 2.0
         # 常规活动界面滑动查找标签次数上限
         self.tag_scroll_max = 8
         # 每次滑动的距离比例（1/4 屏）

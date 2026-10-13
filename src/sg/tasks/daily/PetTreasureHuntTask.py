@@ -49,6 +49,7 @@ from src.sg.scene.elements import (
     PET_CLAIM_DONE_TREASURE_REWARD_AREA,
     PET_CLAIM_DONE_TREASURE_REWARD_OVER_TIPS,
     PET_CLAIM_TREASURE_REMAIN_TIMES,
+    GLOBAL_TASK_LIST_DOWN_EDGE,
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -126,7 +127,7 @@ class PetTreasureHuntTask(SGBaseTask):
     def _open_task_list(self) -> bool:
         """点击 GLOBAL_EVENT_TASK_NEED_HANDLE，展开 city 任务列表。"""
         if not self._wait_and_click_all_screen(
-            GLOBAL_EVENT_TASK_NEED_HANDLE, timeout=6.0,
+            GLOBAL_EVENT_TASK_NEED_HANDLE, timeout=2.0,
         ):
             self.log_info("未找到任务列表入口")
             return False
@@ -157,7 +158,17 @@ class PetTreasureHuntTask(SGBaseTask):
                 self.click(entry_box)
                 self._sleep(2.0)
                 return True
-
+            # 滑到底标志出现 → 列表已到底，入口不存在 → 不允许领取
+            edge_box = self._find(
+                GLOBAL_TASK_LIST_DOWN_EDGE,
+                threshold=self.list_icon_threshold, box=full_screen,
+            )
+            if edge_box is not None:
+                self.log_info(
+                    "任务列表已到底（发现 down_edge），无宠物口，"
+                    "不允许领取"
+                )
+                return False
             # 未找到 → 手指向上滑 1/4 屏，露出下方条目
             self.swipe_relative(0.3, 0.6, 0.3, 0.3, duration=0.3,
                                 settle_time=1.0)
@@ -226,14 +237,14 @@ class PetTreasureHuntTask(SGBaseTask):
          # 派遣界面：直接点击派遣按钮
         if not self._wait_and_click(
             PET_BUTTON_SEARCH_TREASURE_START, name="宠物派遣",
-            timeout=6.0, box=self.box_of_screen(0, 0, 1, 1),
+            timeout=2.0, box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False
         self._sleep(1.5)
         # 派遣界面：直接点击派遣按钮
         if not self._wait_and_click(
             PET_BUTTON_SEARCH_TREASURE, name="开始寻宝",
-            timeout=6.0, box=self.box_of_screen(0, 0, 1, 1),
+            timeout=2.0, box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False
         self._sleep(1.5)

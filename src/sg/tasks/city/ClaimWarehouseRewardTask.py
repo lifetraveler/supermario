@@ -64,7 +64,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
     list_icon_threshold = 0.8
 
     # 领取成功界面 OCR 区域出现等待
-    reward_time_timeout = 6.0
+    reward_time_timeout = 2.0
 
     # 倒计时 OCR 的兜底间隔：识别失败时按此间隔重试（秒）
     default_wait_seconds = 3600.0
@@ -134,7 +134,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
     def _open_task_list(self) -> bool:
         """点击 GLOBAL_BUTTON_TASKLIST，展开任务列表。"""
         if not self._wait_and_click_all_screen(
-            GLOBAL_BUTTON_TASKLIST, timeout=6.0,
+            GLOBAL_BUTTON_TASKLIST, timeout=2.0,
         ):
             self.log_info("未找到任务列表按钮")
             return False
@@ -187,7 +187,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
     def _claim_via_entry(self) -> bool:
         """点击仓库入口（点击即领取），等待领取成功界面出现。"""
         if not self._wait_and_click_all_screen(
-            CITY_TASK_LIST_WAREHOUSE_ENTRY, timeout=6.0,
+            CITY_TASK_LIST_WAREHOUSE_ENTRY, timeout=2.0,
         ):
             self.log_info("未找到仓库奖励入口按钮")
             return False

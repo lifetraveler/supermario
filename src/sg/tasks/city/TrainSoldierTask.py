@@ -72,7 +72,7 @@ class TrainSoldierTask(SGBaseTask):
     soldier_tag_threshold = 0.8
 
     # 兵营交互训练按钮全屏检索等待
-    train_button_timeout = 6.0
+    train_button_timeout = 2.0
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,7 +134,7 @@ class TrainSoldierTask(SGBaseTask):
     def _open_task_list(self) -> bool:
         """点击 GLOBAL_BUTTON_TASKLIST，展开任务列表。"""
         if not self._wait_and_click_all_screen(
-            GLOBAL_BUTTON_TASKLIST, timeout=6.0,
+            GLOBAL_BUTTON_TASKLIST, timeout=2.0,
         ):
             self.log_info("未找到任务列表按钮")
             return False
@@ -180,7 +180,7 @@ class TrainSoldierTask(SGBaseTask):
         点击 GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY 跳转兵营。
         """
         if not self._wait_and_click_all_screen(
-            GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY, timeout=6.0,
+            GLOBAL_TASK_LIST_SOLDIER_TRAIN_ENTRY, timeout=2.0,
         ):
             self.log_info("未找到士兵训练入口按钮")
             return False

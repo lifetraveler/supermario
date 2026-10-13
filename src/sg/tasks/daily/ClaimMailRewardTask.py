@@ -118,7 +118,7 @@ class ClaimMailRewardTask(SGBaseTask):
         """
         if not self._wait_and_click(
             [GLOBAL_ICON_MESSAGE_ENTRY],
-            timeout=6.0,
+            timeout=2.0,
         ):
             return False
         self._sleep(1.0)
@@ -126,7 +126,7 @@ class ClaimMailRewardTask(SGBaseTask):
         # 用"领取按钮或任一标签出现"确认消息面板已打开
         panel_ready = self._wait_element(
             [MESSAGE_TAG_SYS, MESSAGE_TAG_LEAGUE, MESSAGE_TAG_REPORT],
-            timeout=6.0,
+            timeout=2.0,
         )
         if panel_ready is None:
             self.log_error("消息面板未打开（未检测到标签或领取按钮）")

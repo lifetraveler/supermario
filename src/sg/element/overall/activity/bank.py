@@ -55,7 +55,7 @@ class Bank:
         # 滑动后等待动画时间
         self.scroll_settle_time = 1.0
         # 入口/按钮等待超时
-        self.entry_timeout = 6.0
+        self.entry_timeout = 2.0
         # 头部入口灰度匹配阈值
         self.head_threshold = 0.8
 

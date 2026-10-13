@@ -115,21 +115,21 @@ class LeagueTechDonateTask(SGBaseTask):
         """
         # 联盟入口（全局标签）
         if not self._wait_and_click(
-            GLOBAL_TAG_LEAGUE, name="联盟标签", timeout=6.0
+            GLOBAL_TAG_LEAGUE, name="联盟标签", timeout=2.0
         ):
             return False
         self._sleep(0.5)
 
         # 联盟科技入口
         if not self._wait_and_click(
-            LEAGUE_TECH_ENTRY, name="联盟科技入口", timeout=6.0
+            LEAGUE_TECH_ENTRY, name="联盟科技入口", timeout=2.0
         ):
             return False
         self._sleep(0.5)
 
         # 捐献图标（打开捐献交互页面）
         if not self._wait_and_click(
-            LEAGUE_TECH_UPDATE, name="捐献图标", timeout=6.0
+            LEAGUE_TECH_UPDATE, name="捐献图标", timeout=2.0
         ):
             return False
         self._sleep(0.5)

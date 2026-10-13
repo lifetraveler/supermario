@@ -129,7 +129,7 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
 
         if not self._wait_and_click(
             CITY_DAILY_FREE_REWARD_ENTRY,
-            timeout=6.0, box=full_screen,
+            timeout=2.0, box=full_screen,
         ):
             self.log_error("未找到储值中心入口")
             return False
@@ -137,7 +137,7 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
 
         if self._wait_element(
             CITY_DAILY_FREE_REWARD_BUY_CENTER,
-            timeout=6.0, box=full_screen, with_recovery=False,
+            timeout=2.0, box=full_screen, with_recovery=False,
         ) is None:
             self.log_error("未进入储值中心（标题未出现）")
             return False
@@ -206,7 +206,7 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
         full_screen = self.box_of_screen(0, 0, 1, 1)
 
         if not self._wait_and_click(
-            gift_element, timeout=6.0, box=full_screen,
+            gift_element, timeout=2.0, box=full_screen,
         ):
             self.log_info(f"未匹配到{gift_label}礼包图标")
             return False

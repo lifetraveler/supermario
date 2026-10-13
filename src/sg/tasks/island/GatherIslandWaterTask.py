@@ -119,7 +119,7 @@ class GatherIslandWaterTask(SGBaseTask):
         """点击任务列表入口，展开 city 任务进度列表。"""
         if not self._wait_and_click_all_screen(
             GLOBAL_EVENT_TASK_NEED_HANDLE,
-            timeout=6.0,
+            timeout=2.0,
         ):
             self.log_info("未找到任务列表入口")
             return False
@@ -237,7 +237,7 @@ class GatherIslandWaterTask(SGBaseTask):
         # 切换到领取界面
         if not self._wait_and_click(
             ISLAND_BUTTON_GATHER_REWARD,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             self.log_info("未找到奖励入口，跳过领奖")
@@ -248,7 +248,7 @@ class GatherIslandWaterTask(SGBaseTask):
         # 点击领取按钮
         if not self._wait_and_click(
             ISLAND_BUTTON_REWARD_GET,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             self.log_info("未找到领取按钮，跳过领奖")
@@ -259,7 +259,7 @@ class GatherIslandWaterTask(SGBaseTask):
         # 等待"获得奖励"提示出现后点击退出
         quit_box = self._wait_element(
             GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
             with_recovery=False
         )

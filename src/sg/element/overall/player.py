@@ -59,7 +59,7 @@ class Player:
 
         # ---- 参数 ----
         # 界面跳转 / OCR 的元素等待超时
-        self.entry_timeout = 6.0
+        self.entry_timeout = 2.0
         # 界面跳转后的稳定等待
         self.settle_seconds = 1.0
         # 临时数据文件（工作目录）

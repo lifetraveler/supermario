@@ -126,14 +126,14 @@ class LeagueRewardBoxTask(SGBaseTask):
         主界面 → 联盟界面 → 联盟宝箱页面。
         """
         # 联盟入口（全局标签）
-        if not self._wait_and_click(GLOBAL_TAG_LEAGUE, timeout=6.0):
+        if not self._wait_and_click(GLOBAL_TAG_LEAGUE, timeout=2.0):
             return False
         self._sleep(0.5)
 
         # 宝箱入口横幅
         if not self._wait_and_click(
             LEAGUE_REWARD_BOX_ENTRY,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             return False
@@ -171,7 +171,7 @@ class LeagueRewardBoxTask(SGBaseTask):
         self.log_info("检测到可领取条目，点击一键领取")
         if not self._wait_and_click(
             [LEAGUE_REWARD_BOX_BUTTON_GET, LEAGUE_FRIEND_REWARD_BOX_BUTTON_GET],
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
         ):
             self.log_info("一键领取按钮未匹配，视为无可领取")
@@ -182,7 +182,7 @@ class LeagueRewardBoxTask(SGBaseTask):
         # 等待"获得奖励"提示出现后点击任意位置退出
         quit_box = self._wait_element(
             GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
-            timeout=6.0,
+            timeout=2.0,
             box=self.box_of_screen(0, 0, 1, 1),
             with_recovery=False,
         )

@@ -101,7 +101,7 @@ class PunishClaimTask(SGBaseTask):
 
         # 进入讨伐界面（行军标签）
         if not self._wait_and_click(
-            GOBAL_TAG_MARCH, name="行军标签", timeout=6.0
+            GOBAL_TAG_MARCH, name="行军标签", timeout=2.0
         ):
             return False
         self._sleep(1.0)
@@ -109,7 +109,7 @@ class PunishClaimTask(SGBaseTask):
         # 第一层领取按钮
         if not self._wait_and_click(
             GLOBAL_TAG_MARCH_BUTTON_GET, name="讨伐领取按钮",
-            timeout=6.0, box=full_screen,
+            timeout=2.0, box=full_screen,
         ):
             return False
         self._sleep(1.0)
@@ -117,7 +117,7 @@ class PunishClaimTask(SGBaseTask):
         # 弹出界面后的下一层领取按钮
         if not self._wait_and_click(
             GLOBAL_TAG_MARCH_BUTTON_GET_NEXT, name="讨伐领取按钮-下一层",
-            timeout=6.0, box=full_screen,
+            timeout=2.0, box=full_screen,with_recovery=False
         ):
             return False
         self._sleep(1.0)

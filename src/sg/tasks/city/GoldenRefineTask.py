@@ -60,7 +60,7 @@ class GoldenRefineTask(SGBaseTask):
     list_icon_threshold = 0.8
 
     # 领取按钮出现等待
-    get_button_timeout = 6.0
+    get_button_timeout = 2.0
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -120,7 +120,7 @@ class GoldenRefineTask(SGBaseTask):
     def _open_task_list(self) -> bool:
         """点击 GLOBAL_BUTTON_TASKLIST，展开任务列表。"""
         if not self._wait_and_click_all_screen(
-            GLOBAL_BUTTON_TASKLIST, timeout=6.0,
+            GLOBAL_BUTTON_TASKLIST, timeout=2.0,
         ):
             self.log_info("未找到任务列表按钮")
             return False
@@ -177,7 +177,7 @@ class GoldenRefineTask(SGBaseTask):
         全屏匹配点击黄金炼制入口，并等待炼制界面特征出现确认进入。
         """
         if not self._wait_and_click_all_screen(
-            GLOBAL_TASK_LIST_ICON_GOLDEN_ENTRY, timeout=6.0,
+            GLOBAL_TASK_LIST_ICON_GOLDEN_ENTRY, timeout=2.0,
         ):
             self.log_info("未找到黄金炼制入口按钮")
             return False
@@ -185,7 +185,7 @@ class GoldenRefineTask(SGBaseTask):
 
         if not self._wait_element(
             CITY_DAILY_TASK_BUTTON_GOLDEN_GET_TIMES,
-            timeout=6.0,
+            timeout=2.0,
             threshold=0.8,
             with_recovery=False,
         ):

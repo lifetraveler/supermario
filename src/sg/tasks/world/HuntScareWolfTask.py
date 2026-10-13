@@ -156,14 +156,14 @@ class HuntScareWolfTask(SGBaseTask):
         """
         # 打开背包
         if not self._wait_and_click(
-            GLOBAL_TAG_BAG, name="背包按钮", timeout=6.0
+            GLOBAL_TAG_BAG, name="背包按钮", timeout=2.0
         ):
             return False
         self._sleep(0.5)
 
         # 切换到"其他"标签
         if not self._wait_and_click(
-            [GLOBAL_TAG_BAG_OTHER,GLOBAL_TAG_BAG_OTHER_1] ,name="背包-其他标签", timeout=6.0
+            [GLOBAL_TAG_BAG_OTHER,GLOBAL_TAG_BAG_OTHER_1] ,name="背包-其他标签", timeout=2.0
         ):
             return False
         self._sleep(0.5)
@@ -180,7 +180,7 @@ class HuntScareWolfTask(SGBaseTask):
 
         # 点击"使用"
         if not self._wait_and_click_all_screen(
-            ITEM_SCARE_WOLF_CLAW_BUTTON_USE, name="狼爪-使用按钮", timeout=6.0
+            ITEM_SCARE_WOLF_CLAW_BUTTON_USE, name="狼爪-使用按钮", timeout=2.0
         ):
             return False
         self._sleep(1.0)
