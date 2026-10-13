@@ -31,6 +31,7 @@ from src.sg.tasks.world.HuntMonsterTask import HuntMonsterTask
 from src.sg.tasks.world.HuntEliteRebelsTask import HuntEliteRebelsTask
 from src.sg.tasks.world.WatchTowerEventTask import WatchTowerEventTask
 from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
+from src.sg.tasks.daily.ClaimBuyCenterRewardTask import ClaimBuyCenterRewardTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -50,6 +51,7 @@ TASK_TYPE_MAP = {
     "League Tech Donate":    LeagueTechDonateTask,
     "League Reward Box":     LeagueRewardBoxTask,
     "Pet Treasure Hunt":     PetTreasureHuntTask,
+    "Claim Buy Center Reward": ClaimBuyCenterRewardTask,
     "Punish Claim":          PunishClaimTask,
     "Watch Tower Event":     WatchTowerEventTask,
 }

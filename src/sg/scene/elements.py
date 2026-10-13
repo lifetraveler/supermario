@@ -1405,3 +1405,63 @@ GLOBAL_TASK_LIST_DOWN_EDGE = SceneElement(
     desc="仓库奖励：任务列表滑到底部标志",
 )
 
+
+# ============================================================
+# 储值中心每日免费奖励（Claim Buy Center Reward）
+# ============================================================
+
+# city 主界面：储值中心入口
+CITY_DAILY_FREE_REWARD_ENTRY = SceneElement(
+    name="city_daily_free_reward_entry",
+    resource_id="city_daily_free_reward_entry",
+    desc="储值中心：主界面入口",
+)
+
+# 储值中心界面：标题（进入确认标志）
+CITY_DAILY_FREE_REWARD_BUY_CENTER = SceneElement(
+    name="city_daily_free_reward_buy_center",
+    resource_id="city_daily_free_reward_buy_center",
+    desc="储值中心：界面标题（进入确认标志）",
+)
+
+# 储值中心界面：页面主体区域（未领取标记检索范围）
+CITY_DAILY_FREE_REWARD_AREA = SceneElement(
+    name="city_daily_free_reward_area",
+    resource_id="city_daily_free_reward_area",
+    desc="储值中心：页面主体区域（未领取标记检索范围）",
+)
+
+# 储值中心界面：礼包标题 OCR 区域（识别当前礼包名）
+CITY_DAILY_FREE_REWARD_MASK_AREA = SceneElement(
+    name="city_daily_free_reward_mask_area",
+    resource_id="city_daily_free_reward_mask_area",
+    desc="储值中心：礼包标题 OCR 区域",
+)
+
+# 储值中心：随心自选礼包（点击领取）
+CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX = SceneElement(
+    name="city_daily_free_reward_buy_center_box",
+    resource_id="city_daily_free_reward_buy_center_box",
+    desc="储值中心：随心自选礼包",
+)
+
+# 储值中心：随心自选礼包（翻页后位置）
+CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX_1 = SceneElement(
+    name="city_daily_free_reward_buy_center_box_1",
+    resource_id="city_daily_free_reward_buy_center_box_1",
+    desc="储值中心：随心自选礼包（翻页后）",
+)
+
+# 储值中心：未领取标记（右侧）
+CITY_DAILY_FREE_REWARD_BUY_CENTER_REMIND = SceneElement(
+    name="city_daily_free_reward_buy_center_remind",
+    resource_id="city_daily_free_reward_buy_center_remind",
+    desc="储值中心：未领取标记（右）",
+)
+
+# 储值中心：未领取标记（左侧，翻页后）
+CITY_DAILY_FREE_REWARD_BUY_CENTER_REMIND_LEFT = SceneElement(
+    name="city_daily_free_reward_buy_center_remind_left",
+    resource_id="city_daily_free_reward_buy_center_remind_left",
+    desc="储值中心：未领取标记（左，翻页后）",
+)

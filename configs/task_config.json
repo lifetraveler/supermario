@@ -404,6 +404,20 @@
         "cron": ""
       },
       "params": []
+    },
+    {
+      "type": "Claim Buy Center Reward",
+      "name_prefix": "Claim Buy Center Reward储值中心奖励",
+      "description": "储值中心每日免费奖励领取。Claim daily free rewards in the buy center.",
+      "defaults": {
+        "count": 1,
+        "max_active": 1,
+        "requires_march_queue": false,
+        "next_trigger_delay": 86400,
+        "one_shot": false,
+        "cron": ""
+      },
+      "params": []
     }
   ],
   "machines": [
@@ -425,87 +439,13 @@
               },
               "tasks": [
                 {
-                  "type": "Hunt Monster Troop",
+                  "type": "Claim Buy Center Reward",
                   "enabled": true,
-                  "params": {
-                    "monster_level": 1,
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 9,
+                  "params": {},
+                  "count": 1,
                   "max_active": 1,
-                  "next_trigger_delay": 0,
+                  "next_trigger_delay": 86400,
                   "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Warehouse Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 10,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Gather Island Water",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 1,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Punish Claim",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Tech Donate",
-                  "enabled": true,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 1800,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Mail Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Reward Box",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Pet Treasure Hunt",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
                   "cron": ""
                 },
                 {
@@ -627,6 +567,90 @@
                 },
                 {
                   "type": "Gather Resource Troop",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Monster Troop",
+                  "enabled": false,
+                  "params": {
+                    "monster_level": 1,
+                    "auto_recall": false,
+                    "min_stamina": 0
+                  },
+                  "count": 9,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Warehouse Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 10,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Island Water",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 1,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Punish Claim",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "League Tech Donate",
+                  "enabled": false,
+                  "params": {},
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 1800,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Mail Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "League Reward Box",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Pet Treasure Hunt",
                   "enabled": false,
                   "params": {},
                   "count": 1,

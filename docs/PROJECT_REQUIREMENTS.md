@@ -777,3 +777,39 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - FAILED（滑到底）+ delay=0 组合下队列 stalled 扫描会立即补建重扫（约 40s/轮），持续到可领取为止；若嫌轮询频繁可将实例条目 next_trigger_delay 调大。
 
 ---
+
+## [2026-10-13] 储值中心每日免费奖励（Claim Buy Center Reward）
+
+### 原始需求
+从主界面点击 city_daily_free_reward_entry 区域进入储值中心，进入循环。退出条件为 city_daily_free_reward_area 区域检索不到未领取标记 city_daily_free_reward_buy_center_remind。循环内在 city_daily_free_reward_mask_area 区域 OCR 判断当前礼包：OCR 文字包含"随心自选"则点击 city_daily_free_reward_buy_center_box，随后全局检索特征判断是否进入领取成功界面——进入则点击一次成功标（global_mark_reward_geted_quit_tip，用户确认），未进入则不处理。之后在 area 区域检索 city_daily_free_reward_buy_center_remind_left 或 remind，检索到则点击翻到下一个活动 tag 继续循环。其他礼包的检索特征用户后续给出（流程一致），暂无分支时直接翻页跳过（用户确认）。
+
+### 决策记录
+- 退出条件：remind + remind_left 双侧红点都检索不到才退出（用户确认，避免翻页后左侧红点被漏检）；加 claim_rounds_max=10 轮数上限防死循环。
+- 成功界面判定：全局检索 GLOBAL_MARK_REWARD_GETED_QUIT_TIP（与 Leader/League/GatherIsland 既有模式一致，用户确认）。
+- 其他礼包扩展点：`gift_handlers` 字典（OCR 关键词 → 分支方法名），后续补特征时加一行注册 + 对应分支方法即可，无需改主循环。
+- 翻页失败语义：点击红点失败（红点刚被领取消失）视为正常结束，不算失败。
+
+### 变更点
+- `src/sg/scene/elements.py` 追加 9 个 SceneElement（coco id 105/113/114/115/116/117/221/222，全部已有特征图与 bbox 标注）：ENTRY（主界面入口）、BUY_CENTER（界面标题，进入确认）、AREA（主体区域，红点检索范围）、MASK_AREA（礼包标题 OCR 区域）、BUY_CENTER_BOX / BOX_1（随心自选礼包两个位置）、REMIND / REMIND_LEFT（未领取标记右/左）。
+- 新增 `src/sg/tasks/daily/ClaimBuyCenterRewardTask`（继承 SGBaseTask）：前台 → 清弹窗 → 回主界面 → 进储值中心（标题确认）→ 循环[双红点检查 → OCR 礼包名（重试 3 次）→ gift_handlers 分发 → 点红点翻页] → 回主界面。
+- 注册三动作：`task_type_map.py` 加 `"Claim Buy Center Reward"` 映射；`task_config.json` 加定义段（count=1、max_active=1、requires_march_queue=false、next_trigger_delay=86400、params=[]）+ 实例段 enabled=true 条目。
+
+### 修复点
+- `task_type_map.py` 编辑过程中两次误删既有行（HuntScareWolfTask import、Pet Treasure Hunt / League Reward Box 映射），冒烟双向一致性检查捕获后全部补回（git diff HEAD 对照）。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（追加 9 元素）
+- `src/sg/tasks/daily/ClaimBuyCenterRewardTask.py`（新增）
+- `src/sg/tasks/task_type_map.py`（加映射 + 修复误删）
+- `configs/task_config.json`（定义段 + 实例条目）
+
+### 测试
+- 注册冒烟：py_compile 全过；TASK_TYPE_MAP↔task_config.json 双向一致（20 类型）；config_loader.load() 解析出实例条目 enabled=true、delay=86400、defaults 六键齐全；9 元素 resource_id 与 coco categories 全部一致；gift_handlers 分支方法存在性检查通过。
+- 实机：未验证（MuMu 实例未开机；需真机确认入口/标题/红点特征匹配、mask_area OCR"随心自选"命中率、成功弹窗 quit_tip 特征）。
+
+### 遗留 / 风险
+- "随心自选" OCR 命中率未实机验证：mask_area 区域文字如有艺术字/描边，可能需要调整 OCR 阈值或改特征匹配。
+- 其他礼包特征待用户补充后扩展 gift_handlers。
+- AREA/MASK_AREA 两个区域元素仅作 bbox 定位不参与特征匹配；红点在 area bbox 外的情况（如有悬浮按钮遮挡）需真机确认。
+
+---
