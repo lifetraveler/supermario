@@ -404,6 +404,20 @@
         "cron": ""
       },
       "params": []
+    },
+    {
+      "type": "Claim Buy Center Reward",
+      "name_prefix": "Claim Buy Center Reward储值中心奖励",
+      "description": "储值中心每日免费奖励领取。Claim daily free rewards in the buy center.",
+      "defaults": {
+        "count": 1,
+        "max_active": 1,
+        "requires_march_queue": false,
+        "next_trigger_delay": 86400,
+        "one_shot": false,
+        "cron": ""
+      },
+      "params": []
     }
   ],
   "machines": [
@@ -442,7 +456,7 @@
                   "type": "Claim Warehouse Reward",
                   "enabled": true,
                   "params": {},
-                  "count": 0,
+                  "count": 10,
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
@@ -633,6 +647,16 @@
                   "max_active": 1,
                   "next_trigger_delay": 86400,
                   "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Buy Center Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
                   "cron": ""
                 }
               ]

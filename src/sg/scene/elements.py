@@ -1445,11 +1445,11 @@ CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX = SceneElement(
     desc="储值中心：随心自选礼包",
 )
 
-# 储值中心：随心自选礼包（翻页后位置）
+# 储值中心：每日特惠礼包
 CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX_1 = SceneElement(
     name="city_daily_free_reward_buy_center_box_1",
     resource_id="city_daily_free_reward_buy_center_box_1",
-    desc="储值中心：随心自选礼包（翻页后）",
+    desc="储值中心：每日特惠礼包",
 )
 
 # 储值中心：未领取标记（右侧）

@@ -68,9 +68,11 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
     mask_ocr_retry_max = 3
 
     # 各礼包的领取分支：OCR 关键词 → 处理方法名。
-    # 后续新增礼包特征时在此注册（方法签名 (self, area_box) -> bool）。
+    # 新增礼包：注册一行 + 写对应分支方法（签名 (self) -> bool）。
+    # 每周特惠：特征待定，暂无分支，OCR 命中后翻页跳过。
     gift_handlers = {
         "随心自选": "_claim_buy_center_box",
+        "每日特惠": "_claim_daily_special_box",
     }
 
     def __init__(self, *args, **kwargs):
@@ -176,26 +178,42 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
             self._sleep(self.mask_ocr_retry_interval)
         return None
 
-    def _claim_buy_center_box(self, area_box) -> bool:
+    def _claim_buy_center_box(self) -> bool:
         """
         随心自选礼包领取分支（按用户需求原文）：
-          1. 点击 CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX（多候选含翻页后位置）
+          1. 全屏检索点击 CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX
+             （礼包图标在 area bbox 之外，不能用 area_box 限制搜索区域）
           2. 全局检索 GLOBAL_MARK_REWARD_GETED_QUIT_TIP：
              - 找到 → 已进入领取成功界面，点击一次关闭
-             - 未找到 → 不处理（可能已在成功界面之上/无需关闭）
+             - 未找到 → 不处理
         """
+        return self._click_gift_and_dismiss(
+            CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX, "随心自选")
+
+    def _claim_daily_special_box(self) -> bool:
+        """
+        每日特惠礼包领取分支：流程与随心自选一致，
+        特征用 CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX_1。
+        """
+        return self._click_gift_and_dismiss(
+            CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX_1, "每日特惠")
+
+    def _click_gift_and_dismiss(self, gift_element, gift_label) -> bool:
+        """
+        礼包领取公共流程：全屏检索点击礼包图标 →
+        等待领取成功界面（quit_tip）出现则点击关闭，未出现不处理。
+        """
+        full_screen = self.box_of_screen(0, 0, 1, 1)
+
         if not self._wait_and_click(
-            [CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX,
-             CITY_DAILY_FREE_REWARD_BUY_CENTER_BOX_1],
-            timeout=6.0, box=area_box,
+            gift_element, timeout=6.0, box=full_screen,
         ):
-            self.log_info("未匹配到随心自选礼包图标")
+            self.log_info(f"未匹配到{gift_label}礼包图标")
             return False
 
         self._sleep(1.0)
 
         # 全局检索领取成功界面
-        full_screen = self.box_of_screen(0, 0, 1, 1)
         quit_box = self._wait_element(
             GLOBAL_MARK_REWARD_GETED_QUIT_TIP,
             timeout=4.0, box=full_screen, with_recovery=False,
