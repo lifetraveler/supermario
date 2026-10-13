@@ -13,6 +13,7 @@ task_type_map —— type 短 id → 任务类 的代码侧映射。
 """
 
 from src.sg.tasks.city.BankSaveTask import BankSaveTask
+from src.sg.tasks.city.ClaimWarehouseRewardTask import ClaimWarehouseRewardTask
 from src.sg.tasks.city.GoldenRefineTask import GoldenRefineTask
 from src.sg.tasks.city.TrainSoldierTask import TrainSoldierTask
 from src.sg.tasks.daily.ClaimStaminaTask import ClaimStaminaTask
@@ -33,8 +34,9 @@ from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
-    "Claim Mail Reward":     ClaimMailRewardTask,
     "Claim Stamina":         ClaimStaminaTask,
+    "Claim Mail Reward":     ClaimMailRewardTask,
+    "Claim Warehouse Reward": ClaimWarehouseRewardTask,
     "Gather Island Water":   GatherIslandWaterTask,
     "Gather Resource Troop": GatherResourceTask,
     "Golden Refine":         GoldenRefineTask,

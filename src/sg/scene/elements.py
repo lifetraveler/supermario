@@ -103,9 +103,17 @@ TEAM_HUNTING = SceneElement(
 )
 
 # 发起集结 / 出征
-BUTTON_HUNT_EXPEDITION = SceneElement(
-    name="button_huntexpedition",
+TEAM_PREPARE_BUTTON_HUNTEXPEDITION = SceneElement(
+    name="team_prepare_button_huntexpedition",
     resource_id="team_prepare_button_huntexpedition",
+    desc="发起集结 / 出征按钮",
+)
+
+
+# 发起集结 / 出征
+TEAM_PREPARE_BUTTON_HUNTEXPEDITION_1 = SceneElement(
+    name="team_prepare_button_huntexpedition_1",
+    resource_id="team_prepare_button_huntexpedition_1",
     desc="发起集结 / 出征按钮",
 )
 
@@ -1372,4 +1380,28 @@ ACTIVITY_TAG_BANK_ICON_NOT_SELECT = SceneElement(
     desc="银行存取：银行标记",
 )
 
+
+# id: 165
+# 任务列表：仓库奖励入口（点击即领取）
+CITY_TASK_LIST_WAREHOUSE_ENTRY = SceneElement(
+    name="city_task_list_warehouse_entry",
+    resource_id="city_task_list_warehouse_entry",
+    desc="仓库奖励：任务列表入口（点击即领取）",
+)
+
+# id: 168
+# 仓库奖励：下次领取时间 OCR 区域（领取成功界面）
+CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME = SceneElement(
+    name="city_task_list_warehouse_next_reward_time",
+    resource_id="city_task_list_warehouse_next_reward_time",
+    desc="仓库奖励：下次领取时间区域",
+)
+
+# id: 220
+# 任务列表：滑到底部标志
+GLOBAL_TASK_LIST_DOWN_EDGE = SceneElement(
+    name="global_task_list_down_edge",
+    resource_id="global_task_list_down_edge",
+    desc="仓库奖励：任务列表滑到底部标志",
+)
 

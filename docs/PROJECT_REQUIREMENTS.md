@@ -740,3 +740,40 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - 实机未验证：独立模式 run 与队列调度需真机跑一次确认（尤其存期弹窗特征首次识别）。
 
 ---
+
+## [2026-10-13] 自动领取仓库奖励（Claim Warehouse Reward）
+
+### 原始需求
+待办任务.txt 任务区 16：进入 world 主界面，点开 tasklist，循环上滑在任务列表检索特征值 city_task_list_warehouse_entry；滑动到底（判断标志 global_task_list_down_edge）仍未检索到则说明不允许领取，返回失败，不需要重试。检索到则点击特征（点击即领取），跳转领取成功界面，OCR city_task_list_warehouse_next_reward_time 区域获取下一次领取时间，返回主界面，任务返回成功以及下一次任务时间。
+
+### 决策记录
+- 调度模式：动态等待（用户确认"框架已支持按返回的下一次任务时间自动重建任务"）——count=0 + next_trigger_delay=0，SUCCESS 返回 OCR 出的距下次可领取秒数，follower 精确落在下一次领取时刻（ClaimStamina 同构）。
+- 领取步骤：点 entry 即领取（用户确认），coco 已标注的 warehouse_button_get / warehouse_button_geted_tips 不录入不使用。
+- 滑到底语义：FAILED 不重试（需求原文），由编排层直接判定绕过 `_step` 恢复重试，避免重复整轮滑动；队列 stalled 扫描按 delay=0 立即补建重扫。
+
+### 变更点
+- `src/sg/scene/elements.py` 补录 3 个 SceneElement（coco id 165/168/220，均已有特征图模板）：`CITY_TASK_LIST_WAREHOUSE_ENTRY`（仓库入口）、`CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME`（下次领取时间 OCR 区域）、`GLOBAL_TASK_LIST_DOWN_EDGE`（列表滑到底标志）。
+- 新增 `src/sg/tasks/city/ClaimWarehouseRewardTask`（继承 SGBaseTask）：编排 前台 → 清弹窗 → 回主界面 → 开任务列表 → 滑动检索（上滑 1/4 屏 ×10 上限，先找 entry 再找 down_edge）→ 点 entry 领取（等 next_reward_time 特征确认进入成功界面）→ OCR 下次领取时间（解析失败兜底 3600s，下限 60s）→ 回主界面。OCR 时间写入 `next_reward_time` 驱动 `check_completed()`，与 ClaimStamina 调度链路同构。
+- 注册三动作：`task_type_map.py` 加 `"Claim Warehouse Reward"` 映射；`task_config.json` 加定义段（count=0、max_active=1、requires_march_queue=false、next_trigger_delay=0、params=[]）+ 实例段 enabled=true 条目。
+- 新增 `scripts/test_warehouse_stub.py` 脱框架桩测试（FakeTask）。
+
+### 修复点
+- task_type_map.py 在 stash 恢复过程中被挤掉 3 行（GoldenRefineTask import、Claim Stamina / Claim Mail Reward 映射），git diff 对照 HEAD 后全部补回，双向一致性冒烟确认 19 类型无缺失。
+
+### 涉及文件
+- `src/sg/scene/elements.py`（追加 3 元素）
+- `src/sg/tasks/city/ClaimWarehouseRewardTask.py`（新增）
+- `src/sg/tasks/task_type_map.py`（加映射）
+- `configs/task_config.json`（定义段 + 实例条目）
+- `scripts/test_warehouse_stub.py`（新增）
+
+### 测试
+- 独立模式（桩）：`scripts/test_warehouse_stub.py` 6 组全过——倒计时解析 8 例（时分秒/分秒/纯数字/中文混杂/空/None）、成功路径（SUCCESS, 7200）+ 步骤顺序断言 + check_completed 未到点/到点语义、滑到底 FAILED 不重试（无恢复重试无 claim 调用）、OCR 失败兜底 3600s、下限 60s、领取点击失败 FAILED、_run_once/run 双入口。
+- 注册冒烟：py_compile 全过；TASK_TYPE_MAP↔task_config.json 双向一致（19 类型）；config_loader.load() 解析出实例条目 enabled=true、count=0、delay=0；3 个元素 resource_id 与 coco categories 一致。
+- 实机：未验证（需游戏前台确认 entry/down_edge 特征匹配与 next_reward_time 区域 OCR）。
+
+### 遗留 / 风险
+- 实机未验证：entry 图标阈值（0.8）、down_edge 出现时机（列表中段是否提前可见）、next_reward_time 文本格式（是否含中文"时/分"）需真机确认。
+- FAILED（滑到底）+ delay=0 组合下队列 stalled 扫描会立即补建重扫（约 40s/轮），持续到可领取为止；若嫌轮询频繁可将实例条目 next_trigger_delay 调大。
+
+---
