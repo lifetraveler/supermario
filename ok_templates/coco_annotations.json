@@ -671,6 +671,12 @@
       "file_name": "111.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 160,
+      "file_name": "112.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -3509,6 +3515,19 @@
       "iscrowd": 0
     },
     {
+      "id": 219,
+      "image_id": 160,
+      "category_id": 106,
+      "bbox": [
+        603,
+        1483,
+        173,
+        66
+      ],
+      "area": 11418,
+      "iscrowd": 0
+    },
+    {
       "id": 220,
       "image_id": 159,
       "category_id": 220,
@@ -4072,6 +4091,11 @@
     {
       "id": 105,
       "name": "city_daily_free_reward_entry",
+      "supercategory": ""
+    },
+    {
+      "id": 106,
+      "name": "team_prepare_button_huntexpedition_1",
       "supercategory": ""
     },
     {

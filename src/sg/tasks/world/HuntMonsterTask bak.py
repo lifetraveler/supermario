@@ -11,7 +11,7 @@ from src.sg.scene.elements import (
     GIANT_BEAST,
     BUTTON_RALLY_GIANT_BEAST,
     TEAM_HUNTING,
-    BUTTON_HUNT_EXPEDITION,
+    TEAM_PREPARE_BUTTON_HUNTEXPEDITION,
     BUTTON_RESOURCESEARCH,
     BUTTON_STARTRALLY,
 )
@@ -565,7 +565,7 @@ class HuntMonsterTask(SGBaseTask):
     def hunt_expedition(self) -> bool:
         self.log_info("准备发起巨兽远征")
         return self._wait_and_click(
-            BUTTON_HUNT_EXPEDITION,
+            TEAM_PREPARE_BUTTON_HUNTEXPEDITION,
             name="发起巨兽远征",
             timeout=8.0,
         )

@@ -14,7 +14,8 @@ from src.sg.scene.elements import (
     BUTTON_RALLY_GIANT_BEAST,
     BUTTON_RALLY_GIANT_BEAST_1,
     BUTTON_STARTRALLY,
-    BUTTON_HUNT_EXPEDITION,
+    TEAM_PREPARE_BUTTON_HUNTEXPEDITION,
+    TEAM_PREPARE_BUTTON_HUNTEXPEDITION_1,
     TEAM_TIME_ON_THE_WAY,
     OVERALL_STAMINA_CURRENT,
     OVERALL_STAMINA
@@ -119,7 +120,7 @@ class Rally:
     def _hunt_expedition(self) -> bool:
         task = self.task
 
-        box = task._wait_element(BUTTON_HUNT_EXPEDITION, timeout=8.0)
+        box = task._wait_element((TEAM_PREPARE_BUTTON_HUNTEXPEDITION,TEAM_PREPARE_BUTTON_HUNTEXPEDITION_1), timeout=8.0)
         if box is None:
             return False
         time_box = task.get_box_by_name(TEAM_TIME_ON_THE_WAY.resource_id)
