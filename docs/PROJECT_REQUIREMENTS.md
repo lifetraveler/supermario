@@ -814,3 +814,35 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - AREA/MASK_AREA 两个区域元素仅作 bbox 定位不参与特征匹配；红点在 area bbox 外的情况（如有悬浮按钮遮挡）需真机确认。
 
 ---
+## [2026-10-13] 任务配置编辑页——配置方案（保存 / 加载合并切换）
+
+### 原始需求
+参数配置页（TaskConfigEditorTab）支持把当前配置保存成"方案"，并通过"加载方案"在多个方案间快速切换。关键约束：切换时用方案 JSON **合并**（不是覆盖）到原始 JSON（所有任务实例停用态），避免配置新增任务后老方案缺少该任务条目、覆盖导致任务丢失。
+
+### 变更点
+- 顶栏新增两个按钮：存为方案（快照当前 self.doc 到 configs/task_config_profiles/<名称>.json，同名确认覆盖）、加载方案（下拉框选择 + 删除 + 切换）。
+- 合并算法 _merge_doc：base=当前文档深拷贝全部置 enabled=false（原始 JSON），按业务键递归匹配合并——task_types[].type、machines[].name、apps[].package、users[].user_id、tasks[].type、params[].attr（KEYED_LISTS 按列表键名定身份，匿名列表如 widget.options 整体替换防重复）。匹配节点以方案为准；base 独有条目（新增任务/类型/参数）原样保留（保持停用态）；方案独有条目原样追加（忠实还原方案，保证幂等）。
+- 切换流程：深拷贝预演合并 + validate_doc 校验（有问题弹确认）→ 通过后在 self.doc 上清空重放合并（原位更新，保持 doc 与任务卡片闭包的 dict 引用不变）→ _normalize_group_order → _sync_all(keep_cards=True) → 标脏不落盘（需手动保存）。
+- 卡片复用显示同步：_defaults_rows 每行挂 _ctl_set+_dkey，_param_cell 单元格挂 _ctl_set+_attr（switch/number/drop_down/multi_drop_down/text 五种控件），_param_box 挂差异点 _dot_refresh；复用卡片 _refresh_state 按新数据回填开关/次数/参数值/差异圆点（blockSignals 防写回）。与上移下移（_move_task）同一复用机制，不整页重建。
+- 未保存修改时先弹"基于当前未保存数据合并"确认。
+
+### 修复点
+- _param_cell 的 drop_down 分支连接了从未定义的 _drop_changed（选择即抛 AttributeError，参数无法修改）→ 补实现：剥"（不在选项中）"提示后写入 task.params。
+- 删除死代码 _param_row（被 _param_cell 遮蔽、引用同样不存在的 _multi_toggle/_drop_changed）、被遮蔽的旧版 _defaults_rows（无信号连接）。
+- _field_row/_param_box 差异圆点闭包暴露为可刷新钩子（原先创建后无法更新）。
+
+### 涉及文件
+- src/ui/TaskConfigEditorTab.py（方案功能 + 卡片复用钩子 + 修复）
+- configs/task_config_profiles/（运行时生成，方案存储目录，用户数据不入库——首个方案文件随本提交入库作示例）
+
+### 测试
+- 离屏 Qt 全流程冒烟（QT_QPA_PLATFORM=offscreen）：20/20 卡片对象复用；新增类型+任务后切方案→新条目保留且停用、老任务还原方案状态；删除方案内条目后切换→自动追加还原；连续切换两次 JSON 完全一致（幂等）；validate_doc 零报错；方案快照与 doc 一致；下拉对话框选择/删除路径；drop_down 参数渲染路径无异常。
+- 未实机验证：对话框在真实高分屏下的显示比例（截图反馈的列表显示不全问题已通过下拉框规避）。
+
+### 遗留 / 风险
+- 方案切换只改编辑器内存态，需点"保存"写入 task_config.json 后运行时才消费（InfoBar 已提示"记得保存落盘"）。
+- 方案文件是全量快照：类型定义段也随方案走，切方案会连带回滚类型定义（params/default/widget 等）；若将来要求"方案只管实例、定义跟随最新"，需把 task_types 从合并范围剔除。
+- machines/apps/users 按 name/package/user_id 匹配：重命名机器/包名后旧方案会匹配失败而整条追加，需手动清理。
+
+---
+

@@ -190,10 +190,16 @@ class TaskConfigEditorTab(CustomTab):
         self.lbl_status.setToolTip("")
         left.addWidget(self.lbl_status)
         top_lay.addLayout(left, 1)
+        self.btn_save_profile = PushButton(FluentIcon.SAVE_AS, "存为方案")
+        self.btn_save_profile.clicked.connect(self._save_profile_dialog)
+        self.btn_load_profile = PushButton(FluentIcon.FOLDER, "加载方案")
+        self.btn_load_profile.clicked.connect(self._load_profile_dialog)
         self.btn_reload = PushButton(FluentIcon.SYNC, "还原")
         self.btn_reload.clicked.connect(self._confirm_reload)
         self.btn_save = PrimaryPushButton(FluentIcon.SAVE, "保存")
         self.btn_save.clicked.connect(self._save)
+        top_lay.addWidget(self.btn_save_profile)
+        top_lay.addWidget(self.btn_load_profile)
         top_lay.addWidget(self.btn_reload)
         top_lay.addWidget(self.btn_save)
 
@@ -390,6 +396,9 @@ class TaskConfigEditorTab(CustomTab):
                 dot.setVisible(False)
             lay.addWidget(dot)
             lay.addSpacing(8)
+            host._diff_dot = dot
+            host._diff_get = get
+            host._diff_default = default
         return host
 
     def _sec_header(self, text, extra=""):
@@ -435,6 +444,7 @@ class TaskConfigEditorTab(CustomTab):
             except Exception:
                 dot.setVisible(False)
             title_lay.addWidget(dot)
+            box._dot_refresh = lambda: dot.setVisible(get() != default)
         bl.addLayout(title_lay)
         bl.addWidget(widget)
         return box
@@ -583,13 +593,16 @@ class TaskConfigEditorTab(CustomTab):
         self.btn_save.setEnabled(True)
         self.btn_reload.setEnabled(True)
 
-    def _sync_all(self):
-        """文档级变更后的同步：任务页立即刷（当前页），其余页标脏等切换时再建。"""
+    def _sync_all(self, keep_cards=False):
+        """文档级变更后的同步：任务页立即刷（当前页），其余页标脏等切换时再建。
+
+        keep_cards=True 时复用任务卡片（同链数据原位更新场景）。
+        """
         self._clamp_sel()
         self._refresh_status()
         self._refresh_chain_combos()
         self._stale_pages = {"types", "machines", "source"}
-        self._refresh_tasks_page()
+        self._refresh_tasks_page(keep_cards=keep_cards)
         self._stale_pages.discard("tasks")
 
     # ==================================================== 任务实例页渲染
@@ -786,10 +799,29 @@ class TaskConfigEditorTab(CustomTab):
 
         body.setVisible(open_)
         lay.addWidget(body)
-        # 缓存复用时的刷新钩子
-        card._refresh_state = lambda t=task, d=tt, s=stats, w=sw: (
-            s.setText(self._task_stats(t, d)), w.blockSignals(True),
-            w.setChecked(bool(t.get("enabled"))), w.blockSignals(False))
+        # 缓存复用时的刷新钩子：统计行 + 启用开关 + 展开区值控件
+        # (dkey, set_fn) / (attr, set_fn) 对，刷新时按 task 当前值回填显示
+        setters = [(w._dkey, w._ctl_set) for w in body.findChildren(QWidget)
+                   if hasattr(w, "_ctl_set") and hasattr(w, "_dkey")]
+        setters += [(w._attr, w._ctl_set) for w in body.findChildren(QFrame)
+                    if hasattr(w, "_ctl_set") and hasattr(w, "_attr")]
+        dots = [w._dot_refresh for w in body.findChildren(QFrame)
+                if hasattr(w, "_dot_refresh")]
+
+        def _refresh_state(t=task, d=tt, s=stats, w=sw, setters=setters, dots=dots):
+            s.setText(self._task_stats(t, d))
+            w.blockSignals(True)
+            w.setChecked(bool(t.get("enabled")))
+            w.blockSignals(False)
+            params = t.get("params") or {}
+            for key, fn in setters:
+                if key == "cron":
+                    fn(t.get("cron") or "")
+                elif key is not None:
+                    fn(params.get(key, t.get(key, 0)))
+            for fn in dots:
+                fn()
+        card._refresh_state = _refresh_state
         return card
 
     def _task_body(self, task, tt, index):
@@ -859,44 +891,12 @@ class TaskConfigEditorTab(CustomTab):
             ps.append(f'{pd.get("name")}: {_fmt_val(v)}')
         return " · ".join(bits) + ("　｜　" + " · ".join(ps) if ps else "")
 
-    def _defaults_rows(self, obj, default_obj):
-        """六个调度键的编辑行。obj 是任务实例或类型 defaults dict。"""
-        rows = []
-
-        def num_row(key):
-            e = LineEdit()
-            e.setText(str(obj.get(key, 0)))
-            return self._field_row(
-                {"count": "执行次数", "max_active": "最大并发",
-                 "next_trigger_delay": "触发间隔(秒)"}[key],
-                DKEY_HELP[key], e, fixed_width=140,
-                diff_ref=(lambda o=obj, k=key: o.get(k, 0),
-                          default_obj.get(key, 0)))
-
-        def bool_row(key, label):
-            sw = SwitchButton(label)
-            sw.setChecked(bool(obj.get(key)))
-            return self._field_row(
-                label, DKEY_HELP[key], sw,
-                diff_ref=(lambda o=obj, k=key: o.get(k, False),
-                          default_obj.get(key, False)))
-
-        rows.append(num_row("count"))
-        rows.append(num_row("max_active"))
-        rows.append(bool_row("requires_march_queue", "占用出征队列"))
-        rows.append(num_row("next_trigger_delay"))
-        rows.append(bool_row("one_shot", "单次执行"))
-
-        e = LineEdit()
-        e.setPlaceholderText("留空 = 不使用")
-        rows.append(self._field_row(
-            "Cron 表达式", DKEY_HELP["cron"], e, fixed_width=220,
-            diff_ref=(lambda o=obj: o.get("cron") or "",
-                      default_obj.get("cron") or "")))
-        return rows
 
     def _param_cell(self, task, pd):
-        """参数渲染为独立圆角单元格：名称行(含差异圆点) + 控件 + 描述。"""
+        """参数渲染为独立圆角单元格：名称行(含差异圆点) + 控件 + 描述。
+
+        box 挂 _ctl_set（外部值刷新函数），供卡片复用时同步显示。
+        """
         attr = pd.get("attr")
         default = pd.get("default")
         tparams = task.get("params") or {}
@@ -907,10 +907,13 @@ class TaskConfigEditorTab(CustomTab):
             task.setdefault("params", {})[attr] = v
             self._mark_dirty()
 
+        set_fn = None
         if wtype == "switch" or (wtype is None and isinstance(default, bool)):
             ctl = SwitchButton()
             ctl.setChecked(bool(value))
             ctl.checkedChanged.connect(lambda on: commit(bool(on)))
+            set_fn = lambda v, s=ctl: (s.blockSignals(True),
+                                       s.setChecked(bool(v)), s.blockSignals(False))
         elif wtype == "number" or (
                 wtype is None and isinstance(default, (int, float))
                 and not isinstance(default, bool)):
@@ -928,6 +931,7 @@ class TaskConfigEditorTab(CustomTab):
                         return
                 commit(v)
             ctl.textChanged.connect(num_changed)
+            set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
         elif wtype in ("drop_down", "multi_drop_down"):
             opts = list((pd.get("widget") or {}).get("options") or [])
             if wtype == "multi_drop_down":
@@ -935,14 +939,23 @@ class TaskConfigEditorTab(CustomTab):
                 wl = QHBoxLayout(wrap)
                 wl.setContentsMargins(0, 0, 0, 0)
                 cur = [str(x) for x in (value or [])]
+                boxes = []
                 for opt in opts:
                     ckb = CheckBox(str(opt))
                     ckb.setChecked(str(opt) in cur)
                     ckb.stateChanged.connect(
                         lambda _s, o=opt, c=ckb: self._multi_toggle(task, attr, o, c.isChecked()))
                     wl.addWidget(ckb)
+                    boxes.append((ckb, str(opt)))
                 wl.addStretch(1)
                 ctl = wrap
+
+                def set_fn(v, boxes=boxes):
+                    cur = [str(x) for x in (v or [])]
+                    for ckb, opt in boxes:
+                        ckb.blockSignals(True)
+                        ckb.setChecked(opt in cur)
+                        ckb.blockSignals(False)
             elif opts:
                 ctl = ComboBox()
                 items = [str(o) for o in opts]
@@ -953,19 +966,35 @@ class TaskConfigEditorTab(CustomTab):
                 ctl.setCurrentText(sval if sval in items
                                    else (sval + "（不在选项中）" if sval else items[0]))
                 ctl.currentTextChanged.connect(
-                    lambda txt: self._drop_changed(task, attr, txt, opts))
+                    lambda txt, t=task, a=attr, os_=opts:
+                    self._drop_changed(t, a, txt, os_))
+
+                def set_fn(v, c=ctl, items=items):
+                    sval = str(v) if v is not None else ""
+                    if sval and sval not in items:
+                        c.blockSignals(True)
+                        c.addItem(sval + "（不在选项中）")
+                        c.blockSignals(False)
+                    c.setCurrentText(sval if sval in items
+                                     else (sval + "（不在选项中）" if sval else items[0]))
             else:
                 ctl = LineEdit()
                 ctl.setText("" if value is None else str(value))
                 ctl.textChanged.connect(lambda v: commit(v))
+                set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
         else:
             ctl = LineEdit()
             ctl.setText("" if value is None else str(value))
             ctl.textChanged.connect(lambda v: commit(v))
+            set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
 
         desc = pd.get("desc") or ""
+        get = lambda: (task.get("params") or {}).get(attr)
         box = self._param_box(pd.get("name") or attr or "?", ctl, desc,
-                              (lambda: (task.get("params") or {}).get(attr), default))
+                              (get, default))
+        if set_fn is not None:
+            box._ctl_set = set_fn
+        box._attr = attr
         if desc:
             dlab = BodyLabel(desc)
             dlab.setWordWrap(True)
@@ -973,8 +1002,18 @@ class TaskConfigEditorTab(CustomTab):
             box.layout().addWidget(dlab)
         return box
 
+    def _drop_changed(self, task, attr, text, opts):
+        """drop_down 参数选择提交：剥掉"（不在选项中）"提示后写入。"""
+        val = text.replace("（不在选项中）", "").strip()
+        task.setdefault("params", {})[attr] = val
+        self._mark_dirty()
+
     def _defaults_rows(self, obj, default_obj):
-        """六个调度键的编辑行。obj 是任务实例或类型 defaults dict。"""
+        """六个调度键的编辑行。obj 是任务实例或类型 defaults dict。
+
+        每行 host 挂 _ctl_set（外部刷新函数）+ _dkey（键名），
+        供卡片复用时同步显示（_refresh_card_state）。
+        """
         rows = []
 
         def num_row(key):
@@ -982,19 +1021,26 @@ class TaskConfigEditorTab(CustomTab):
             e.setText(str(obj.get(key, 0)))
             e.setFixedWidth(140)
             e.textChanged.connect(lambda v, o=obj, k=key: self._set_num(o, k, v))
-            return self._field_row(
+            host = self._field_row(
                 {"count": "执行次数", "max_active": "最大并发",
                  "next_trigger_delay": "触发间隔(秒)"}[key],
                 DKEY_HELP[key], e,
                 (lambda o=obj, k=key: o.get(k, 0), default_obj.get(key, 0)))
+            host._ctl_set = lambda v, e=e: e.setText(str(v))
+            host._dkey = key
+            return host
 
         def bool_row(key, label):
             sw = SwitchButton(label)
             sw.setChecked(bool(obj.get(key)))
             sw.checkedChanged.connect(lambda on, o=obj, k=key: self._set_bool(o, k, on))
-            return self._field_row(
+            host = self._field_row(
                 label, DKEY_HELP[key], sw,
                 (lambda o=obj, k=key: o.get(k, False), default_obj.get(key, False)))
+            host._ctl_set = lambda v, s=sw: (s.blockSignals(True),
+                                             s.setChecked(bool(v)), s.blockSignals(False))
+            host._dkey = key
+            return host
 
         rows.append(num_row("count"))
         rows.append(num_row("max_active"))
@@ -1007,79 +1053,13 @@ class TaskConfigEditorTab(CustomTab):
         e.setPlaceholderText("留空 = 不使用")
         e.setFixedWidth(220)
         e.textChanged.connect(lambda v, o=obj: self._set_str(o, "cron", v))
-        rows.append(self._field_row(
+        host = self._field_row(
             "Cron 表达式", DKEY_HELP["cron"], e,
-            (lambda o=obj: o.get("cron") or "", default_obj.get("cron") or "")))
+            (lambda o=obj: o.get("cron") or "", default_obj.get("cron") or ""))
+        host._ctl_set = lambda v, e=e: e.setText(v or "")
+        host._dkey = "cron"
+        rows.append(host)
         return rows
-
-    def _param_row(self, task, pd):
-        attr = pd.get("attr")
-        default = pd.get("default")
-        tparams = task.get("params") or {}
-        value = tparams.get(attr, default)
-        wtype = (pd.get("widget") or {}).get("type")
-
-        def commit(v):
-            task.setdefault("params", {})[attr] = v
-            self._mark_dirty()
-
-        if wtype == "switch" or (wtype is None and isinstance(default, bool)):
-            ctl = SwitchButton()
-            ctl.setChecked(bool(value))
-            ctl.checkedChanged.connect(lambda on: commit(bool(on)))
-        elif wtype == "number" or (
-                wtype is None and isinstance(default, (int, float)) and not isinstance(default, bool)):
-            ctl = LineEdit()
-            ctl.setText("" if value is None else str(value))
-            ctl.setFixedWidth(140)
-
-            def num_changed(text, d=default):
-                try:
-                    v = int(text)
-                except ValueError:
-                    try:
-                        v = float(text)
-                    except ValueError:
-                        return
-                commit(v)
-            ctl.textChanged.connect(num_changed)
-        elif wtype in ("drop_down", "multi_drop_down"):
-            opts = list((pd.get("widget") or {}).get("options") or [])
-            if wtype == "multi_drop_down":
-                wrap = QWidget()
-                wl = QHBoxLayout(wrap)
-                wl.setContentsMargins(0, 0, 0, 0)
-                cur = [str(x) for x in (value or [])]
-                for opt in opts:
-                    ckb = CheckBox(str(opt))
-                    ckb.setChecked(str(opt) in cur)
-                    ckb.stateChanged.connect(lambda _s, o=opt, c=ckb: self._multi_toggle(task, attr, o, c.isChecked()))
-                    wl.addWidget(ckb)
-                wl.addStretch(1)
-                ctl = wrap
-            elif opts:
-                ctl = ComboBox()
-                items = [str(o) for o in opts]
-                ctl.addItems(items)
-                sval = str(value) if value is not None else ""
-                if sval and sval not in items:
-                    ctl.addItem(sval + "（不在选项中）")
-                ctl.setCurrentText(sval if sval in items
-                                   else (sval + "（不在选项中）" if sval else items[0]))
-                ctl.currentTextChanged.connect(
-                    lambda txt: self._drop_changed(task, attr, txt, opts))
-            else:
-                ctl = LineEdit()
-                ctl.setText("" if value is None else str(value))
-                ctl.textChanged.connect(lambda v: commit(v))
-        else:
-            ctl = LineEdit()
-            ctl.setText("" if value is None else str(value))
-            ctl.textChanged.connect(lambda v: commit(v))
-
-        return self._field_row(
-            pd.get("name") or attr or "?", pd.get("desc") or "", ctl,
-            (lambda: (task.get("params") or {}).get(attr), default))
 
     # ------------------------------------------------ 任务实例增删改
     def _task_enabled(self, task, on):
@@ -1770,17 +1750,166 @@ class TaskConfigEditorTab(CustomTab):
     def _on_pivot_source(self):
         self._switch_page("source")
 
-    def _switch_page(self, key):
-        if key != "source" and self._src_dirty:
-            dlg = Dialog("源码有未应用的修改", "放弃并切换？", self.window())
-            if not dlg.exec():
-                self.pivot.setCurrentItem("source")
+
+    # ============================================================ 方案
+    def _profile_dir(self):
+        return Path("configs") / "task_config_profiles"
+
+    def _profiles(self):
+        d = self._profile_dir()
+        if not d.exists():
+            return []
+        return sorted(p.stem for p in d.glob("*.json"))
+
+    def _save_profile(self, name):
+        d = self._profile_dir()
+        d.mkdir(parents=True, exist_ok=True)
+        path = d / f"{name}.json"
+        try:
+            path.write_text(
+                json.dumps(self.doc, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8")
+        except Exception as e:
+            self.logger.error(f"保存方案失败: {e}")
+            InfoBar.error("保存方案失败", str(e)[:160], parent=self.window(), duration=4000)
+            return False
+        return True
+
+    def _disable_all_tasks(self, doc):
+        """实例全部置 enabled=false —— 合并用的「原始 JSON」基底。"""
+        for m in (doc.get("machines") or []):
+            for a in (m.get("apps") or []):
+                for u in (a.get("users") or []):
+                    for t in (u.get("tasks") or []):
+                        if isinstance(t, dict):
+                            t["enabled"] = False
+
+    # 有身份的列表：按列表名匹配条目；其余列表（options 等）整体替换
+    KEYED_LISTS = ("task_types", "machines", "apps", "users", "tasks", "params")
+
+    @staticmethod
+    def _profile_key(obj, list_key):
+        """有身份列表条目的合并匹配键；None = 匿名条目。"""
+        if not isinstance(obj, dict):
+            return None
+        if list_key == "task_types":
+            return ("type", obj.get("type"))
+        if list_key == "tasks":
+            return ("task", obj.get("type"))
+        if list_key == "machines":
+            return ("machine", obj.get("name"))
+        if list_key == "apps":
+            return ("app", obj.get("package"))
+        if list_key == "users":
+            return ("user", obj.get("user_id"))
+        if list_key == "params":
+            return ("param", obj.get("attr"))
+        return None
+
+    @staticmethod
+    def _merge_doc(base, overlay):
+        """方案 overlay 合并进 base（base 已全部停用），结果写入 base。
+
+        按 task_types[].type 与 machines[name]→apps[package]→users[user_id]
+        →tasks[].type 递归匹配；匹配节点以方案为准，base 独有的节点
+        （新任务/新类型/新参数）原样保留（保持停用态），方案独有的条目追加
+        （任务实例默认停用，由用户手动启用）。
+        """
+        def walk(b, o):
+            for k, ov in o.items():
+                bv = b.get(k)
+                if isinstance(ov, dict) and isinstance(bv, dict):
+                    walk(bv, ov)
+                elif isinstance(ov, list) and isinstance(bv, list):
+                    merge_lists(b, k, bv, ov)
+                else:
+                    b[k] = copy.deepcopy(ov)
+
+        def merge_lists(parent, key, bl, ol):
+            if key not in TaskConfigEditorTab.KEYED_LISTS:
+                # 匿名列表（options / 坐标等）: 整体替换
+                parent[key] = copy.deepcopy(ol)
                 return
-            self._refresh_source()
-        self.page_tasks.setVisible(key == "tasks")
-        self.page_types.setVisible(key == "types")
-        self.page_machines.setVisible(key == "machines")
-        self.page_source.setVisible(key == "source")
+            for ov in ol:
+                okey = TaskConfigEditorTab._profile_key(ov, key)
+                hit = None
+                if okey is not None:
+                    for bv in bl:
+                        if TaskConfigEditorTab._profile_key(bv, key) == okey:
+                            hit = bv
+                            break
+                if hit is None:
+                    # 方案独有条目: 原样追加（忠实还原方案，保持幂等）
+                    parent.setdefault(key, []).append(copy.deepcopy(ov))
+                    continue
+                if isinstance(hit, dict) and isinstance(ov, dict):
+                    walk(hit, ov)
+                else:
+                    bl[bl.index(hit)] = copy.deepcopy(ov)
+
+        walk(base, overlay)
+
+    def _apply_profile(self, name):
+        if not self.doc:
+            return
+        path = self._profile_dir() / f"{name}.json"
+        try:
+            profile = json.loads(path.read_text(encoding="utf-8"))
+            # 预演: 深拷贝上合并并校验，不碰 self.doc（取消时不留脏数据）
+            trial = copy.deepcopy(self.doc)
+            self._disable_all_tasks(trial)
+            self._merge_doc(trial, profile)
+        except Exception as e:
+            self.logger.error(f"读取方案失败: {e}")
+            InfoBar.error("读取方案失败", str(e)[:160], parent=self.window(), duration=4000)
+            return
+        errs = validate_doc(trial)
+        if errs and not self._confirm_ignore_errors(errs, "切换"):
+            return
+        # 通过: 原位重放到 self.doc，保持 doc 与任务卡片闭包的 dict 引用不变
+        # （keep_cards 复用卡片时 _refresh_state 闭包读的仍是同一 task dict）
+        self._disable_all_tasks(self.doc)
+        self._merge_doc(self.doc, profile)
+        self._normalize_group_order()
+        self._sync_all(keep_cards=True)
+        self._mark_dirty()
+        InfoBar.success("方案已切换", f"{name}（记得保存落盘）",
+                        parent=self.window(), duration=2500)
+
+    def _save_profile_dialog(self):
+        if not self.doc:
+            InfoBar.warning("无法保存", "当前未加载配置", parent=self.window(), duration=2500)
+            return
+        dlg = _InputTextDialog("存为方案", "方案名称", self.window())
+        if not dlg.exec():
+            return
+        name = (dlg.value or "").strip()
+        if not name:
+            return
+        if (self._profile_dir() / f"{name}.json").exists():
+            c = Dialog("方案已存在", f"覆盖方案「{name}」？", self.window())
+            if not c.exec():
+                return
+        if self._save_profile(name):
+            InfoBar.success("方案已保存", name, parent=self.window(), duration=2500)
+
+    def _load_profile_dialog(self):
+        names = self._profiles()
+        if not names:
+            InfoBar.warning("没有方案", "先用「存为方案」保存一个",
+                            parent=self.window(), duration=2500)
+            return
+        if self.dirty:
+            c = Dialog("当前有未保存修改", "切换方案将基于当前未保存的数据合并，继续？",
+                       self.window())
+            if not c.exec():
+                return
+        dlg = _ProfilePickDialog(names, self.window())
+        if not dlg.exec():
+            return
+        name = dlg.picked_name
+        if name:
+            self._apply_profile(name)
 
     # ============================================================ 保存
     def _confirm_ignore_errors(self, errs, verb):
@@ -1918,3 +2047,59 @@ class _InputTextDialog(QDialog):
     def _on_ok(self):
         self.value = self.edit.text().strip()
         self.accept()
+
+
+class _ProfilePickDialog(QDialog):
+    """下拉选择已保存方案并切换；支持删除方案。"""
+
+    def __init__(self, names, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("加载方案")
+        self.picked_name = None
+        lay = QVBoxLayout(self)
+        hint = BodyLabel("选择方案切换（合并：配置中新增的任务会保留）")
+        lay.addWidget(hint)
+        row = QHBoxLayout()
+        self.combo = ComboBox(self)
+        self.combo.addItems(names)
+        if names:
+            self.combo.setCurrentIndex(0)
+        row.addWidget(self.combo, 1)
+        self._del_btn = TransparentToolButton(FluentIcon.DELETE)
+        self._del_btn.setToolTip("删除选中的方案")
+        self._del_btn.clicked.connect(self._on_del)
+        self._del_btn.setEnabled(bool(names))
+        row.addWidget(self._del_btn)
+        lay.addLayout(row)
+        bar = QHBoxLayout()
+        bar.addStretch(1)
+        cancel = PushButton("取消")
+        cancel.clicked.connect(self.reject)
+        switch = PrimaryPushButton("切换")
+        switch.clicked.connect(self._on_ok)
+        bar.addWidget(cancel)
+        bar.addWidget(switch)
+        lay.addLayout(bar)
+        self.resize(380, 120)
+
+    def _on_ok(self):
+        self.picked_name = self.combo.currentText() or None
+        self.accept()
+
+    def _on_del(self):
+        name = self.combo.currentText()
+        if not name:
+            return
+        confirm = Dialog("删除方案", f"删除方案「{name}」？", self)
+        if not confirm.exec():
+            return
+        path = Path("configs") / "task_config_profiles" / f"{name}.json"
+        try:
+            path.unlink(missing_ok=True)
+        except Exception:
+            pass
+        idx = self.combo.currentIndex()
+        self.combo.removeItem(idx)
+        self._del_btn.setEnabled(self.combo.count() > 0)
+        if self.combo.count() == 0:
+            self.reject()
