@@ -246,19 +246,6 @@ class XxxTask(SGBaseTask):
         self.rally.config.team_element = TEAM_HUNTING
         self.searcher = XxxSearcher(self)
 
-    def _step(self, step_func, step_name) -> bool:
-        # 逐字复制标准实现，勿各写各的
-        for attempt in range(self.max_recover_attempts + 1):
-            if attempt > 0:
-                self.log_info(f"步骤 [{step_name}] 第 {attempt} 次重试前恢复")
-                if not self.recovery.full_recover():
-                    self.log_info(f"步骤 [{step_name}] 无法恢复，停止重试")
-                    return False
-                self._sleep(self.recovery.recover_wait)
-            if step_func():
-                return True
-            self.log_info(f"步骤 [{step_name}] 失败")
-        return False
 
     # 业务步骤
     def enter_target_scene(self) -> bool: ...
