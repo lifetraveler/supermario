@@ -439,58 +439,6 @@
               },
               "tasks": [
                 {
-                  "type": "Claim Buy Center Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Leader Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Train Soldier",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Bank Save",
-                  "enabled": true,
-                  "params": {
-                    "bankdays": "0"
-                  },
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Golden Refine",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
                   "type": "Claim Warehouse Reward",
                   "enabled": true,
                   "params": {},
@@ -498,66 +446,6 @@
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Gather Island Water",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 1,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Punish Claim",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Tech Donate",
-                  "enabled": true,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 1800,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Mail Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "League Reward Box",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Pet Treasure Hunt",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
                   "cron": ""
                 },
                 {
@@ -657,9 +545,121 @@
                     "auto_recall": false,
                     "min_stamina": 0
                   },
-                  "count": 9,
+                  "count": 10,
                   "max_active": 1,
                   "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Golden Refine",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Punish Claim",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "League Tech Donate",
+                  "enabled": false,
+                  "params": {},
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 1800,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Mail Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Train Soldier",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Leader Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "League Reward Box",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Bank Save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "0"
+                  },
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Island Water",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 1,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Pet Treasure Hunt",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Buy Center Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
                   "one_shot": false,
                   "cron": ""
                 }

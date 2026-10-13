@@ -677,6 +677,60 @@
       "file_name": "112.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 161,
+      "file_name": "113.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 162,
+      "file_name": "114.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 163,
+      "file_name": "115.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 164,
+      "file_name": "116.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 165,
+      "file_name": "117.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 166,
+      "file_name": "118.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 167,
+      "file_name": "119.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 168,
+      "file_name": "120.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 169,
+      "file_name": "121.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -3565,6 +3619,32 @@
       ],
       "area": 93916,
       "iscrowd": 0
+    },
+    {
+      "id": 223,
+      "image_id": 159,
+      "category_id": 223,
+      "bbox": [
+        566,
+        643,
+        33,
+        98
+      ],
+      "area": 3234,
+      "iscrowd": 0
+    },
+    {
+      "id": 224,
+      "image_id": 169,
+      "category_id": 225,
+      "bbox": [
+        402,
+        540,
+        104,
+        74
+      ],
+      "area": 7696,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -4676,6 +4756,16 @@
     {
       "id": 222,
       "name": "city_daily_free_reward_mask_area",
+      "supercategory": ""
+    },
+    {
+      "id": 223,
+      "name": "global_button_tasklist_close",
+      "supercategory": ""
+    },
+    {
+      "id": 225,
+      "name": "global_task_list_click_jump_potion_need_handle",
       "supercategory": ""
     }
   ]

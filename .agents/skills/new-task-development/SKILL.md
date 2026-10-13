@@ -531,7 +531,7 @@ _go_to_event_object 的 forward 检索
 
 - **与巨兽的差异**：
   - 不用 `MonsterSearcher`，改用道具触发恐狼刷新。
-  - 新增 `_ensure_main_scene()`：按 ESC 兜底回主界面（幂等）。
+  - 新增 `_ensure_main_scene()`：按 ESC 兜底回主界面（幂等）,这个直接调用父类的方法即可，默认不需要子类重新实现。
   - `_use_scare_wolf_claw()`：背包 → 其他标签 → 点狼爪 → 使用 → 等世界资源界面。
   - `Rally` 完全复用。
 - **注册**：不可并行 `count=1`，`max_active=1`，无级别 params。

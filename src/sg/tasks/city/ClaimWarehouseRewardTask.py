@@ -40,6 +40,7 @@ from src.sg.scene.elements import (
     CITY_TASK_LIST_WAREHOUSE_ENTRY,
     CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
     GLOBAL_TASK_LIST_DOWN_EDGE,
+    GLOBAL_TASK_LIST_CLICK_JUMP_POTION_NEED_HANDLE
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -104,28 +105,10 @@ class ClaimWarehouseRewardTask(SGBaseTask):
         self.recovery = RecoveryHelper(self, popup=self.popup)
 
     # ========================================================
-    # 步骤 1：回到主界面（城市 / 世界地图）
+    # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）父级方法
     # ========================================================
 
-    def _ensure_main_scene(self) -> bool:
-        """
-        确保处于主界面。主界面定义为 CITY 或 WORLD_MAP。
-        否则连按 ESC 直到回到主界面。
-        """
-        for _ in range(5):
-            scene = self.scene_detector.detect()
-            self.log_info(f"当前场景: {scene.type.value}")
 
-            if scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
-                self.log_info("已在主界面")
-                return True
-
-            self.log_info("不在主界面，按 ESC 返回")
-            self.recovery._try_press_esc()
-            self._sleep(1.0)
-
-        self.log_error("无法返回主界面")
-        return False
 
     # ========================================================
     # 步骤 2：展开任务列表 → 滚动检索仓库入口
@@ -184,7 +167,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
         self.log_error("滚动查找仓库奖励入口失败")
         return False
 
-    def _claim_via_entry(self) -> bool:
+    def _claim_via_entry(self,scene) -> bool:
         """点击仓库入口（点击即领取），等待领取成功界面出现。"""
         if not self._wait_and_click_all_screen(
             CITY_TASK_LIST_WAREHOUSE_ENTRY, timeout=2.0,
@@ -192,18 +175,31 @@ class ClaimWarehouseRewardTask(SGBaseTask):
             self.log_info("未找到仓库奖励入口按钮")
             return False
         self._sleep(2.0)
-
-        if not self._wait_element(
-            CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
-            timeout=self.reward_time_timeout,
-            threshold=0.8,
-            with_recovery=False,
-        ):
-            self.log_info("点击入口后未进入领取成功界面")
-            return False
+        if scene.type=='world_map':
+            if not self._wait_element(
+                CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
+                timeout=self.reward_time_timeout,
+                threshold=0.8,
+                with_recovery=False,
+            ):
+                self.log_info("点击入口后未进入领取成功界面")
+                return False
+        if scene.type=='city':
+            self._wait_and_click_direct(
+                GLOBAL_TASK_LIST_CLICK_JUMP_POTION_NEED_HANDLE
+            )
+            self.sleep(1.5)
+            if not self._wait_element(
+                CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
+                timeout=self.reward_time_timeout,
+                threshold=0.8,
+                with_recovery=False,
+            ):
+                self.log_info("点击入口后未进入领取成功界面")
+                return False
         return True
 
-    def _enter_and_claim(self) -> bool:
+    def _enter_and_claim(self,scene) -> bool:
         """开列表 → 滚动检索 → 点入口领取。
 
         列表到底且无入口 → 不允许领取，返回 False（不重试）。
@@ -214,7 +210,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
         if not self._scroll_find_warehouse_entry():
             return False
 
-        return self._claim_via_entry()
+        return self._claim_via_entry(scene)
 
     # ========================================================
     # 步骤 3：OCR 下次领取时间
@@ -308,15 +304,16 @@ class ClaimWarehouseRewardTask(SGBaseTask):
         self.popup.close_all()
 
         # ---- 回到主界面 ----
-        if not self._step(self._ensure_main_scene, "回到主界面"):
+        success,scene = self._ensure_main_scene()
+        if not success:
             self.last_error = "回到主界面失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
+            return (InteractionResult.FAILED, 0)  
 
         # ---- 开列表 → 滚动检索 → 点入口领取 ----
         # 失败不重试：滑到底未见入口属"不允许领取"，重扫无意义；
         # _step 的恢复重试只会导致重复整轮滑动，这里直接判 FAILED。
-        if not self._enter_and_claim():
+        if not self._enter_and_claim(scene):
             self.last_error = "任务列表未检索到仓库奖励入口或领取失败"
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)

@@ -74,28 +74,10 @@ class LeaderRewardTask(SGBaseTask):
 
 
     # ========================================================
-    # 步骤 1：回到主界面（城市 / 世界地图）
+    # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
     # ========================================================
 
-    def _ensure_main_scene(self) -> bool:
-        """
-        确保处于主界面。主界面定义为 CITY 或 WORLD_MAP。
-        否则连按 ESC 直到回到主界面。
-        """
-        for _ in range(5):
-            scene = self.scene_detector.detect()
-            self.log_info(f"当前场景: {scene.type.value}")
 
-            if scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
-                self.log_info("已在主界面")
-                return True
-
-            self.log_info("不在主界面，按 ESC 返回")
-            self.recovery._try_press_esc()
-            self._sleep(1.0)
-
-        self.log_error("无法返回主界面")
-        return False
 
     # ========================================================
     # 步骤 2：进入统帅界面
@@ -209,10 +191,11 @@ class LeaderRewardTask(SGBaseTask):
         self.popup.close_all()
 
         # ---- 回到主界面 ----
-        if not self._step(self._ensure_main_scene, "回到主界面"):
+        success,scene = self._ensure_main_scene()
+        if not success:
             self.last_error = "回到主界面失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
+            return (InteractionResult.FAILED, 0)  
 
         # ---- 进入统帅界面 ----
         if not self._step(self._open_leader_page, "进入统帅界面"):

@@ -3,9 +3,11 @@ import types # 导入这个模块
 
 from src.scheduler.task_status import InteractionResult, TaskStatus
 from src.sg.scene.scene_detector import SceneDetector
-from src.sg.helper.recovery import RecoveryAbort  # 按实际模块路径调整
+from src.sg.element.overall.activity.popup import ActivityPopup
+from src.sg.helper.recovery import RecoveryAbort,RecoveryHelper  # 按实际模块路径调整
 from src.tasks.MyBaseTask import MyBaseTask
-
+from src.sg.scene.scene_type import SceneType
+from src.sg.scene.elements import (GLOBAL_BUTTON_TASKLIST_CLOSE)
 class TaskRestartRequested(Exception):
     """
     任务需要从头重新执行。
@@ -108,6 +110,8 @@ class SGBaseTask(MyBaseTask):
         self.next_retry_time = 0.0             # 下次可重试时间戳
         self.finished_at = None                # 实际完成时间戳
         self.last_error = None                 # 最后一次失败原因
+        self.popup = ActivityPopup(self)
+        self.recovery = RecoveryHelper(self, popup=self.popup)
 
 
         # ====================================================
@@ -516,7 +520,67 @@ class SGBaseTask(MyBaseTask):
                 self._sleep(wait_seconds)
 
         return success
+    
+    # 直接点击元素位置，不需要去匹配特征
+    def _wait_and_click_direct(
+        self,
+        element,
+        name=None,
+        timeout=None,
+        interval=None,
+        threshold=0.8,
+        after_click_wait=None,
+        with_recovery=True,
+        box=None,
+        use_gray_scale=False,
+    ) -> bool:
+        """
+        _wait_element 的语法糖 + 点击。
 
+        流程：
+          1. 调用 _wait_element 等元素出现
+          2. 出现后调用 self.click 点击
+          3. 点击后短暂等待 after_click_wait，让下一步的帧更新
+
+
+        参数里 name 是点击动作的日志名，默认用 element.name。
+        after_click_wait 默认用 self.after_click_wait。
+
+        返回：
+          True  —— 找到并点击成功
+          False —— 未找到，或 click 返回 False
+
+        可能抛：
+          TaskRestartRequested —— 从 _wait_element 透传上来。
+          本方法不捕获，交给 TaskQueue 处理。
+        """
+        box = self._safe_box(
+            element
+        )
+
+        if box is None:
+            self.log_info(f"未找到元素，无法点击: {element.name}")
+            return False
+
+        click_name = name or box.name
+        self.log_info(f"点击元素: {click_name}")
+
+        success = self.click(
+            box,
+            name=click_name,
+        )
+
+        if success:
+            wait_seconds = (
+                self.after_click_wait
+                if after_click_wait is None
+                else after_click_wait
+            )
+            if wait_seconds > 0:
+                self._sleep(wait_seconds)
+
+        return success
+    
     def _wait_and_click_all_screen(self,
         element,
         name=None,
@@ -611,3 +675,29 @@ class SGBaseTask(MyBaseTask):
             f"等待场景超时，当前场景: {scene.type.value}"
         )
         return False
+ 
+    # ========================================================
+    # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
+    # ========================================================
+
+    def _ensure_main_scene(self) :
+        """
+        确保处于主界面。主界面定义为 CITY 或 WORLD_MAP。
+        否则连按 ESC 直到回到主界面。
+        """
+        for _ in range(5):
+            scene = self.scene_detector.detect()
+            self.log_info(f"当前场景: {scene.type.value}")
+
+            if scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
+                self.log_info("已在主界面")
+                # 如果发现有展开的tasklist元素，则点击收缩
+                self._wait_and_click(GLOBAL_BUTTON_TASKLIST_CLOSE,with_recovery=False,timeout=2.0)
+                return True,scene
+
+            self.log_info("不在主界面，按 ESC 返回")
+            self.recovery._try_press_esc()
+            self._sleep(1.0)
+
+        self.log_error("无法返回主界面")
+        return False ,None   

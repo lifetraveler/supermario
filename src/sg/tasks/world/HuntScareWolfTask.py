@@ -120,7 +120,7 @@ class HuntScareWolfTask(SGBaseTask):
             self._sleep(1.0)
 
     # ========================================================
-    # 步骤 1：回到主界面（城市 / 世界地图）
+    # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
     # ========================================================
 
     def _ensure_main_scene(self) -> bool:
@@ -250,10 +250,11 @@ class HuntScareWolfTask(SGBaseTask):
             return (InteractionResult.FAILED, 0)
 
         # ---- 回到主界面 ----
-        if not self._step(self._ensure_main_scene, "回到主界面"):
+        success,scene = self._ensure_main_scene()
+        if not success:
             self.last_error = "回到主界面失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
+            return (InteractionResult.FAILED, 0)  
 
         # ---- 使用狼爪（含跳转到世界资源界面）----
         if not self._step(self._use_scare_wolf_claw, "使用狼爪"):

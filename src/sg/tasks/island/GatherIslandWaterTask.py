@@ -92,7 +92,7 @@ class GatherIslandWaterTask(SGBaseTask):
 
 
     # ========================================================
-    # 步骤 1：回到主界面（城市 / 世界地图）
+    # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
     # ========================================================
 
     def _ensure_main_scene(self) -> bool:
@@ -289,10 +289,11 @@ class GatherIslandWaterTask(SGBaseTask):
         self.popup.close_all()
 
         # ---- 回到主界面 ----
-        if not self._step(self._ensure_main_scene, "回到主界面"):
+        success,scene = self._ensure_main_scene()
+        if not success:
             self.last_error = "回到主界面失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)
+            return (InteractionResult.FAILED, 0)  
 
         # ---- 进入海岛 ----
         if not self._step(self._enter_island, "进入海岛"):
@@ -316,10 +317,11 @@ class GatherIslandWaterTask(SGBaseTask):
         if not self._step(self._claim_gather_reward, "领取采水奖励",with_recovery=False):
             self.log_info("领取采水奖励失败，不影响采水结果")
             
-        if not self._step(self._ensure_main_scene, "回到主界面"):
+        success,scene = self._ensure_main_scene()
+        if not success:
             self.last_error = "回到主界面失败"
             self.log_error(self.last_error)
-            return (InteractionResult.FAILED, 0)        
+            return (InteractionResult.FAILED, 0)          
         self.log_info("========== 岛屿采水完成 ==========")
         return (InteractionResult.SUCCESS, 0)
 

@@ -893,6 +893,11 @@ GLOBAL_TAG_MARCH_BUTTON_GET_NEXT = SceneElement(
     resource_id="global_tag_march_button_get_next",
     desc="讨伐：弹窗下一层领取按钮",
 )
+GLOBAL_BUTTON_TASKLIST_CLOSE = SceneElement(
+    name="global_button_tasklist_close",
+    resource_id="global_button_tasklist_close",
+    desc="tasklist弹出框关闭按钮",
+)
 
 # ============================================================
 # 统帅领取奖励（Leader Reward）
@@ -1405,6 +1410,11 @@ GLOBAL_TASK_LIST_DOWN_EDGE = SceneElement(
     desc="仓库奖励：任务列表滑到底部标志",
 )
 
+GLOBAL_TASK_LIST_CLICK_JUMP_POTION_NEED_HANDLE = SceneElement(
+    name="global_task_list_click_jump_potion_need_handle",
+    resource_id="global_task_list_click_jump_potion_need_handle",
+    desc="任务列表跳转后提示点击的位置",
+)
 
 # ============================================================
 # 储值中心每日免费奖励（Claim Buy Center Reward）
