@@ -99,7 +99,7 @@ class BankSaveTask(SGBaseTask):
             return (InteractionResult.FAILED, 0)  
 
         # ---- 同步参数到领域对象 ----
-        self.bank.bankdays = self.bankdays
+        self.bank.bankdays = int(self.bankdays)
 
         # ---- 进入超值活动 ----
         if not self._step(self.bank.open_activity, "进入超值活动"):
@@ -114,7 +114,7 @@ class BankSaveTask(SGBaseTask):
             return (InteractionResult.FAILED, 0)
 
         # ---- 选择存期 ----
-        if not self._step(self.bank.pick_save_days, "选择存期"):
+        if not self._step(self.bank.pick_save_days, "选择存期",with_recovery=False):
             self.last_error = "选择存期失败"
             self.log_error(self.last_error)
             return (InteractionResult.FAILED, 0)

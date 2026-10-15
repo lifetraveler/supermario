@@ -95,22 +95,6 @@ class GatherIslandWaterTask(SGBaseTask):
     # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
     # ========================================================
 
-    def _ensure_main_scene(self) -> bool:
-        for _ in range(5):
-            scene = self.scene_detector.detect()
-            self.log_info(f"当前场景: {scene.type.value}")
-
-            if scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
-                self.log_info("已在主界面")
-                return True
-
-            self.log_info("不在主界面，按 ESC 返回")
-            self.recovery._try_press_esc()
-            self._sleep(1.0)
-
-        self.log_error("无法返回主界面")
-        return False
-
     # ========================================================
     # 步骤 2：展开任务列表 → 滚动查找海岛入口 → 进入海岛
     # ========================================================

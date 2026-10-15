@@ -439,43 +439,13 @@
               },
               "tasks": [
                 {
-                  "type": "Claim Buy Center Reward",
+                  "type": "League Tech Donate",
                   "enabled": true,
                   "params": {},
-                  "count": 1,
+                  "count": 0,
                   "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Leader Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Train Soldier",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
+                  "next_trigger_delay": 1800,
                   "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Bank Save",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
                   "cron": ""
                 },
                 {
@@ -485,26 +455,6 @@
                   "count": 1,
                   "max_active": 1,
                   "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Warehouse Reward",
-                  "enabled": true,
-                  "params": {},
-                  "count": 10,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Gather Island Water",
-                  "enabled": true,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 1,
                   "one_shot": true,
                   "cron": ""
                 },
@@ -519,16 +469,6 @@
                   "cron": ""
                 },
                 {
-                  "type": "League Tech Donate",
-                  "enabled": true,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 1800,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
                   "type": "Claim Mail Reward",
                   "enabled": true,
                   "params": {},
@@ -536,6 +476,26 @@
                   "max_active": 1,
                   "next_trigger_delay": 86400,
                   "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Train Soldier",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Leader Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
                   "cron": ""
                 },
                 {
@@ -559,17 +519,71 @@
                   "cron": ""
                 },
                 {
-                  "type": "Cesare Fight",
-                  "enabled": false,
+                  "type": "Claim Buy Center Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Warehouse Reward",
+                  "enabled": true,
+                  "params": {},
+                  "count": 10,
+                  "max_active": 1,
+                  "next_trigger_delay": 600,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Bank Save",
+                  "enabled": true,
                   "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "stamina_wait_seconds": 3600
+                    "bankdays": "7"
                   },
-                  "count": 8,
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Island Water",
+                  "enabled": true,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 1,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Monster Troop",
+                  "enabled": true,
+                  "params": {
+                    "monster_level": 1,
+                    "auto_recall": false,
+                    "min_stamina": 0
+                  },
+                  "count": 3,
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Resource Troop",
+                  "enabled": false,
+                  "params": {
+                    "team_group_name": "0"
+                  },
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 86400,
+                  "one_shot": true,
                   "cron": ""
                 },
                 {
@@ -592,19 +606,6 @@
                   },
                   "count": 6,
                   "max_active": 2,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Hunt Elite Rebels Troop",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 0,
-                  "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
                   "cron": ""
@@ -636,25 +637,159 @@
                   "cron": ""
                 },
                 {
-                  "type": "Gather Resource Troop",
+                  "type": "Cesare Fight",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0,
+                    "stamina_wait_seconds": 3600
+                  },
+                  "count": 8,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Elite Rebels Troop",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                }
+              ]
+            },
+            {
+              "user_id": 10,
+              "enabled": false,
+              "queue": {
+                "tick_interval": 1,
+                "continue_after_failure": true
+              },
+              "tasks": [
+                {
+                  "type": "Bank Save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "7"
+                  },
+                  "count": 1,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Island Water",
                   "enabled": false,
                   "params": {},
                   "count": 1,
                   "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 36000,
+                  "one_shot": false,
                   "cron": ""
                 },
                 {
-                  "type": "Hunt Monster Troop",
+                  "type": "Claim Mail Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Warehouse Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 0,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Golden Refine",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Stamina",
                   "enabled": false,
                   "params": {
-                    "monster_level": 1,
+                    "claim_cooldown": 3600
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Elite Rebels Troop",
+                  "enabled": false,
+                  "params": {
                     "auto_recall": false,
                     "min_stamina": 0
                   },
-                  "count": 9,
+                  "count": 0,
                   "max_active": 1,
+                  "requires_march_queue": true,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "League Tech Donate",
+                  "enabled": false,
+                  "params": {},
+                  "count": 0,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 9000,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Buy Center Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "requires_march_queue": false,
+                  "next_trigger_delay": 86400,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Cesare Fight",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0,
+                    "stamina_wait_seconds": 3600
+                  },
+                  "count": 1,
+                  "max_active": 1,
+                  "requires_march_queue": true,
                   "next_trigger_delay": 0,
                   "one_shot": false,
                   "cron": ""

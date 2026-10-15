@@ -106,25 +106,7 @@ class ClaimStaminaTask(SGBaseTask):
     # 步骤 1：回到主界面（城市 / 世界地图，统一使用父级方法）
     # ========================================================
 
-    def _ensure_main_scene(self) :
-        """
-        确保处于主界面。主界面定义为 CITY 或 WORLD_MAP。
-        否则连按 ESC 直到回到主界面。
-        """
-        for _ in range(5):
-            scene = self.scene_detector.detect()
-            self.log_info(f"当前场景: {scene.type.value}")
 
-            if scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
-                self.log_info("已在主界面")
-                return True,scene
-
-            self.log_info("不在主界面，按 ESC 返回")
-            self.recovery._try_press_esc()
-            self._sleep(1.0)
-
-        self.log_error("无法返回主界面")
-        return False,None
 
     # ========================================================
     # 步骤 2：主界面 → 用户界面 → 体力领取界面

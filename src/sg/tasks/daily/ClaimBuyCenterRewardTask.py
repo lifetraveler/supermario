@@ -235,11 +235,6 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
             return False
 
         for round_no in range(1, self.claim_rounds_max + 1):
-            # 退出条件：两侧红点均检索不到
-            if not self._has_unclaimed_mark(area_box):
-                self.log_info("未领取标记已全部消失，领取完成")
-                return True
-
             self.log_info(f"---- 领取轮次 #{round_no} ----")
 
             # 识别当前礼包
@@ -269,7 +264,10 @@ class ClaimBuyCenterRewardTask(SGBaseTask):
                               area_box=area_box, with_recovery=False):
                 self.log_info("翻页失败（红点可能刚被领取消失），结束循环")
                 return True
-
+                        # 退出条件：两侧红点均检索不到
+            if not self._has_unclaimed_mark(area_box):
+                self.log_info("未领取标记已全部消失，领取完成")
+                return True
         self.log_info("达到轮数上限，结束领取")
         return True
 

@@ -899,6 +899,14 @@ GLOBAL_BUTTON_TASKLIST_CLOSE = SceneElement(
     desc="tasklist弹出框关闭按钮",
 )
 
+
+GLOBAL_MARCH_TITLE_ARROW_DOWN = SceneElement(
+    name="global_march_title_arrow_down",
+    resource_id="global_march_title_arrow_down",
+    desc="行军队列展开状态，点击收起",
+)
+
+
 # ============================================================
 # 统帅领取奖励（Leader Reward）
 # ============================================================

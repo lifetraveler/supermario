@@ -155,7 +155,7 @@ class Bank:
         screen_h = self.task.height
         center_x, center_y = area_box.center()
         # 区域中心与跨度：像素 → 屏幕相对 0~1（swipe_relative 语义）
-        rel_cx = center_x / screen_w
+        rel_cx = (center_x+(area_box.width/4)) / screen_w
         rel_cy = center_y / screen_h
         rel_span = (area_box.width * self.scroll_step) / screen_w
         from_x = rel_cx + rel_span / 2
@@ -192,7 +192,7 @@ class Bank:
 
     def pick_save_days(self) -> bool:
         """按 bankdays 点击对应存期标签。"""
-        element = self.SAVE_DAY_ELEMENTS.get(self.bankdays)
+        element = self.SAVE_DAY_ELEMENTS.get(int(self.bankdays))
         if element is None:
             self.task.log_error(
                 f"无效的存期参数 bankdays={self.bankdays}，"

@@ -159,7 +159,7 @@ class HuntEliteRebelsTask(SGBaseTask):
         self._sleep(0.5)
 
         # 点击"使用"
-        if not self._wait_and_click(
+        if not self._wait_and_click_all_screen(
             ITEM_SCARE_WOLF_CLAW_BUTTON_USE, name="道具-使用按钮",
             timeout=2.0,
         ):

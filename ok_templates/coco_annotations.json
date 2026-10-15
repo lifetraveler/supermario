@@ -731,6 +731,12 @@
       "file_name": "121.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 170,
+      "file_name": "122.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -2975,12 +2981,12 @@
       "image_id": 133,
       "category_id": 100,
       "bbox": [
-        109,
-        1052,
-        230,
-        59
+        180,
+        1060,
+        104,
+        45
       ],
-      "area": 13570,
+      "area": 4680,
       "iscrowd": 0
     },
     {
@@ -2988,12 +2994,12 @@
       "image_id": 133,
       "category_id": 174,
       "bbox": [
-        552,
-        1056,
-        204,
-        51
+        605,
+        1060,
+        108,
+        45
       ],
-      "area": 10404,
+      "area": 4860,
       "iscrowd": 0
     },
     {
@@ -3001,12 +3007,12 @@
       "image_id": 133,
       "category_id": 175,
       "bbox": [
-        122,
+        171,
         1483,
-        212,
+        114,
         45
       ],
-      "area": 9540,
+      "area": 5130,
       "iscrowd": 0
     },
     {
@@ -3014,12 +3020,12 @@
       "image_id": 133,
       "category_id": 176,
       "bbox": [
-        546,
-        1481,
-        216,
-        51
+        616,
+        1485,
+        84,
+        47
       ],
-      "area": 11016,
+      "area": 3948,
       "iscrowd": 0
     },
     {
@@ -3644,6 +3650,19 @@
         74
       ],
       "area": 7696,
+      "iscrowd": 0
+    },
+    {
+      "id": 225,
+      "image_id": 170,
+      "category_id": 224,
+      "bbox": [
+        19,
+        254,
+        97,
+        30
+      ],
+      "area": 2910,
       "iscrowd": 0
     }
   ],
@@ -4761,6 +4780,11 @@
     {
       "id": 223,
       "name": "global_button_tasklist_close",
+      "supercategory": ""
+    },
+    {
+      "id": 224,
+      "name": "global_march_title_arrow_down",
       "supercategory": ""
     },
     {
