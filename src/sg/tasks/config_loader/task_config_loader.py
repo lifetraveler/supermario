@@ -70,6 +70,7 @@ def pick_active_user(doc):
     raise TaskConfigError("没有任何 enabled 的 machine/app/user 链")
 
 
+
 def parse_document(doc):
     """
     解析为运行时结构：
@@ -79,6 +80,14 @@ def parse_document(doc):
         "task_types": {type: 规范化定义, …},
         "tasks":  [规范化实例条目, …],
       }
+
+    定义段新增字段：
+      id                任务唯一标记，实例条目通过它引用定义段，
+                        也是 task_excute_time.json 的统计 key。
+      estimated_seconds 任务预估处理时间（秒），预留字段，默认 0 = 未知。
+
+    实例条目引用方式：优先 id；旧文件写 type 仍兼容（反查定义段补 id），
+    两者同时给出且不一致时启动即抛。
     """
     trail_m, trail_a, trail_u, trail = pick_active_user(doc)
     user = trail_u
@@ -103,6 +112,7 @@ def parse_document(doc):
     if not isinstance(raw_types, list) or not raw_types:
         raise TaskConfigError("task_types 缺失或为空")
     task_types = {}
+    id_index = {}
     for t in raw_types:
         if not isinstance(t, dict):
             raise TaskConfigError("task_types 条目必须是对象")
@@ -111,6 +121,16 @@ def parse_document(doc):
             raise TaskConfigError(f"task_types 缺 type: {t!r}")
         if ttype in task_types:
             raise TaskConfigError(f"task type 重复: {ttype!r}")
+        tid = t.get("id")
+        if not tid or not isinstance(tid, str):
+            raise TaskConfigError(f"{ttype}.id 必须是非空字符串: {tid!r}")
+        if tid in id_index:
+            raise TaskConfigError(f"task id 重复: {tid!r}")
+        estimated = t.get("estimated_seconds", 0)
+        if isinstance(estimated, bool) or not isinstance(estimated, (int, float)) or estimated < 0:
+            raise TaskConfigError(
+                f"{ttype}.estimated_seconds 必须是非负数: {estimated!r}"
+            )
         defaults = t.get("defaults")
         if not isinstance(defaults, dict):
             raise TaskConfigError(f"{ttype}.defaults 缺失")
@@ -138,25 +158,38 @@ def parse_document(doc):
                 "desc": p.get("desc", ""),
             }
         task_types[ttype] = {
+            "id": tid,
             "name_prefix": t.get("name_prefix") or ttype,
             "description": t.get("description") or ttype,
+            "estimated_seconds": float(estimated),
             "defaults": dict(defaults),
             "params": params,
         }
+        id_index[tid] = ttype
 
     # ---------------- 实例段 ----------------
     tasks_out = []
     for it in user.get("tasks") or []:
         if not isinstance(it, dict):
             raise TaskConfigError("tasks 条目必须是对象")
+        tid = it.get("id")
         ttype = it.get("type")
-        if ttype not in task_types:
-            raise TaskConfigError(f"tasks 引用了未定义的 type: {ttype!r}")
+        if tid:
+            if tid not in id_index:
+                raise TaskConfigError(f"tasks 引用了未定义的 id: {tid!r}")
+            resolved = id_index[tid]
+            if ttype and ttype != resolved:
+                raise TaskConfigError(
+                    f"tasks 条目 id={tid!r} 与 type={ttype!r} 不一致"
+                )
+            ttype = resolved
         meta = task_types[ttype]
         entry = {
+            "id": meta["id"],
             "type": ttype,
             "enabled": bool(it.get("enabled", False)),
             "name_prefix": meta["name_prefix"],
+            "estimated_seconds": meta["estimated_seconds"],
         }
         for k in OVERRIDABLE_KEYS:
             v = it.get(k)

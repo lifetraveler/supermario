@@ -12,6 +12,7 @@ TaskConfigEditorTab —— configs/task_config.json 的原生 GUI 编辑页（qf
 """
 import copy
 import json
+import re
 import shutil
 from pathlib import Path
 
@@ -73,6 +74,7 @@ def validate_doc(doc):
     if not isinstance(tt, list) or not tt:
         errs.append("task_types 缺失或为空")
     seen = set()
+    id_to_type = {}
     for i, t in enumerate(tt or []):
         w = f"task_types[{i}]"
         if not isinstance(t, dict):
@@ -84,6 +86,16 @@ def validate_doc(doc):
             errs.append(f'{w}: type 重复 "{t["type"]}"')
         else:
             seen.add(t["type"])
+        tid = t.get("id")
+        if not tid or not isinstance(tid, str):
+            errs.append(f"{w}: 缺 id 或 id 非字符串")
+        elif tid in id_to_type:
+            errs.append(f'{w}: id 重复 "{tid}"')
+        else:
+            id_to_type[tid] = t.get("type")
+        est = t.get("estimated_seconds", 0)
+        if isinstance(est, bool) or not isinstance(est, (int, float)) or est < 0:
+            errs.append(f"{w}.estimated_seconds 必须是非负数: {est!r}")
         d = t.get("defaults")
         if not isinstance(d, dict):
             errs.append(f"{w}.defaults 缺失")
@@ -132,12 +144,25 @@ def validate_doc(doc):
                     if not isinstance(t, dict):
                         errs.append(f"{mw} users[{ui_}] tasks[{ti}]: 必须是对象")
                         continue
-                    if t.get("type") not in seen:
+                    tid = t.get("id")
+                    ttype = t.get("type")
+                    if tid:
+                        if tid not in id_to_type:
+                            errs.append(
+                                f'{mw} users[{ui_}] tasks[{ti}]: 引用未定义 id "{tid}"')
+                        else:
+                            resolved = id_to_type[tid]
+                            if ttype and ttype != resolved:
+                                errs.append(
+                                    f'{mw} users[{ui_}] tasks[{ti}]: '
+                                    f'id "{tid}" 与 type "{ttype}" 不一致')
+                            ttype = resolved
+                    elif ttype not in seen:
                         errs.append(
-                            f'{mw} users[{ui_}] tasks[{ti}]: 引用未定义 type "{t.get("type")}"')
+                            f'{mw} users[{ui_}] tasks[{ti}]: 引用未定义 type "{ttype}"')
                     attrs = set()
                     for x in (tt or []):
-                        if isinstance(x, dict) and x.get("type") == t.get("type"):
+                        if isinstance(x, dict) and x.get("type") == ttype:
                             attrs = {p.get("attr") for p in (x.get("params") or [])
                                      if isinstance(p, dict)}
                             break
@@ -559,6 +584,15 @@ class TaskConfigEditorTab(CustomTab):
                 return t
         return None
 
+    def _task_def(self, task):
+        """实例条目 → 定义段：优先按 id 反查；旧条目退回 type 查找。"""
+        tid = task.get("id")
+        if tid:
+            for t in (self.doc or {}).get("task_types") or []:
+                if isinstance(t, dict) and t.get("id") == tid:
+                    return t
+        return self._type_def(task.get("type"))
+
     def _mark_dirty(self):
         self.dirty = True
         self._refresh_status()
@@ -742,15 +776,16 @@ class TaskConfigEditorTab(CustomTab):
 
     def _card_for(self, tasks, i, cards):
         task = tasks[i]
-        tt = self._type_def(task.get("type"))
+        tt = self._task_def(task)
         if not tt:
             bad = CardWidget()
             bad.setObjectName("_UnknownTypeCard")
             bl = QHBoxLayout(bad)
             bl.addWidget(BodyLabel(
-                f'未知类型: {task.get("type")}（定义缺失，运行会报错）'))
+                f'未知任务: id={task.get("id")!r} type={task.get("type")!r}'
+                f'（定义缺失，运行会报错）'))
             return bad
-        key = task.get("type")
+        key = task.get("id") or task.get("type")
         card = cards.get(key)
         if card is None:
             card = self._task_card(task, tt, i)
@@ -762,13 +797,15 @@ class TaskConfigEditorTab(CustomTab):
                 refresh()
         # 搜索过滤: 用 setVisible 而不是跳过, 保持缓存完整
         hay = " ".join(filter(None, [
-            tt.get("name_prefix"), task.get("type"), tt.get("description")])).lower()
+            tt.get("name_prefix"), task.get("id"), task.get("type"),
+            tt.get("description")])).lower()
         card.setVisible(not self.filter_text or self.filter_text.lower() in hay)
         return card
 
 
     def _task_card(self, task, tt, index):
-        key = (self.sel["m"], self.sel["a"], self.sel["u"], task.get("type"))
+        key = (self.sel["m"], self.sel["a"], self.sel["u"],
+               task.get("id") or task.get("type"))
         card = CardWidget()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(12, 10, 12, 10)
@@ -777,7 +814,7 @@ class TaskConfigEditorTab(CustomTab):
         # 头部：标题/描述/统计 + 启用开关 + 展开按钮
         head = QHBoxLayout()
         info = QVBoxLayout()
-        info.addWidget(StrongBodyLabel(tt.get("name_prefix") or task.get("type") or "?"))
+        info.addWidget(StrongBodyLabel(tt.get("name_prefix") or tt.get("type") or "?"))
         if tt.get("description"):
             desc = BodyLabel(tt["description"])
             desc.setWordWrap(False)
@@ -872,16 +909,18 @@ class TaskConfigEditorTab(CustomTab):
         return body
 
     def _task_stats(self, task, tt):
-        """卡片头部统计行。"""
+        """卡片头部统计行（瘦身条目缺失字段回退定义段默认）。"""
+        d = tt.get("defaults") or {}
+        eff = lambda k, dv: task.get(k, d.get(k, dv))
         bits = []
-        c = task.get("count", 0)
+        c = eff("count", 0)
         bits.append("次数不限" if c == 0 else f"{c} 次")
-        bits.append(f'并发 {task.get("max_active", 1)}')
-        bits.append("单次" if task.get("one_shot")
-                    else f'间隔 {task.get("next_trigger_delay", 0)}s')
-        if task.get("cron"):
+        bits.append(f'并发 {eff("max_active", 1)}')
+        bits.append("单次" if eff("one_shot", False)
+                    else f'间隔 {eff("next_trigger_delay", 0)}s')
+        if eff("cron", ""):
             bits.append("cron")
-        if task.get("requires_march_queue"):
+        if eff("requires_march_queue", False):
             bits.append("占队列")
         ps = []
         tparams = task.get("params") or {}
@@ -1112,11 +1151,10 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_dirty()
 
     def _reset_task(self, task, tt):
-        d = tt.get("defaults") or {}
+        # 瘦身条目：删掉覆盖字段即回退定义段默认
         for k in DEFAULT_KEYS:
-            task[k] = copy.deepcopy(d.get(k))
-        task["params"] = {pd.get("attr"): copy.deepcopy(pd.get("default"))
-                          for pd in tt.get("params") or [] if pd.get("attr")}
+            task.pop(k, None)
+        task["params"] = {}
         self._mark_dirty()
         self._refresh_tasks_page(keep_cards=True)
 
@@ -1127,7 +1165,7 @@ class TaskConfigEditorTab(CustomTab):
         arr = chain[2].get("tasks") or []
         if task in arr:
             arr.remove(task)
-        self._card_cache.pop(task.get("type"), None)
+        self._card_cache.pop(task.get("id") or task.get("type"), None)
         self._mark_dirty()
         self._refresh_tasks_page()
 
@@ -1135,9 +1173,9 @@ class TaskConfigEditorTab(CustomTab):
         chain = self._chain()
         if not chain or not self.doc:
             return
-        have = {t.get("type") for t in chain[2].get("tasks") or []}
+        have = {t.get("id") or t.get("type") for t in chain[2].get("tasks") or []}
         missing = [t for t in self.doc.get("task_types") or []
-                   if isinstance(t, dict) and t.get("type") not in have]
+                   if isinstance(t, dict) and (t.get("id") or t.get("type")) not in have]
         if not missing:
             InfoBar.warning("添加任务", "所有已定义类型均已添加",
                             parent=self.window(), duration=2500)
@@ -1150,17 +1188,9 @@ class TaskConfigEditorTab(CustomTab):
         tt = self._type_def(type_)
         if not tt:
             return
-        d = tt.get("defaults") or _new_type_defaults()
         user.setdefault("tasks", []).append({
-            "type": type_, "enabled": False,
-            "params": {pd.get("attr"): copy.deepcopy(pd.get("default"))
-                       for pd in tt.get("params") or [] if pd.get("attr")},
-            "count": d.get("count", 1), "max_active": d.get("max_active", 1),
-            "requires_march_queue": d.get("requires_march_queue", False),
-            "next_trigger_delay": d.get("next_trigger_delay", 0),
-            "one_shot": d.get("one_shot", False), "cron": d.get("cron") or "",
-        })
-        self.expanded.add((self.sel["m"], self.sel["a"], self.sel["u"], type_))
+            "id": tt.get("id"), "enabled": False, "params": {}})
+        self.expanded.add((self.sel["m"], self.sel["a"], self.sel["u"], tt.get("id")))
         self._mark_dirty()
         self._refresh_tasks_page()
 
@@ -1220,8 +1250,19 @@ class TaskConfigEditorTab(CustomTab):
         e_type = LineEdit()
         e_type.setText(tt.get("type") or "")
         e_type.setFixedWidth(220)
-        e_type.editingFinished.connect(lambda t=tt, e=e_type: self._rename_type(t, e.text()))
-        bl.addWidget(self._field_row("type", "类型标识（重命名会同步实例引用）", e_type))
+        e_id = LineEdit()
+        e_id.setText(tt.get("id") or "")
+        e_id.setFixedWidth(220)
+        e_id.editingFinished.connect(lambda t=tt, e=e_id: self._rename_id(t, e.text()))
+        bl.addWidget(self._field_row(
+            "id", "唯一标记：实例条目按它引用本定义，耗时统计也按它聚合", e_id))
+
+        e_est = LineEdit()
+        e_est.setText(str(tt.get("estimated_seconds", 0)))
+        e_est.setFixedWidth(220)
+        e_est.editingFinished.connect(lambda t=tt, e=e_est: self._set_estimated(t, e.text()))
+        bl.addWidget(self._field_row(
+            "预估耗时(秒)", "单次执行的预估处理时间，0 = 未知（预留字段）", e_est))
 
         e_np = LineEdit()
         e_np.setText(tt.get("name_prefix") or "")
@@ -1581,14 +1622,15 @@ class TaskConfigEditorTab(CustomTab):
             InfoBar.error("attr 重复", new_attr, parent=self.window(), duration=2500)
             return
         p["attr"] = new_attr
+        tid = tt.get("id")
         for m in self.doc.get("machines") or []:
             for a in m.get("apps") or []:
                 for u in a.get("users") or []:
                     for t in u.get("tasks") or []:
-                        params = t.get("params")
-                        if (t.get("type") == tt.get("type")
-                                and isinstance(params, dict) and old in params):
-                            params[new_attr] = params.pop(old)
+                        tparams = t.get("params")
+                        if ((t.get("id") == tid or t.get("type") == tt.get("type"))
+                                and isinstance(tparams, dict) and old in tparams):
+                            tparams[new_attr] = tparams.pop(old)
         self._mark_dirty()
         self._card_cache = {}
         self._refresh_tasks_page()
@@ -1606,18 +1648,19 @@ class TaskConfigEditorTab(CustomTab):
         if p in params:
             params.remove(p)
         attr = p.get("attr")
+        tid = tt.get("id")
         for m in self.doc.get("machines") or []:
             for a in m.get("apps") or []:
                 for u in a.get("users") or []:
                     for t in u.get("tasks") or []:
-                        params = t.get("params")
-                        if t.get("type") == tt.get("type") and isinstance(params, dict):
-                            params.pop(attr, None)
+                        tparams = t.get("params")
+                        if ((t.get("id") == tid or t.get("type") == tt.get("type"))
+                                and isinstance(tparams, dict)):
+                            tparams.pop(attr, None)
         self._mark_dirty()
         self._refresh_types_page()
         self._card_cache = {}
         self._refresh_tasks_page()
-
     def _rename_type(self, tt, new_type):
         new_type = (new_type or "").strip()
         old = tt.get("type")
@@ -1627,32 +1670,55 @@ class TaskConfigEditorTab(CustomTab):
                for x in self.doc.get("task_types") or [] if x is not tt):
             InfoBar.error("type 已存在", new_type, parent=self.window(), duration=2500)
             return
-        n = 0
+        # id 化后实例只按 id 引用定义段，type 重命名不再触碰实例条目
+        tt["type"] = new_type
+        self._mark_dirty()
+        self._refresh_types_page()
+        InfoBar.success("已重命名", new_type, parent=self.window(), duration=2500)
+
+    def _rename_id(self, tt, new_id):
+        new_id = (new_id or "").strip()
+        old = tt.get("id")
+        if not new_id or new_id == old:
+            return
+        if any(x.get("id") == new_id
+               for x in self.doc.get("task_types") or [] if x is not tt):
+            InfoBar.error("id 已存在", new_id, parent=self.window(), duration=2500)
+            return
+        tid_old = old
         for m in self.doc.get("machines") or []:
             for a in m.get("apps") or []:
                 for u in a.get("users") or []:
                     for t in u.get("tasks") or []:
-                        if t.get("type") == old:
-                            t["type"] = new_type
-                            n += 1
-        self.expanded_types.discard(("T", old))
-        tt["type"] = new_type
-        self.expanded_types.add(("T", new_type))
+                        if t.get("id") == tid_old:
+                            t["id"] = new_id
+        tt["id"] = new_id
         self._mark_dirty()
         self._refresh_types_page()
         self._card_cache = {}
         self._refresh_tasks_page()
-        InfoBar.success("已重命名", f"{new_type}（同步 {n} 处实例）",
-                        parent=self.window(), duration=2500)
+        InfoBar.success("已重命名 id", new_id, parent=self.window(), duration=2500)
+
+    def _set_estimated(self, tt, text):
+        try:
+            v = float(text)
+        except ValueError:
+            return
+        if v < 0:
+            return
+        tt["estimated_seconds"] = v
+        self._mark_dirty()
 
     def _delete_type(self, tt):
         n = 0
+        tid = tt.get("id")
         for m in self.doc.get("machines") or []:
             for a in m.get("apps") or []:
                 for u in a.get("users") or []:
                     before = len(u.get("tasks") or [])
                     u["tasks"] = [t for t in u.get("tasks") or []
-                                  if t.get("type") != tt.get("type")]
+                                  if (tid and t.get("id") == tid)
+                                  or (not tid and t.get("type") == tt.get("type"))]
                     n += before - len(u.get("tasks") or [])
         types = self.doc.get("task_types") or []
         if tt in types:
@@ -1677,8 +1743,16 @@ class TaskConfigEditorTab(CustomTab):
         if any(t.get("type") == type_ for t in self.doc.get("task_types") or []):
             InfoBar.error("type 已存在", type_, parent=self.window(), duration=2500)
             return
+        base_id = re.sub(r"[^a-zA-Z0-9]+", "_", type_).strip("_").lower() or "task"
+        nid = base_id
+        k = 1
+        existing = {t.get("id") for t in self.doc.get("task_types") or []}
+        while nid in existing:
+            k += 1
+            nid = f"{base_id}_{k}"
         self.doc.setdefault("task_types", []).append({
-            "type": type_, "name_prefix": type_, "description": "",
+            "type": type_, "id": nid, "name_prefix": type_, "description": "",
+            "estimated_seconds": 0,
             "defaults": _new_type_defaults(), "params": []})
         self.expanded_types.add(("T", type_))
         self._mark_dirty()

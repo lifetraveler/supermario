@@ -1,7 +1,7 @@
 import datetime
 import time
 import uuid
-
+from collections import deque
 from croniter import croniter
 
 from ok import Logger
@@ -36,6 +36,9 @@ class TaskFactory:
                           终态后按剩余次数自重排，不走 _create_follower
     cron                  定时任务 cron 表达式：trigger_time 由 cron 计算
                           下一次触发点，与 next_trigger_delay 互斥
+    type_id               任务类型标记（task_config.json 定义段 id），
+                          耗时统计按它聚合；None = 未配置（不参与统计）
+    estimated_seconds     任务预估处理时间（定义段预留字段，秒）
 
     =========================================================
     建立策略（配合 TaskQueue）
@@ -59,6 +62,8 @@ class TaskFactory:
         name_prefix=None,
         one_shot=False,
         cron=None,
+        type_id=None,
+        estimated_seconds=0.0,
     ):
         self.task_class = task_class
         self.count = count
@@ -69,6 +74,8 @@ class TaskFactory:
         self.name_prefix = name_prefix or task_class.__name__
         self.one_shot = bool(one_shot)
         self.cron = cron
+        self.type_id = type_id
+        self.estimated_seconds = float(estimated_seconds or 0)
         self.exhausted = False
         self.submitted = 0        # 已 create 的任务实例数（原语义）
         self.finished_count = 0   # 单实例复用型已消耗的执行次数
@@ -126,6 +133,7 @@ class TaskFactory:
         self.submitted += 1
         task.name = f"{self.name_prefix} #{self.submitted}"
         task.factory_key = self.key
+        task.type_id = self.type_id
         return task
 
 
@@ -206,6 +214,31 @@ class TaskQueue:
         #   作废，该类型停止。
         # 该值由 QueueTaskBase.run() 在构造队列时从 GUI 配置注入。
         self.continue_after_failure = True
+        # --------------------------------------------------------
+
+        # --------------------------------------------------------
+        # 执行耗时统计（5.4）：按 type_id 聚合的单次交互耗时样本。
+        # 计时点 = _do_interaction 里 RUNNING → 返回，
+        # 即一次真实交互（RETRY 等待间隔不计入）。
+        # 样本按工厂聚合，窗口 _SAMPLE_WINDOW 防无限 count 场景增长。
+        # 持久化由 QueueTaskBase 子类在 run() 收尾做（本类纯逻辑零 IO）。
+        # --------------------------------------------------------
+        self.execution_samples = {}   # {type_id: deque[float]}
+
+    _SAMPLE_WINDOW = 20
+
+    def _record_execution(self, task, seconds):
+        """
+        记录一次交互耗时样本。
+        type_id 缺失（未走 JSON 工厂的老任务）不统计。
+        """
+        tid = getattr(task, "type_id", None)
+        if not tid:
+            return
+        samples = self.execution_samples.setdefault(
+            tid, deque(maxlen=self._SAMPLE_WINDOW)
+        )
+        samples.append(float(seconds))
     # --------------------------------------------------------
 
     def start(self):
@@ -474,22 +507,28 @@ class TaskQueue:
         task.status = TaskStatus.RUNNING
         logger.info(f"TaskQueue interaction: {task.name}")
 
+        started_at = time.perf_counter()
         try:
             result, wait_seconds = task.run_interaction()
         except TaskRestartRequested as e:
             # 现场已不可信（例如恢复层 ESC 误触发退出游戏弹窗）。
             # 交给 _handle_restart_requested 决定重排还是失败。
+            self._record_execution(
+                task, time.perf_counter() - started_at)
             self.current_interaction = None
             self._handle_restart_requested(task, e)
             return
         except Exception as e:
             logger.error(f"TaskQueue exception: {task.name}", e)
+            self._record_execution(
+                task, time.perf_counter() - started_at)
             task.status = TaskStatus.FAILED
             task.last_error = str(e)
             self.current_interaction = None
             # one_shot / cron 也可能在这里终态，统一交给重排判定
             self._reschedule_for_next_run(task, time.time())
             return
+        self._record_execution(task, time.perf_counter() - started_at)
 
         self.current_interaction = None
 

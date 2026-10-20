@@ -187,7 +187,7 @@ configs/task_config.json
 configs/task_config.json
 ├─ version: 1
 ├─ task_types[]   定义段（等价于旧 registrations/reg_*.py）
-│    {type, name_prefix, description,
+│    {type, id, name_prefix, description, estimated_seconds,
 │     defaults{count,max_active,requires_march_queue,
 │               next_trigger_delay,one_shot,cron},
 │     params[{name,attr,default,widget,desc}]}
@@ -196,7 +196,7 @@ configs/task_config.json
       apps[{package, enabled,
             users[{user_id, enabled,  ← adb --user 预留，未消费
                    queue{tick_interval,continue_after_failure},
-                   tasks[{type,enabled,params,...覆盖字段}]}]}]}
+                   tasks[{id,enabled,params,...覆盖字段}]}]}]}
 ```
 
 ### 7.3 新增一种任务的三个动作
@@ -235,6 +235,8 @@ configs/task_config.json
 | 2026-10-04 | u2 3.7.0 兼容修复（真机联调发现）：① `_gesture` 打包规则——点序列手势（swipe_points/two_finger_gesture）的坐标必须打包成**单个元组参数**或**每点一个元组**下发，禁止拍平成标量位置参数（会顶掉后面的 duration 形参报 got multiple values）；② `ADBInteraction.pinch_in/out` 改走 `u2()` 根 UiObject（u2 3.x 把 pinch 从 Device 挪到 UiObject，但 server 端 pinchIn/pinchOut RPC 仍在，真机验证可用）；③ `two_finger_gesture` 的 `gesture` RPC 已被 u2 server 移除（-32601），改为从四点向量推导 pinch_in/pinch_out（跨度收拢=捏合/撑开=张开，percent 按跨度比折算），非缩放双指轨迹不再支持 | swipe/drag/long_click/double_click/swipe_points 调用面不变；two_finger_gesture 语义收窄为缩放类双指；真机 127.0.0.1:16416 全部 11 项手势验证通过 |
 | 2026-10-08 | 注册机制 JSON 化：业务定义从 `registrations/reg_*.py`（15 个文件 + `register_task_type`/`TASK_REGISTRY`）外置为 `configs/task_config.json` 单文件双段（`task_types` 定义段 + `machines` 实例段，多设备/多应用/多分身 schema 预留 `adb_serial`/`user_id`，本期只消费第一条 enabled 链）。新增 `task_type_map.TASK_TYPE_MAP`（type→类，代码侧唯一映射）与 `config_loader/`（解析 + 覆盖链 task→defaults→params.default + 启动即抛 `TaskConfigError`）；`UnifiedQueue` 直接继承 `QueueTaskBase` 并覆写 `_queue_global_params()` 钩子（基类默认仍读 GUI 配置），`GenericQueueTask` 注册表删除；用户在旧面板的调值（Hunt Monster count=10 等）由迁移脚本写入实例段，`Expanded` 展示态丢弃 | 调度器（TaskQueue/TaskFactory）零改动；JSON 驱动的工厂经冒烟验证 10/10 任务 DONE；老 GUI 配置 UnifiedQueue.json 废弃删除；webui 只需读写 task_config.json |
 | 2026-10-15 | 分身用户启动支持：`DeviceManager.adb_start_package(package, user_id=None)` 双分支——None/0 走原 monkey（100% 兼容），非零走 `pm list users` 状态检查（未运行 `am start-user` 拉起）→ `cmd package resolve-activity --user` 解析启动 Activity → `am start --user -n`（monkey 不支持 --user，参考 src/sg/test.py）；新增 `adb_stop_package`（`am force-stop [--user]`）、`adb_ensure_user_running`、`adb_resolve_launch_activity`；`DeviceManager` 新增 `self.user_id`（默认 0，`__init__`/`update_capture`/`ensure_capture` 从 adb 配置读取）。`config_loader` 生效链解析 `package`/`user_id`/`after_done_user_id`（非负整数校验，缺省 0）存入 `app_info`；`src/config.py` 启动时把生效链 `user_id` 注入 adb 配置（解析失败回退 0 不阻断）。`QueueTaskBase.run()` 收尾新增 `_after_queue_done()` 钩子（仅 all_done 且非用户停止时触发，异常只记日志；默认空操作）；`UnifiedQueue` 覆写：`after_done_user_id` 非 0 且 ≠ 当前 user 时 `force-stop` 关当前应用 → `am start --user` 启动目标用户，成功后更新 `dm.user_id` 跟随新用户 | 全部新增配置默认 0=关闭，默认行为与原来完全一致；monkey 老路径 100% 兼容；非 ADB 环境/分身未安装时记日志跳过不阻断 |
+| 2026-10-20 | 任务唯一 id（5.3）：`task_types[]` 每条新增 `id`（snake_case 唯一标记）与 `estimated_seconds`（预估单次处理秒数，默认 0=未知，预留）。实例条目改为按 id 引用定义段（`{id, enabled, params{仅覆盖值}}`），count/max_active/one_shot/cron 等与默认一致的覆盖字段全部删除回退定义段；loader 校验 id 唯一/引用存在/id-type 一致，旧 type 引用仍兼容（反查补 id）。加载后 entry 携派生字段 `id`/`estimated_seconds`。Qt（TaskConfigEditorTab）与 web（task_config_editor.html）编辑器同步：校验器镜像 id 规则，实例卡按 id 反查定义段渲染，insert/reset 走瘦身条目，类型重命名不再触碰实例（id 引用稳定），新增 id 重命名（同步实例）与预估耗时编辑 | 旧 type 引用 100% 兼容；主配置+3 个 profiles 已迁移（备份 *.pre-id.bak）；删除 entries 冗余字段后调度行为不变（覆盖链语义本就支持） |
+| 2026-10-20 | 执行耗时统计（5.4）：`TaskQueue._do_interaction` 以 `time.perf_counter` 对每次真实交互计时（RUNNING→返回，RETRY 等待/重排间隔不计），按 `TaskFactory.type_id`（=定义段 id）聚合进 `execution_samples`（deque，窗口 20，无限 count 场景防增长）；`TaskQueue` 保持纯逻辑零 IO。新增 `src/sg/helper/execution_time_stats.py`（ExecutionTimeStats：读+合并+滚动均值窗口 10+原子写 .tmp/.bak）；`QueueTaskBase.run()` 收尾新增 `_on_queue_stopped()` 钩子（所有停止路径统一触发，默认空操作），`UnifiedQueue` 覆写为把队列样本合并写入 `configs/task_excute_time.json`（`{"version":1,"types":{id:{avg,samples,max_keep}}}`），统计失败只记日志不阻断。旧均值按 (samples-1) 个等值样本参与合并实现滚动稀释。`TaskFactory` 新增 `type_id`/`estimated_seconds` 字段并透写任务实例 | type_id 缺失（未走 JSON 工厂）不统计；统计文件缺失/损坏按空表处理；默认不改变任何调度行为 |
 
 **变更前必问**：
 

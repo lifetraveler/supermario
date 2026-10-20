@@ -14,6 +14,7 @@ from pathlib import Path
 
 from qfluentwidgets import FluentIcon
 
+from src.sg.helper.execution_time_stats import ExecutionTimeStats
 from src.sg.tasks.config_loader import TaskConfigError, load
 from src.sg.tasks.queue.QueueTaskBase import QueueTaskBase
 from src.sg.tasks.task_type_map import TASK_TYPE_MAP
@@ -100,6 +101,10 @@ class UnifiedQueue(QueueTaskBase):
             "continue_after_failure": bool(q["continue_after_failure"]),
         }
 
+    def _on_queue_stopped(self):
+        """队列停止后把耗时样本落盘（所有停止路径统一收尾）。"""
+        self._persist_execution_times()
+
     # =========================================================================
     # 队列收尾：按配置切到指定分身用户
     # =========================================================================
@@ -149,6 +154,8 @@ class UnifiedQueue(QueueTaskBase):
         """
         只把 JSON 里 enabled=True 的任务条目转成 TaskFactory。
         覆盖链已在加载器完成：entry 缺省字段回退 defaults / params.default。
+        type_id（定义段 id）随工厂下发：TaskQueue 耗时统计按它聚合，
+        一次性/定时任务的预估时间展示同样按它索引。
         """
         for entry in self._task_config["tasks"]:
             if not entry["enabled"]:
@@ -165,7 +172,33 @@ class UnifiedQueue(QueueTaskBase):
                 cron=cron,
                 kwargs=dict(entry["params"]),
                 name_prefix=entry["name_prefix"],
+                type_id=entry["id"],
+                estimated_seconds=float(entry["estimated_seconds"]),
             ))
+
+    # =========================================================================
+    # 收尾：执行耗时样本落盘（5.4）
+    # =========================================================================
+
+    def _persist_execution_times(self):
+        """
+        把本次 run 聚合的单次交互耗时样本合并进
+        configs/task_excute_time.json（滚动均值，按定义段 id 聚合）。
+        统计失败只记日志，不影响调度收尾。
+        """
+        samples = getattr(self.queue, "execution_samples", None)
+        if not samples:
+            return
+        try:
+            stats = ExecutionTimeStats()
+            merged = stats.merge(samples)
+            if merged and stats.save():
+                summary = " | ".join(
+                    f"{tid}: {avg:.1f}s(n={n})" for tid, (avg, n) in merged.items()
+                )
+                self.log_info(f"[ExecTime] 已写入 task_excute_time.json: {summary}")
+        except Exception as e:
+            self.log_info(f"[ExecTime] 耗时统计写入失败（忽略）: {e}")
 
 
 from src.scheduler.task_queue import TaskFactory  # noqa: E402  # TaskFactory 在父类模块定义；底部 import 避免循环引用

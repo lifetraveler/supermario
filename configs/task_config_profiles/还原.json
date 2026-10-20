@@ -3,8 +3,10 @@
   "task_types": [
     {
       "type": "Cesare Fight",
+      "id": "cesare_fight",
       "name_prefix": "Cesare切萨雷",
       "description": "切萨雷征讨。Fight the Cesare event: reconnoitre then challenge (beast-style kill) or rally.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -39,8 +41,10 @@
     },
     {
       "type": "Claim Mail Reward",
+      "id": "claim_mail_reward",
       "name_prefix": "Claim Mail Reward邮件奖励",
       "description": "领取消息中心的奖励。Claim rewards in the message center.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -53,8 +57,10 @@
     },
     {
       "type": "Claim Warehouse Reward",
+      "id": "claim_warehouse_reward",
       "name_prefix": "Claim Warehouse Reward仓库奖励",
       "description": "自动领取仓库奖励。Open the task list, scroll to find the warehouse entry, claim it and wait for the next reward time.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -67,8 +73,10 @@
     },
     {
       "type": "Bank Save",
+      "id": "bank_save",
       "name_prefix": "Bank Save银行存取",
       "description": "日常银行存取。Enter the greatvalue activity, find the bank head by gray-scale scrolling search, pick the save period and confirm the deposit.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -97,8 +105,10 @@
     },
     {
       "type": "Golden Refine",
+      "id": "golden_refine",
       "name_prefix": "Golden Refine黄金炼制",
       "description": "城堡黄金炼制。Open the task list, scroll to find the golden refine entry, claim all remaining golden refines.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -111,8 +121,10 @@
     },
     {
       "type": "Claim Stamina",
+      "id": "claim_stamina",
       "name_prefix": "Claim Stamina领取体力",
       "description": "领取体力。Claim free stamina and wait for next refresh.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -133,8 +145,10 @@
     },
     {
       "type": "Gather Island Water",
+      "id": "gather_island_water",
       "name_prefix": "Gather Island Water海岛海水收集",
       "description": "岛屿采水。Enter own island, gather water and claim the gather reward.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -147,8 +161,10 @@
     },
     {
       "type": "Gather Resource Troop",
+      "id": "gather_resource",
       "name_prefix": "Gather Resource野外采集",
       "description": "野外建筑资源采集。按空闲军队队列派出采集：大型资源优先（OCR 检测），普通资源按 面包/木材/石头/铁矿 以当天日期余数轮转，最多 4 个队列。开始采集后复用 Rally 出征派遣（GATHER 类型，OCR 选队，默认系统队伍）。Gather field resources with free march queues.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -169,8 +185,10 @@
     },
     {
       "type": "Hunt Beast Troop",
+      "id": "hunt_beast",
       "name_prefix": "Hunt Beast狩猎野怪",
       "description": "野兽挑战。Search the beast icon and challenge it.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 6,
         "max_active": 2,
@@ -191,8 +209,10 @@
     },
     {
       "type": "Hunt Elite Rebels Troop",
+      "id": "hunt_elite_rebels",
       "name_prefix": "Hunt Elite Rebels叛军精锐",
       "description": "叛军精锐集结。Use elite-rebels item and rally the elite rebels.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -220,8 +240,10 @@
     },
     {
       "type": "Hunt Monster Troop",
+      "id": "hunt_monster",
       "name_prefix": "Hunt Monster狩猎巨兽",
       "description": "巨兽出击部队。Dispatch troops to hunt monsters.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 6,
         "max_active": 2,
@@ -265,8 +287,10 @@
     },
     {
       "type": "Hunt Scare Wolf Troop",
+      "id": "hunt_scare_wolf",
       "name_prefix": "Hunt Scare Wolf恐狼",
       "description": "恐狼出击部队。Use scare-wolf claw and rally the scare wolf.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -301,8 +325,10 @@
     },
     {
       "type": "Leader Reward",
+      "id": "leader_reward",
       "name_prefix": "Leader Reward统帅奖励",
       "description": "统帅每日免费奖励领取。Claim daily free leader rewards.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -315,8 +341,10 @@
     },
     {
       "type": "League Tech Donate",
+      "id": "league_tech_donate",
       "name_prefix": "League Tech Donate联盟捐赠",
       "description": "联盟捐献。Donate to league tech for league coins. 10min 恢复 1 次，上限 25 次，全部捐完后 150 分钟循环一次。",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -329,8 +357,10 @@
     },
     {
       "type": "League Reward Box",
+      "id": "league_reward_box",
       "name_prefix": "League Reward Box联盟宝箱",
       "description": "领取联盟宝箱（战利品宝箱 + 盟友赠礼）。Claim league reward boxes (loot & friend gifts).",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -343,8 +373,10 @@
     },
     {
       "type": "Pet Treasure Hunt",
+      "id": "pet_treasure_hunt",
       "name_prefix": "Pet Treasure宠物寻宝",
       "description": "宠物寻宝派遣。Dispatch pets to search treasures.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -357,8 +389,10 @@
     },
     {
       "type": "Punish Claim",
+      "id": "punish_claim",
       "name_prefix": "Punish Claim讨伐领取",
       "description": "讨伐奖励领取。Claim punish rewards via the march panel.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -371,8 +405,10 @@
     },
     {
       "type": "Watch Tower Event",
+      "id": "watch_tower_event",
       "name_prefix": "Watch Tower瞭望塔任务",
       "description": "瞭望塔事件。Handle watch tower events (tent rescue / conquer / beast challenge). Stops when stamina < 12 or no events left.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 0,
         "max_active": 1,
@@ -393,8 +429,10 @@
     },
     {
       "type": "Train Soldier",
+      "id": "train_soldier",
       "name_prefix": "Train Soldier士兵训练",
       "description": "士兵训练。Train soldiers via task list entry, try train-now for each soldier tag.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -407,8 +445,10 @@
     },
     {
       "type": "Claim Buy Center Reward",
+      "id": "claim_buy_center_reward",
       "name_prefix": "Claim Buy Center Reward储值中心奖励",
       "description": "储值中心每日免费奖励领取。Claim daily free rewards in the buy center.",
+      "estimated_seconds": 0,
       "defaults": {
         "count": 1,
         "max_active": 1,
@@ -439,229 +479,106 @@
               },
               "tasks": [
                 {
-                  "type": "Watch Tower Event",
-                  "enabled": false,
-                  "params": {
-                    "beast_queue_limit": 1
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 28800,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "watch_tower_event",
+                  "enabled": false
                 },
                 {
-                  "type": "Gather Resource Troop",
+                  "id": "gather_resource",
                   "enabled": false,
                   "params": {
                     "team_group_name": "0"
                   },
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Claim Stamina",
-                  "enabled": false,
-                  "params": {
-                    "claim_cooldown": 3600
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_stamina",
+                  "enabled": false
                 },
                 {
-                  "type": "Hunt Beast Troop",
-                  "enabled": false,
-                  "params": {
-                    "min_stamina": 0
-                  },
-                  "count": 6,
-                  "max_active": 2,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "hunt_beast",
+                  "enabled": false
                 },
                 {
-                  "type": "Hunt Scare Wolf Troop",
+                  "id": "hunt_scare_wolf",
                   "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "rally_config_wait": 0
-                  },
-                  "count": 8,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "count": 8
                 },
                 {
-                  "type": "Cesare Fight",
+                  "id": "cesare_fight",
                   "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "stamina_wait_seconds": 3600
-                  },
-                  "count": 8,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "count": 8
                 },
                 {
-                  "type": "Hunt Elite Rebels Troop",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "hunt_elite_rebels",
+                  "enabled": false
                 },
                 {
-                  "type": "Hunt Monster Troop",
+                  "id": "hunt_monster",
                   "enabled": false,
-                  "params": {
-                    "monster_level": 1,
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
                   "count": 3,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "max_active": 1
                 },
                 {
-                  "type": "Golden Refine",
+                  "id": "golden_refine",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Punish Claim",
+                  "id": "punish_claim",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Claim Mail Reward",
+                  "id": "claim_mail_reward",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Train Soldier",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": true,
-                  "cron": ""
+                  "id": "train_soldier",
+                  "enabled": false
                 },
                 {
-                  "type": "Leader Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "leader_reward",
+                  "enabled": false
                 },
                 {
-                  "type": "League Reward Box",
+                  "id": "league_reward_box",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Pet Treasure Hunt",
+                  "id": "pet_treasure_hunt",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "Claim Buy Center Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_buy_center_reward",
+                  "enabled": false
                 },
                 {
-                  "type": "Claim Warehouse Reward",
+                  "id": "claim_warehouse_reward",
                   "enabled": false,
-                  "params": {},
                   "count": 10,
-                  "max_active": 1,
-                  "next_trigger_delay": 600,
-                  "one_shot": false,
-                  "cron": ""
+                  "next_trigger_delay": 600
                 },
                 {
-                  "type": "Bank Save",
+                  "id": "bank_save",
                   "enabled": false,
                   "params": {
                     "bankdays": "7"
-                  },
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  }
                 },
                 {
-                  "type": "Gather Island Water",
+                  "id": "gather_island_water",
                   "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
                   "next_trigger_delay": 1,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 },
                 {
-                  "type": "League Tech Donate",
+                  "id": "league_tech_donate",
                   "enabled": false,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
                   "next_trigger_delay": 1800,
-                  "one_shot": true,
-                  "cron": ""
+                  "one_shot": true
                 }
               ]
             },
@@ -674,125 +591,47 @@
               },
               "tasks": [
                 {
-                  "type": "Bank Save",
+                  "id": "bank_save",
                   "enabled": false,
                   "params": {
                     "bankdays": "7"
-                  },
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  }
                 },
                 {
-                  "type": "Gather Island Water",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 36000,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "gather_island_water",
+                  "enabled": false
                 },
                 {
-                  "type": "Claim Mail Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_mail_reward",
+                  "enabled": false
                 },
                 {
-                  "type": "Claim Warehouse Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_warehouse_reward",
+                  "enabled": false
                 },
                 {
-                  "type": "Golden Refine",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "golden_refine",
+                  "enabled": false
                 },
                 {
-                  "type": "Claim Stamina",
-                  "enabled": false,
-                  "params": {
-                    "claim_cooldown": 3600
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_stamina",
+                  "enabled": false
                 },
                 {
-                  "type": "Hunt Elite Rebels Troop",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "requires_march_queue": true,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "hunt_elite_rebels",
+                  "enabled": false
                 },
                 {
-                  "type": "League Tech Donate",
-                  "enabled": false,
-                  "params": {},
-                  "count": 0,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 9000,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "league_tech_donate",
+                  "enabled": false
                 },
                 {
-                  "type": "Claim Buy Center Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": false,
-                  "next_trigger_delay": 86400,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "claim_buy_center_reward",
+                  "enabled": false
                 },
                 {
-                  "type": "Cesare Fight",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "stamina_wait_seconds": 3600
-                  },
-                  "count": 1,
-                  "max_active": 1,
-                  "requires_march_queue": true,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
+                  "id": "cesare_fight",
+                  "enabled": false
                 }
               ]
             }

@@ -83,6 +83,17 @@ class QueueTaskBase(SGBaseTask):
         异常只记日志，不影响 run() 的返回值。
         """
 
+    def _on_queue_stopped(self):
+        """
+        队列停止后的收尾钩子（无论自然完成还是用户停止都会触发），
+        默认空操作。
+
+        与 _after_queue_done 的区别：后者只在"自然跑完且非用户停止"
+        时调用；本钩子是所有停止路径的统一收尾点，适合做
+        「运行期统计落盘」这类与停止原因无关的事。
+        异常由调用方捕获记日志，不影响 run() 返回值。
+        """
+
     # =========================================================================
     # 子类接口
     # =========================================================================
@@ -181,6 +192,10 @@ class QueueTaskBase(SGBaseTask):
         # ---------------------------------------------------------------------
         all_done = self.queue.all_done()
         self.queue.stop()
+        try:
+            self._on_queue_stopped()
+        except Exception as e:
+            self.log_info(f"收尾钩子 _on_queue_stopped 异常: {e}")
         if all_done and not self.exit_is_set():
             try:
                 self._after_queue_done()

@@ -257,6 +257,10 @@ function btn(label, cls, onclick){
 }
 function clone(o){ return JSON.parse(JSON.stringify(o)); }
 function isDiff(a, b){ return JSON.stringify(a) !== JSON.stringify(b); }
+function slugify(s){
+  return String(s || '').trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'task_' + Date.now().toString(36);
+}
 function hashIdx(s){ let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % PALETTE.length; }
 function trim1(n){ return String(Math.round(n * 10) / 10).replace(/\.0$/, ''); }
 function fmtDur(s){
@@ -363,11 +367,23 @@ function chainObj(){
 function typeDef(type){
   return (state.doc && state.doc.task_types || []).find(t => t.type === type) || null;
 }
+function taskDefOf(task){
+  // 实例条目优先按 id 反查定义段；旧条目（只有 type）退回 type 查找
+  if (task.id){
+    const byId = (state.doc && state.doc.task_types || []).find(t => t.id === task.id);
+    if (byId) return byId;
+  }
+  return typeDef(task.type);
+}
 function eachTaskOfType(type, fn){
   let n = 0;
   const d = state.doc; if (!d) return 0;
+  const tt = typeDef(type);
+  const tid = tt && tt.id;
   (d.machines || []).forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u =>
-    (u.tasks || []).forEach(t => { if (t.type === type){ fn(t); n++; } }))));
+    (u.tasks || []).forEach(t => {
+      if ((tid && t.id === tid) || (!t.id && t.type === type)){ fn(t); n++; }
+    }))));
   return n;
 }
 
@@ -378,12 +394,19 @@ function validateDoc(doc){
   const tt = doc.task_types;
   if (!Array.isArray(tt) || !tt.length) errs.push('task_types 缺失或为空');
   const seen = new Set();
+  const idToType = new Map();
   (tt || []).forEach((t, i) => {
     const w = `task_types[${i}]`;
     if (!t || typeof t !== 'object'){ errs.push(`${w}: 条目必须是对象`); return; }
     if (!t.type) errs.push(`${w}: 缺 type`);
     else if (seen.has(t.type)) errs.push(`${w}: type 重复 "${t.type}"`);
     if (t.type) seen.add(t.type);
+    if (!t.id || typeof t.id !== 'string') errs.push(`${w}: 缺 id 或 id 非字符串`);
+    else if (idToType.has(t.id)) errs.push(`${w}: id 重复 "${t.id}"`);
+    else idToType.set(t.id, t.type);
+    const est = t.estimated_seconds != null ? t.estimated_seconds : 0;
+    if (typeof est !== 'number' || !isFinite(est) || est < 0)
+      errs.push(`${w}.estimated_seconds 必须是非负数: ${JSON.stringify(est)}`);
     const d = t.defaults;
     if (!d || typeof d !== 'object'){ errs.push(`${w}.defaults 缺失`); }
     else {
@@ -416,8 +439,17 @@ function validateDoc(doc){
         if (m.enabled && a.enabled && u.enabled) chain = true;
         (u.tasks || []).forEach((t, ti) => {
           if (!t || typeof t !== 'object'){ errs.push(`${mw} user[${ui}] tasks[${ti}]: 必须是对象`); return; }
-          if (!seen.has(t.type)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 type "${t.type}"`);
-          const def = (tt || []).find(x => x && x.type === t.type);
+          let ttype = t.type;
+          if (t.id){
+            if (!idToType.has(t.id)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 id "${t.id}"`);
+            else {
+              const resolved = idToType.get(t.id);
+              if (t.type && t.type !== resolved)
+                errs.push(`${mw} user[${ui}] tasks[${ti}]: id "${t.id}" 与 type "${t.type}" 不一致`);
+              ttype = resolved;
+            }
+          } else if (!seen.has(t.type)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 type "${t.type}"`);
+          const def = (tt || []).find(x => x && x.type === ttype);
           const attrs = new Set(((def && def.params) || []).map(p => p.attr));
           Object.keys(t.params || {}).forEach(k => {
             if (!attrs.has(k)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 未知参数 "${k}"`);
@@ -592,28 +624,42 @@ function rowText(obj, def, key, onChange, opts){
   const ctl = bindText(() => obj[key] ?? '', v => { obj[key] = v; if (onChange) onChange(); }, opts);
   return fieldRow(DLBL[key], DHELP[key], ctl, def ? isDiff(obj[key], def[key]) : false);
 }
-function defaultsGrid(obj, defObj, onChange){
+function rowNum(obj, def, key, onChange, unset){
+  const ctl = numInput(() => obj[key], v => { obj[key] = v == null ? 0 : v; if (onChange) onChange(); },
+    { step:NUM_STEP[key] || 'any', min:0 });
+  return fieldRow(DLBL[key], DHELP[key], ctl, def && !unset ? isDiff(obj[key], def[key]) : false);
+}
+function rowBool(obj, def, key, onChange, unset){
+  const ctl = makeSwitch(() => !!obj[key], v => { obj[key] = !!v; if (onChange) onChange(); });
+  return fieldRow(DLBL[key], DHELP[key], ctl, def && !unset ? isDiff(obj[key], def[key]) : false);
+}
+function rowText(obj, def, key, onChange, opts, unset){
+  const ctl = bindText(() => obj[key] ?? '', v => { obj[key] = v; if (onChange) onChange(); }, opts);
+  return fieldRow(DLBL[key], DHELP[key], ctl, def && !unset ? isDiff(obj[key], def[key]) : false);
+}
+function defaultsGrid(obj, defObj, onChange, unsetFn){
   const g = el('div', 'grid2');
-  g.append(rowNum(obj, defObj, 'count', onChange));
-  g.append(rowNum(obj, defObj, 'max_active', onChange));
-  g.append(rowBool(obj, defObj, 'requires_march_queue', onChange));
-  g.append(rowNum(obj, defObj, 'next_trigger_delay', onChange));
-  g.append(rowBool(obj, defObj, 'one_shot', onChange));
-  g.append(rowText(obj, defObj, 'cron', onChange, { placeholder:'留空 = 不使用' }));
+  const u = unsetFn || (() => false);
+  g.append(rowNum(obj, defObj, 'count', onChange, u('count')));
+  g.append(rowNum(obj, defObj, 'max_active', onChange, u('max_active')));
+  g.append(rowBool(obj, defObj, 'requires_march_queue', onChange, u('requires_march_queue')));
+  g.append(rowNum(obj, defObj, 'next_trigger_delay', onChange, u('next_trigger_delay')));
+  g.append(rowBool(obj, defObj, 'one_shot', onChange, u('one_shot')));
+  g.append(rowText(obj, defObj, 'cron', onChange, { placeholder:'留空 = 不使用' }, u('cron')));
   return g;
 }
-
 /* ---------------- task instance rendering ---------------- */
 function taskKeyOf(task){
-  return `${state.sel.m}/${state.sel.a}/${state.sel.u}/${task.type}`;
+  return `${state.sel.m}/${state.sel.a}/${state.sel.u}/${task.id || task.type}`;
 }
 function statsLine(task, tt){
   const bits = [];
-  bits.push(task.count === 0 ? '次数不限' : `${task.count} 次`);
-  bits.push(`并发 ${task.max_active}`);
-  bits.push(task.one_shot ? '单次' : `间隔 ${fmtDur(task.next_trigger_delay)}`);
-  if (task.cron) bits.push('cron');
-  if (task.requires_march_queue) bits.push('占队列');
+  const eff = k => Object.prototype.hasOwnProperty.call(task, k) ? task[k] : tt.defaults[k];
+  bits.push(eff('count') === 0 ? '次数不限' : `${eff('count')} 次`);
+  bits.push(`并发 ${eff('max_active')}`);
+  bits.push(eff('one_shot') ? '单次' : `间隔 ${fmtDur(eff('next_trigger_delay'))}`);
+  if (eff('cron')) bits.push('cron');
+  if (eff('requires_march_queue')) bits.push('占队列');
   const ps = tt.params.map(pd => {
     const v = Object.prototype.hasOwnProperty.call(task.params || {}, pd.attr)
       ? task.params[pd.attr] : pd.default;
@@ -652,7 +698,7 @@ function taskCard(task, tt){
   const sw = makeSwitch(() => !!task.enabled, v => { task.enabled = !!v; });
   const { card, body } = makeCard({
     iconChar: (tt.name_prefix || tt.type).slice(0, 1),
-    grad: PALETTE[hashIdx(task.type)],
+    grad: PALETTE[hashIdx(task.id || task.type)],
     title: tt.name_prefix || tt.type,
     sub: tt.description || '',
     stats: statsLine(task, tt),
@@ -661,7 +707,7 @@ function taskCard(task, tt){
     onToggle: o => toggleSet(state.expanded, key, o),
   });
   body.append(secTitle('调度设置'));
-  body.append(defaultsGrid(task, tt.defaults, null));
+  body.append(defaultsGrid(task, tt.defaults, null, k => !Object.prototype.hasOwnProperty.call(task, k)));
   if (tt.params.length){
     body.append(secTitle('参数'));
     const g = el('div', 'grid2');
@@ -689,10 +735,8 @@ function moveTask(task, dir){
 }
 function resetTask(task, tt){
   if (!confirm(`将「${tt.name_prefix || tt.type}」的调度与参数恢复为类型默认值？`)) return;
-  DKEYS.forEach(k => { task[k] = clone(tt.defaults[k]); });
-  const p = {};
-  tt.params.forEach(pd => { if (pd.default !== undefined) p[pd.attr] = clone(pd.default); });
-  task.params = p;
+  DKEYS.forEach(k => { delete task[k]; });   // 瘦身条目：删掉覆盖字段即回退定义段默认
+  task.params = {};
   markDirty(); renderTaskList(); toast('已恢复默认');
 }
 function removeTask(task, tt){
@@ -706,22 +750,15 @@ function removeTask(task, tt){
 }
 function insertTask(user, type){
   const tt = typeDef(type); if (!tt) return;
-  const d = tt.defaults;
-  const params = {};
-  tt.params.forEach(pd => { if (pd.default !== undefined) params[pd.attr] = clone(pd.default); });
-  const entry = {
-    type, enabled:false, params,
-    count:d.count, max_active:d.max_active, requires_march_queue:d.requires_march_queue,
-    next_trigger_delay:d.next_trigger_delay, one_shot:d.one_shot, cron:d.cron,
-  };
+  const entry = { id: tt.id, enabled:false };
   (user.tasks = user.tasks || []).push(entry);
-  state.expanded.add(`${state.sel.m}/${state.sel.a}/${state.sel.u}/${type}`);
+  state.expanded.add(`${state.sel.m}/${state.sel.a}/${state.sel.u}/${tt.id}`);
   markDirty(); renderContent(); toast('已添加 ' + (tt.name_prefix || type));
 }
 function addTaskDialog(){
   const chain = chainObj(); if (!chain) return;
-  const have = new Set((chain.u.tasks || []).map(t => t.type));
-  const missing = (state.doc.task_types || []).filter(t => !have.has(t.type));
+  const have = new Set((chain.u.tasks || []).map(t => t.id || t.type));
+  const missing = (state.doc.task_types || []).filter(t => !have.has(t.id || t.type));
   if (!missing.length){ toast('所有已定义类型均已添加'); return; }
   const dlg = $('dlg'); dlg.textContent = '';
   dlg.append(el('h3', null, '添加任务实例'));
@@ -796,7 +833,8 @@ function taskMatches(task, tt, q){
   if (!q) return true;
   q = q.toLowerCase();
   return (tt.name_prefix || '').toLowerCase().includes(q)
-      || task.type.toLowerCase().includes(q)
+      || String(task.id || '').toLowerCase().includes(q)
+      || String(task.type || '').toLowerCase().includes(q)
       || (tt.description || '').toLowerCase().includes(q);
 }
 function renderTaskList(){
@@ -818,10 +856,10 @@ function renderTaskList(){
   if (cnt) cnt.textContent = `${tasks.length} 个任务 · ${nEn} 已启用`;
   let shown = 0;
   tasks.forEach(task => {
-    const tt = typeDef(task.type);
+    const tt = taskDefOf(task);
     if (!tt){
       const c = el('section', 'card');
-      c.append(el('div', 'card-head', `未知类型: ${task.type}（定义缺失，运行会报错）`));
+      c.append(el('div', 'card-head', `未知任务: id=${task.id ?? '?'} type=${task.type ?? '?'}（定义缺失，运行会报错）`));
       list.append(c);
       return;
     }
@@ -956,12 +994,10 @@ function typeRenameInput(tt){
     if ((state.doc.task_types || []).some(x => x !== tt && x.type === nv)){
       alert('type 已存在：' + nv); i.value = tt.type; return;
     }
-    const n = eachTaskOfType(tt.type, t => { t.type = nv; });
-    state.expandedTypes.delete(tt.type);
+    // id 化后实例只按 id 引用定义段，type 重命名不再触碰实例条目
     tt.type = nv;
-    state.expandedTypes.add(nv);
     markDirty(); renderContent();
-    toast('已重命名为 ' + nv + (n ? `，同步 ${n} 处实例` : ''));
+    toast('已重命名为 ' + nv);
   });
   return i;
 }
@@ -972,12 +1008,13 @@ function deleteType(tt){
       ? `删除类型「${tt.type}」？将同时删除 ${n} 处实例引用。`
       : `删除类型「${tt.type}」？`;
     if (!confirm(msg)) return;
+    const tid = tt.id;
     state.doc.machines.forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u => {
-      if (u.tasks) u.tasks = u.tasks.filter(t => t.type !== tt.type);
+      if (u.tasks) u.tasks = u.tasks.filter(t => (tid ? t.id !== tid : t.type !== tt.type));
     })));
     const i = state.doc.task_types.indexOf(tt);
     if (i >= 0) state.doc.task_types.splice(i, 1);
-    state.expandedTypes.delete(tt.type);
+    state.expandedTypes.delete('T:' + tt.type);
     clampSel(); markDirty(); renderContent(); toast('已删除 ' + tt.type);
   };
 }
@@ -995,8 +1032,12 @@ function typeCard(tt){
   });
   body.append(secTitle('基本信息'));
   const g1 = el('div', 'grid2');
-  g1.append(fieldRow('type', '类型标识（重命名会同步实例引用）', typeRenameInput(tt), false));
+  g1.append(fieldRow('type', '类型标识', typeRenameInput(tt), false));
+  g1.append(fieldRow('id', '唯一标记：实例条目按它引用本定义，耗时统计也按它聚合',
+    bindText(() => tt.id || '', v => { tt.id = v.trim(); }), false));
   g1.append(fieldRow('名称前缀', '', bindText(() => tt.name_prefix || '', v => { tt.name_prefix = v; }), false));
+  g1.append(fieldRow('预估耗时(秒)', '单次执行的预估处理时间，0 = 未知（预留字段）',
+    numInput(() => tt.estimated_seconds, v => { tt.estimated_seconds = v == null ? 0 : Math.max(0, v); }, { step:'any', min:0 }), false));
   body.append(g1);
   body.append(fieldRow('描述', '', bindText(() => tt.description || '', v => { tt.description = v; }, { multiline:true, width:'100%' }), false));
   body.append(secTitle('默认调度'));
@@ -1027,14 +1068,12 @@ function renderTypesTab(){
       type = (type || '').trim();
       if (!type) return;
       if ((state.doc.task_types || []).some(t => t.type === type)){ alert('type 已存在'); return; }
-      state.doc.task_types = state.doc.task_types || [];
       state.doc.task_types.push({
-        type, name_prefix:type, description:'',
+        type, id: slugify(type), name_prefix:type, description:'',
+        estimated_seconds:0,
         defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'' },
         params:[],
       });
-      state.expandedTypes.add('T:' + type);
-      markDirty(); renderContent();
     });
   }));
   c.append(bar);

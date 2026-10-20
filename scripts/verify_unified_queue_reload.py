@@ -46,8 +46,10 @@ def write_cfg(count, level, tick=1.0, enabled=True):
         "task_types": [
             {
                 "type": "Hunt Monster Troop",
+                "id": "hunt_monster",
                 "name_prefix": "Hunt Monster狩猎巨兽",
                 "description": "t",
+                "estimated_seconds": 0,
                 "defaults": {
                     "count": 6, "max_active": 2, "requires_march_queue": True,
                     "next_trigger_delay": 0.0, "one_shot": False, "cron": "",
@@ -70,7 +72,7 @@ def write_cfg(count, level, tick=1.0, enabled=True):
                                 "user_id": 0, "enabled": True,
                                 "queue": {"tick_interval": tick, "continue_after_failure": True},
                                 "tasks": [
-                                    {"type": "Hunt Monster Troop", "enabled": enabled,
+                                    {"id": "hunt_monster", "enabled": enabled,
                                      "params": {"monster_level": level},
                                      "count": count, "max_active": 2,
                                      "next_trigger_delay": 0.0, "one_shot": False, "cron": ""},
