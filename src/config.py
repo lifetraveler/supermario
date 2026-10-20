@@ -125,3 +125,26 @@ config = {
                     # ["src.ui.HtmlExplorerTab", "HtmlExplorerTab"] # 这个是html浏览页面，为了编辑配置文件设计的，但是会破坏gui界面外观，暂时禁用
                     ]
 }
+
+
+def _inject_user_id_into_adb_config():
+    """
+    从 task_config.json 生效链（第一条 enabled 的 machine/app/user）
+    读取 user_id 注入 adb 配置，供 DeviceManager.adb_start_package
+    以 am start --user 启动分身应用。
+
+    解析失败（缺文件 / 结构非法）回退 user_id=0（主用户），不阻断启动——
+    配置错误由 UnifiedQueue 的 load() 启动即抛，这里只负责尽力注入。
+    """
+    try:
+        from src.sg.tasks.config_loader import load
+        cfg = load()
+        config['adb']['user_id'] = int(cfg["app"]["user_id"])
+        print(f'[Config] adb user_id = {config["adb"]["user_id"]} '
+              f'(from {cfg["trail"]})')
+    except Exception as e:
+        config['adb']['user_id'] = 0
+        print(f'[Config] adb user_id fallback to 0: {e}')
+
+
+_inject_user_id_into_adb_config()

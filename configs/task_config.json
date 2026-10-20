@@ -418,6 +418,28 @@
         "cron": ""
       },
       "params": []
+    },
+    {
+      "type": "Wave Ride",
+      "name_prefix": "Wave Ride踏浪",
+      "description": "踏浪活动：一键领取奖励、派遣探索船只，按剩余时间或派遣周期（默认8小时）自动安排下次触发。",
+      "defaults": {
+        "count": 0,
+        "max_active": 1,
+        "requires_march_queue": false,
+        "next_trigger_delay": 0,
+        "one_shot": false,
+        "cron": ""
+      },
+      "params": [
+        {
+          "name": "Dispatch Wait Hours",
+          "attr": "dispatch_wait_hours",
+          "default": 8,
+          "widget": null,
+          "desc": "派遣船只后的下次触发小时数，默认 8。OCR 剩余时间失败时的兜底。"
+        }
+      ]
     }
   ],
   "machines": [
@@ -439,103 +461,26 @@
               },
               "tasks": [
                 {
-                  "type": "Hunt Monster Troop",
+                  "type": "Wave Ride",
                   "enabled": true,
+                  "params": {
+                    "dispatch_wait_hours": 0
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Monster Troop",
+                  "enabled": false,
                   "params": {
                     "monster_level": 1,
                     "auto_recall": false,
                     "min_stamina": 0
                   },
-                  "count": 7,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Gather Resource Troop",
-                  "enabled": false,
-                  "params": {
-                    "team_group_name": "0"
-                  },
-                  "count": 1,
-                  "max_active": 1,
-                  "next_trigger_delay": 86400,
-                  "one_shot": true,
-                  "cron": ""
-                },
-                {
-                  "type": "Claim Stamina",
-                  "enabled": false,
-                  "params": {
-                    "claim_cooldown": 3600
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Hunt Beast Troop",
-                  "enabled": false,
-                  "params": {
-                    "min_stamina": 0
-                  },
-                  "count": 6,
-                  "max_active": 2,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Hunt Scare Wolf Troop",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "rally_config_wait": 0
-                  },
-                  "count": 8,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Watch Tower Event",
-                  "enabled": false,
-                  "params": {
-                    "beast_queue_limit": 1
-                  },
-                  "count": 0,
-                  "max_active": 1,
-                  "next_trigger_delay": 28800,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Cesare Fight",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0,
-                    "stamina_wait_seconds": 3600
-                  },
-                  "count": 8,
-                  "max_active": 1,
-                  "next_trigger_delay": 0,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
-                  "type": "Hunt Elite Rebels Troop",
-                  "enabled": false,
-                  "params": {
-                    "auto_recall": false,
-                    "min_stamina": 0
-                  },
-                  "count": 0,
+                  "count": 3,
                   "max_active": 1,
                   "next_trigger_delay": 0,
                   "one_shot": false,
@@ -552,7 +497,7 @@
                   "cron": ""
                 },
                 {
-                  "type": "Golden Refine",
+                  "type": "Punish Claim",
                   "enabled": false,
                   "params": {},
                   "count": 1,
@@ -562,7 +507,27 @@
                   "cron": ""
                 },
                 {
-                  "type": "Punish Claim",
+                  "type": "Claim Warehouse Reward",
+                  "enabled": false,
+                  "params": {},
+                  "count": 10,
+                  "max_active": 1,
+                  "next_trigger_delay": 600,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Island Water",
+                  "enabled": false,
+                  "params": {},
+                  "count": 1,
+                  "max_active": 1,
+                  "next_trigger_delay": 1,
+                  "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Golden Refine",
                   "enabled": false,
                   "params": {},
                   "count": 1,
@@ -632,16 +597,6 @@
                   "cron": ""
                 },
                 {
-                  "type": "Claim Warehouse Reward",
-                  "enabled": false,
-                  "params": {},
-                  "count": 10,
-                  "max_active": 1,
-                  "next_trigger_delay": 600,
-                  "one_shot": false,
-                  "cron": ""
-                },
-                {
                   "type": "Bank Save",
                   "enabled": false,
                   "params": {
@@ -654,13 +609,92 @@
                   "cron": ""
                 },
                 {
-                  "type": "Gather Island Water",
+                  "type": "Watch Tower Event",
                   "enabled": false,
-                  "params": {},
+                  "params": {
+                    "beast_queue_limit": 1
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 28800,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Gather Resource Troop",
+                  "enabled": false,
+                  "params": {
+                    "team_group_name": "0"
+                  },
                   "count": 1,
                   "max_active": 1,
-                  "next_trigger_delay": 1,
+                  "next_trigger_delay": 86400,
                   "one_shot": true,
+                  "cron": ""
+                },
+                {
+                  "type": "Claim Stamina",
+                  "enabled": false,
+                  "params": {
+                    "claim_cooldown": 3600
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Cesare Fight",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0,
+                    "stamina_wait_seconds": 3600
+                  },
+                  "count": 8,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Elite Rebels Troop",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0
+                  },
+                  "count": 0,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Scare Wolf Troop",
+                  "enabled": false,
+                  "params": {
+                    "auto_recall": false,
+                    "min_stamina": 0,
+                    "rally_config_wait": 0
+                  },
+                  "count": 8,
+                  "max_active": 1,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
+                  "cron": ""
+                },
+                {
+                  "type": "Hunt Beast Troop",
+                  "enabled": false,
+                  "params": {
+                    "min_stamina": 0
+                  },
+                  "count": 6,
+                  "max_active": 2,
+                  "next_trigger_delay": 0,
+                  "one_shot": false,
                   "cron": ""
                 }
               ]

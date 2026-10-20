@@ -80,9 +80,24 @@ def parse_document(doc):
         "tasks":  [规范化实例条目, …],
       }
     """
-    trail_m, _trail_a, trail_u, trail = pick_active_user(doc)  # noqa: F841
+    trail_m, trail_a, trail_u, trail = pick_active_user(doc)
     user = trail_u
+    app = trail_a
 
+    # ---------------- 生效链应用信息（分身启动 / 收尾切用户） ----------------
+    def _int_field(owner, key, default=0):
+        v = owner.get(key)
+        if v is None:
+            return default
+        if isinstance(v, bool) or not isinstance(v, int) or v < 0:
+            raise TaskConfigError(f"{key} 必须是非负整数: {v!r}")
+        return v
+
+    app_info = {
+        "package": app.get("package") if isinstance(app, dict) else None,
+        "user_id": _int_field(user, "user_id", 0),
+        "after_done_user_id": _int_field(user, "after_done_user_id", 0),
+    }
     # ---------------- 定义段 ----------------
     raw_types = doc.get("task_types")
     if not isinstance(raw_types, list) or not raw_types:
@@ -164,6 +179,7 @@ def parse_document(doc):
     }
     return {
         "trail": trail,
+        "app": app_info,
         "queue": queue,
         "task_types": task_types,
         "tasks": tasks_out,

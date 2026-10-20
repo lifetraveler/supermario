@@ -737,6 +737,54 @@
       "file_name": "122.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 171,
+      "file_name": "123.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 172,
+      "file_name": "124.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 173,
+      "file_name": "125.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 174,
+      "file_name": "126.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 175,
+      "file_name": "127.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 176,
+      "file_name": "128.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 177,
+      "file_name": "129.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 178,
+      "file_name": "130.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -2043,14 +2091,14 @@
     {
       "id": 101,
       "image_id": 91,
-      "category_id": 101,
+      "category_id": 228,
       "bbox": [
         664,
-        1290,
-        68,
-        51
+        1289,
+        46,
+        46
       ],
-      "area": 3468,
+      "area": 2116,
       "iscrowd": 0
     },
     {
@@ -2916,12 +2964,12 @@
       "image_id": 130,
       "category_id": 168,
       "bbox": [
-        339,
+        260,
         1369,
-        230,
+        370,
         62
       ],
-      "area": 14260,
+      "area": 22940,
       "iscrowd": 0
     },
     {
@@ -3664,6 +3712,201 @@
       ],
       "area": 2910,
       "iscrowd": 0
+    },
+    {
+      "id": 226,
+      "image_id": 107,
+      "category_id": 226,
+      "bbox": [
+        42,
+        23,
+        25,
+        25
+      ],
+      "area": 625,
+      "iscrowd": 0
+    },
+    {
+      "id": 227,
+      "image_id": 171,
+      "category_id": 236,
+      "bbox": [
+        347,
+        583,
+        195,
+        82
+      ],
+      "area": 15990,
+      "iscrowd": 0
+    },
+    {
+      "id": 228,
+      "image_id": 171,
+      "category_id": 227,
+      "bbox": [
+        197,
+        1020,
+        508,
+        333
+      ],
+      "area": 169164,
+      "iscrowd": 0
+    },
+    {
+      "id": 229,
+      "image_id": 171,
+      "category_id": 230,
+      "bbox": [
+        509,
+        1265,
+        133,
+        43
+      ],
+      "area": 5719,
+      "iscrowd": 0
+    },
+    {
+      "id": 230,
+      "image_id": 172,
+      "category_id": 229,
+      "bbox": [
+        796,
+        657,
+        67,
+        46
+      ],
+      "area": 3082,
+      "iscrowd": 0
+    },
+    {
+      "id": 231,
+      "image_id": 173,
+      "category_id": 231,
+      "bbox": [
+        61,
+        331,
+        210,
+        258
+      ],
+      "area": 54180,
+      "iscrowd": 0
+    },
+    {
+      "id": 232,
+      "image_id": 173,
+      "category_id": 232,
+      "bbox": [
+        357,
+        384,
+        378,
+        41
+      ],
+      "area": 15498,
+      "iscrowd": 0
+    },
+    {
+      "id": 233,
+      "image_id": 173,
+      "category_id": 233,
+      "bbox": [
+        790,
+        382,
+        70,
+        39
+      ],
+      "area": 2730,
+      "iscrowd": 0
+    },
+    {
+      "id": 234,
+      "image_id": 173,
+      "category_id": 234,
+      "bbox": [
+        777,
+        465,
+        53,
+        49
+      ],
+      "area": 2597,
+      "iscrowd": 0
+    },
+    {
+      "id": 235,
+      "image_id": 173,
+      "category_id": 235,
+      "bbox": [
+        719,
+        248,
+        139,
+        49
+      ],
+      "area": 6811,
+      "iscrowd": 0
+    },
+    {
+      "id": 236,
+      "image_id": 175,
+      "category_id": 101,
+      "bbox": [
+        103,
+        1452,
+        226,
+        72
+      ],
+      "area": 16272,
+      "iscrowd": 0
+    },
+    {
+      "id": 237,
+      "image_id": 176,
+      "category_id": 238,
+      "bbox": [
+        406,
+        158,
+        34,
+        40
+      ],
+      "area": 1360,
+      "iscrowd": 0
+    },
+    {
+      "id": 238,
+      "image_id": 175,
+      "category_id": 237,
+      "bbox": [
+        69,
+        1292,
+        155,
+        39
+      ],
+      "area": 6045,
+      "iscrowd": 0
+    },
+    {
+      "id": 239,
+      "image_id": 178,
+      "category_id": 239,
+      "bbox": [
+        105,
+        1333,
+        84,
+        47
+      ],
+      "area": 3948,
+      "iscrowd": 0
+    },
+    {
+      "id": 240,
+      "image_id": 177,
+      "category_id": 240,
+      "bbox": [
+        103,
+        1450,
+        230,
+        72
+      ],
+      "area": 16560,
+      "iscrowd": 0
     }
   ],
   "categories": [
@@ -4169,7 +4412,7 @@
     },
     {
       "id": 101,
-      "name": "hunt_bear_entry",
+      "name": "踏浪-一键派遣",
       "supercategory": ""
     },
     {
@@ -4790,6 +5033,81 @@
     {
       "id": 225,
       "name": "global_task_list_click_jump_potion_need_handle",
+      "supercategory": ""
+    },
+    {
+      "id": 226,
+      "name": "island_back",
+      "supercategory": ""
+    },
+    {
+      "id": 227,
+      "name": "打熊点击目标集结卡片",
+      "supercategory": ""
+    },
+    {
+      "id": 228,
+      "name": "打熊入口",
+      "supercategory": ""
+    },
+    {
+      "id": 229,
+      "name": "打熊集结队伍入口",
+      "supercategory": ""
+    },
+    {
+      "id": 230,
+      "name": "打熊集结按钮",
+      "supercategory": ""
+    },
+    {
+      "id": 231,
+      "name": "打熊集结队伍标志",
+      "supercategory": ""
+    },
+    {
+      "id": 232,
+      "name": "打熊部队集结兵力",
+      "supercategory": ""
+    },
+    {
+      "id": 233,
+      "name": "打熊部队集结人数",
+      "supercategory": ""
+    },
+    {
+      "id": 234,
+      "name": "打熊部队进入集结",
+      "supercategory": ""
+    },
+    {
+      "id": 235,
+      "name": "打熊部队集结剩余时间",
+      "supercategory": ""
+    },
+    {
+      "id": 236,
+      "name": "打熊地图目标",
+      "supercategory": ""
+    },
+    {
+      "id": 237,
+      "name": "踏浪-剩余时间",
+      "supercategory": ""
+    },
+    {
+      "id": 238,
+      "name": "踏浪-标签",
+      "supercategory": ""
+    },
+    {
+      "id": 239,
+      "name": "踏浪-探索",
+      "supercategory": ""
+    },
+    {
+      "id": 240,
+      "name": "踏浪-一键领取",
       "supercategory": ""
     }
   ]

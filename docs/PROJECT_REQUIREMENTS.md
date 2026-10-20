@@ -846,3 +846,36 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+## [2026-10-20] 踏浪活动任务（Wave Ride）
+
+### 原始需求
+主界面点击超值活动入口（global_entry_greatvalue_activity）进入活动选择界面，在 global_sss_activity_head 区域内灰度搜索"踏浪-标签"：未找到向左滑循环匹配最多 6 次，仍未找到向右滑循环匹配最多 6 次，耗尽则失败。找到后点击标签进入踏浪界面：先匹配"踏浪-一键领取"，匹配到则点击、延时 2s 后点"一键派遣"，下次触发延后 8 小时（可配置）；未匹配到则匹配"踏浪-探索"，匹配到再灰度匹配"一键派遣"，命中即点击、同样延后 8 小时，未命中则在"踏浪-剩余时间"区域 OCR 剩余时间作为下次触发时间；都未匹配直接 OCR 剩余时间。结束后返回主界面。
+
+### 变更点
+- `src/sg/scene/elements.py` 新增踏浪 5 个 SceneElement（resource_id 与 coco_annotations.json category name 严格一致）：`ACTIVITY_TAG_WAVE_RIDE`（踏浪-标签）、`ACTIVITY_TAG_WAVE_RIDE_CLAIM_ALL`（一键领取）、`ACTIVITY_TAG_WAVE_RIDE_EXPLORE`（探索）、`ACTIVITY_TAG_WAVE_RIDE_DISPATCH`（一键派遣）、`ACTIVITY_TAG_WAVE_RIDE_REMAIN_TIME`（剩余时间 OCR 区域）。特征图 127-130.png 已在 ok_templates 标注，无需补图。
+- 新增 `src/sg/element/overall/activity/wave_ride.py`：`WaveRide` 领域对象——双向滑动灰度搜索（复用 BankSaveTask 的 GLOBAL_SSS_ACTIVITY_HEAD 区域滑动骨架，扩展为先左 6 次再右 6 次）、三分支处理（领取→2s→派遣 / 探索→灰度派遣→OCR 兜底 / 直接 OCR）、OCR 剩余时间解析（中文单位词优先：'8小时30分'→30600s；冒号：时:分:秒/分:秒；裸数字→秒）。
+- 新增 `src/sg/tasks/city/WaveRideTask.py`（继承 SGBaseTask）：前台 → 清弹窗 → 回主界面 → 进超值活动 → 双向滑动找标签 → 三分支处理 → 回主界面（失败不影响结果）。注入字段 `dispatch_wait_hours`（默认 8）。SUCCESS 返回动态 wait_seconds（8h 或 OCR 秒数）。
+- 注册三动作：`task_type_map.py` 加 `"Wave Ride": WaveRideTask`；`task_config.json` 定义段（count=0 无限循环、max_active=1、requires_march_queue=false、**next_trigger_delay=0**——动态间隔全走 SUCCESS 返回的 wait_seconds，配置再叠加会双倍延时；params 含 Dispatch Wait Hours attr=dispatch_wait_hours）；实例条目 enabled=true 挂 user0。
+
+### 修复点
+- `_parse_time_text` 初版按数字组个数推断（与 ClaimStaminaTask 同口径），单测抓到 `'8小时30分'` 被误判为分秒组合（510s，实际 30600s）→ 改为中文单位词配对解析优先，冒号/裸数字推断兜底。
+
+### 涉及文件
+- src/sg/scene/elements.py（追加踏浪元素常量）
+- src/sg/element/overall/activity/wave_ride.py（新增）
+- src/sg/tasks/city/WaveRideTask.py（新增）
+- src/sg/tasks/task_type_map.py（加映射）
+- configs/task_config.json（定义段 + 实例条目）
+
+### 测试
+- 冒烟通过：config_loader.load() 全量解析 OK；TASK_TYPE_MAP 与 task_config.json 双向一致（21 types）；元素 import OK；WaveRideTask/WaveRide import OK；实例契约断言（enabled=true、count=0、max_active=1、next_trigger_delay=0、params 注入 dispatch_wait_hours=8）全过。
+- `_parse_time_text` 单测 14 用例全过（时:分:秒 / 分:秒 / 中文单位 / 裸数字 / 异常输入）。
+- 独立模式 / 队列模式实机未跑（需游戏前台真实画面）。
+
+### 遗留 / 风险
+- 实机未验证：踏浪标签灰度匹配阈值（0.8）、双向滑动的边界表现（活动列表是否循环滚动）、一键领取/派遣/探索三特征在不同活动状态下的可见性组合。
+- OCR"剩余时间"的文本格式假设（时:分:秒 或 中文单位）基于其他任务先例，真实字体渲染下的识别率需实机确认；识别失败已有 8h 兜底。
+- 分支 a（一键领取成功后）若领取后"一键派遣"按钮不可见（如船已派出），任务按 FAILED 结束重试，不会死循环。
+
+---
+

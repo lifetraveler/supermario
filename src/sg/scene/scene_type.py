@@ -9,6 +9,8 @@ class SceneType(str, Enum):
     CITY = "city"
 
     WORLD_MAP = "world_map"
+    
+    ISLAND_AREA_SYMBOL = "island_area_symbol"
 
     TOWER_DEFENSE = "tower_defense"
 

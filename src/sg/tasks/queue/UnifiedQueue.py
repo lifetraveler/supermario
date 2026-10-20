@@ -101,6 +101,47 @@ class UnifiedQueue(QueueTaskBase):
         }
 
     # =========================================================================
+    # 队列收尾：按配置切到指定分身用户
+    # =========================================================================
+
+    def _after_queue_done(self):
+        """
+        所有任务自然完成后，按 task_config.json 生效链的 after_done_user_id：
+          - 0（默认）：不动，保持当前应用；
+          - 非零且 != 当前 user_id：关闭当前应用，再以该用户启动应用。
+
+        设备能力来自 DeviceManager.adb_stop_package / adb_start_package
+        （后者带 user_id 时走 am start --user 分身分支）。
+        非模拟器 / ADB 环境（capture 非 adb）静默跳过。
+        """
+        app = self._task_config.get("app") or {}
+        package = app.get("package")
+        target_uid = app.get("after_done_user_id") or 0
+        if not target_uid or not package:
+            return
+        current_uid = getattr(self.executor.device_manager, "user_id", 0) or 0
+        if target_uid == current_uid:
+            self.log_info(f"[AfterDone] 目标用户 {target_uid} 即当前用户，跳过切换")
+            return
+        dm = self.executor.device_manager
+        self.log_info(
+            f"[AfterDone] 队列完成，切换应用用户: user{current_uid} -> user{target_uid}")
+        try:
+            dm.adb_stop_package(package, user_id=current_uid)
+        except Exception as e:
+            self.log_info(f"[AfterDone] 关闭应用失败（继续启动）: {e}")
+        try:
+            ok = dm.adb_start_package(package, user_id=target_uid)
+        except Exception as e:
+            ok = False
+            self.log_info(f"[AfterDone] 启动用户 {target_uid} 应用异常: {e}")
+        if ok is False:
+            self.log_info(f"[AfterDone] 用户 {target_uid} 应用启动失败，请检查分身是否安装")
+        else:
+            # 切完用户后更新 DeviceManager 视角，后续截图/交互跟随新用户
+            dm.user_id = target_uid
+
+    # =========================================================================
     # 工厂构建：enabled 的实例条目 → TaskFactory
     # =========================================================================
 

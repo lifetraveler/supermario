@@ -32,6 +32,8 @@ def get_device():
     return adb.device()
 
 
+
+
 def get_all_users(device):
     """
     获取设备上所有用户及其运行状态。

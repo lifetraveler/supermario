@@ -6,6 +6,7 @@ from src.sg.scene.elements import (
     AREA_MAIN,
     BUTTON_GOTO_WORLDMAP,
     WILDERNESS,
+    ISLAND_AREA_SYMBOL
 )
 
 
@@ -23,6 +24,11 @@ class SceneDetector:
     def detect(self) -> Scene:
 
         features = {}
+        
+        island_area_symbol = self._find(ISLAND_AREA_SYMBOL)
+
+        if island_area_symbol is not None:
+            features[ISLAND_AREA_SYMBOL.name] = island_area_symbol
 
         area_main = self._find(AREA_MAIN)
 
@@ -42,6 +48,15 @@ class SceneDetector:
 
         if wilderness is not None:
             features[WILDERNESS.name] = wilderness
+
+
+        if island_area_symbol is not None:
+            return Scene(
+                scene_type=SceneType.ISLAND_AREA_SYMBOL,
+                state=SceneState.NORMAL,
+                confidence=island_area_symbol.confidence,
+                features=features,
+            )
 
         # --------------------------------------------------
         # Wilderness

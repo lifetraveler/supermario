@@ -73,6 +73,16 @@ class QueueTaskBase(SGBaseTask):
             ),
         }
 
+    def _after_queue_done(self):
+        """
+        队列全部任务自然完成（非用户停止）后的收尾钩子，默认空操作。
+
+        JSON 驱动的子类（UnifiedQueue）覆写：按配置把应用切到
+        指定分身用户（关当前应用 -> am start --user 启动目标用户）。
+        钩子在 queue.stop() 之后、run() 返回之前调用；
+        异常只记日志，不影响 run() 的返回值。
+        """
+
     # =========================================================================
     # 子类接口
     # =========================================================================
@@ -166,8 +176,16 @@ class QueueTaskBase(SGBaseTask):
 
         # ---------------------------------------------------------------------
         # 4. 收尾
+        #    _after_queue_done：队列自然跑完（非用户停止）时的收尾钩子，
+        #    默认空操作；JSON 驱动子类可覆写实现「完成后切分身用户启动」。
         # ---------------------------------------------------------------------
+        all_done = self.queue.all_done()
         self.queue.stop()
+        if all_done and not self.exit_is_set():
+            try:
+                self._after_queue_done()
+            except Exception as e:
+                self.log_info(f"收尾钩子 _after_queue_done 异常: {e}")
         self._update_info()
         self.log_info(f"========== {self.name} 结束 ==========")
         return True

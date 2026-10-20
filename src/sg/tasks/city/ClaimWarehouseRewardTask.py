@@ -40,7 +40,8 @@ from src.sg.scene.elements import (
     CITY_TASK_LIST_WAREHOUSE_ENTRY,
     CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
     GLOBAL_TASK_LIST_DOWN_EDGE,
-    GLOBAL_TASK_LIST_CLICK_JUMP_POTION_NEED_HANDLE
+    GLOBAL_TASK_LIST_CLICK_JUMP_POTION_NEED_HANDLE,
+    CITY_TASK_LIST_WAREHOUSE_BUTTON_GETED_TIPS
 )
 from src.sg.scene.scene_type import SceneType
 
@@ -177,7 +178,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
         self._sleep(2.0)
         if scene.type=='world_map':
             if not self._wait_element(
-                CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
+                CITY_TASK_LIST_WAREHOUSE_BUTTON_GETED_TIPS,
                 timeout=self.reward_time_timeout,
                 threshold=0.8,
                 with_recovery=False,
@@ -190,7 +191,7 @@ class ClaimWarehouseRewardTask(SGBaseTask):
             )
             self.sleep(1.5)
             if not self._wait_element(
-                CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME,
+                CITY_TASK_LIST_WAREHOUSE_BUTTON_GETED_TIPS,
                 timeout=self.reward_time_timeout,
                 threshold=0.8,
                 with_recovery=False,

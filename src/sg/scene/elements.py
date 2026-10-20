@@ -906,6 +906,11 @@ GLOBAL_MARCH_TITLE_ARROW_DOWN = SceneElement(
     desc="行军队列展开状态，点击收起",
 )
 
+ISLAND_BACK = SceneElement(
+    name="island_back",
+    resource_id="island_back",
+    desc="退出海岛",
+)
 
 # ============================================================
 # 统帅领取奖励（Leader Reward）
@@ -1409,6 +1414,13 @@ CITY_TASK_LIST_WAREHOUSE_NEXT_REWARD_TIME = SceneElement(
     resource_id="city_task_list_warehouse_next_reward_time",
     desc="仓库奖励：下次领取时间区域",
 )
+# id: 168
+# 仓库奖励：下次领取时间 OCR 区域（领取成功界面）
+CITY_TASK_LIST_WAREHOUSE_BUTTON_GETED_TIPS = SceneElement(
+    name="city_task_list_warehouse_button_geted_tips",
+    resource_id="city_task_list_warehouse_button_geted_tips",
+    desc="仓库奖励成功tip",
+)
 
 # id: 220
 # 任务列表：滑到底部标志
@@ -1482,4 +1494,43 @@ CITY_DAILY_FREE_REWARD_BUY_CENTER_REMIND_LEFT = SceneElement(
     name="city_daily_free_reward_buy_center_remind_left",
     resource_id="city_daily_free_reward_buy_center_remind_left",
     desc="储值中心：未领取标记（左，翻页后）",
+)
+
+# ============================================================
+# 踏浪活动（Wave Ride）
+# ============================================================
+
+# 活动选择界面：踏浪标签（在 global_sss_activity_head 区域内灰度搜索）
+ACTIVITY_TAG_WAVE_RIDE = SceneElement(
+    name="踏浪-标签",
+    resource_id="踏浪-标签",
+    desc="踏浪：活动选择界面的踏浪标签",
+)
+
+# 踏浪界面：一键领取按钮（有可领取奖励时出现）
+ACTIVITY_TAG_WAVE_RIDE_CLAIM_ALL = SceneElement(
+    name="踏浪-一键领取",
+    resource_id="踏浪-一键领取",
+    desc="踏浪：一键领取按钮",
+)
+
+# 踏浪界面：探索按钮（探索进行中/可派船标志）
+ACTIVITY_TAG_WAVE_RIDE_EXPLORE = SceneElement(
+    name="踏浪-探索",
+    resource_id="踏浪-探索",
+    desc="踏浪：探索按钮（探索中标志）",
+)
+
+# 踏浪界面：一键派遣按钮（派船探索）
+ACTIVITY_TAG_WAVE_RIDE_DISPATCH = SceneElement(
+    name="踏浪-一键派遣",
+    resource_id="踏浪-一键派遣",
+    desc="踏浪：一键派遣按钮",
+)
+
+# 踏浪界面：剩余时间 OCR 区域
+ACTIVITY_TAG_WAVE_RIDE_REMAIN_TIME = SceneElement(
+    name="踏浪-剩余时间",
+    resource_id="踏浪-剩余时间",
+    desc="踏浪：剩余时间 OCR 区域",
 )
