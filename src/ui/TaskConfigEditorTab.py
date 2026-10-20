@@ -1,14 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-TaskConfigEditorTab —— configs/task_config.json 的原生 GUI 编辑页（qfluentwidgets）。
+TaskConfigEditorTab —— 任务配置的原生 GUI 编辑页（qfluentwidgets）。
+
+双配置文件（结构契约与 task_config_loader.py 对齐）：
+  configs/task_type.json   定义段（[{package, task_types[]}]，跟软件绑定）
+  configs/task_config.json 实例段（version + machines 多设备/应用/分身链）
 
 功能对标 tools/task_config_editor.html（网页版）：
-  - 解析 configs/task_config.json，结构契约与 task_config_loader.py 对齐
   - 三个页签：任务实例 / 类型定义 / JSON 源码
     （设备链为低频操作，不单设页签；machines 通过 JSON 源码页编辑）
-  - 校验器镜像 loader 规则（type 重复 / 引用未定义类型 / params 键 ⊆ 定义 /
-    widget 白名单 / enabled 链存在），保存前提示
-  - 保存：Ctrl+S 或按钮直接写回 configs/task_config.json（写前留 .bak 备份）
+  - 类型定义页编辑当前链 app 的 package 对应分组；实例页渲染的
+    任务描述 / 参数描述都来自 task_type.json 定义段
+  - 校验器镜像 loader 规则（type/id 重复 / 引用未定义类型 / params 键
+    ⊆ 定义 / widget 白名单 / enabled 链存在），保存前提示
+  - 保存：Ctrl+S 或按钮写回两份 JSON（写前各留 .bak 备份）
+  - 方案：仅保存当前链启用任务的 {id, params}（app 级语义）；
+    应用方案按目标用户已有任务范围交集覆盖
 """
 import copy
 import json
@@ -33,7 +40,7 @@ from ok import Config
 from ok.ui.qt.widget.CustomTab import CustomTab
 
 from src.sg.tasks.config_loader.task_config_loader import (
-    DEFAULT_CONFIG_PATH, PARAM_WIDGETS,
+    DEFAULT_CONFIG_PATH, DEFAULT_TYPE_PATH, PARAM_WIDGETS,
 )
 
 DEFAULT_KEYS = (
@@ -54,73 +61,83 @@ def _new_type_defaults():
     return {"count": 1, "max_active": 1, "requires_march_queue": False,
             "next_trigger_delay": 86400, "one_shot": False, "cron": ""}
 
+def validate_doc(doc, type_groups):
+    """镜像 loader 的结构校验（实例段 doc + 定义段分组 type_groups），
+    返回错误字符串列表（空列表 = 通过）。
 
-def _fmt_val(v):
-    if isinstance(v, bool):
-        return "开" if v else "关"
-    if isinstance(v, list):
-        return "/".join(map(str, v)) if v else "-"
-    if v is None:
-        return "-"
-    return str(v)
-
-
-def validate_doc(doc):
-    """镜像 loader 的结构校验，返回错误字符串列表（空列表 = 通过）。"""
+    type_groups: {package: task_types list}（load_type_document 返回结构）。
+    每个 app 的 tasks 只允许引用其 package 分组里定义的类型。
+    """
     errs = []
     if not isinstance(doc, dict):
-        return ["文档顶层必须是对象"]
-    tt = doc.get("task_types")
-    if not isinstance(tt, list) or not tt:
-        errs.append("task_types 缺失或为空")
-    seen = set()
-    id_to_type = {}
-    for i, t in enumerate(tt or []):
-        w = f"task_types[{i}]"
-        if not isinstance(t, dict):
-            errs.append(f"{w}: 条目必须是对象")
+        return ["实例配置顶层必须是对象"]
+    if not isinstance(type_groups, dict) or not type_groups:
+        return ["task_type.json 缺失或为空"]
+    # 分组内校验（type/id 重复、defaults、params）+ 跨组 type/id 唯一性
+    group_seen = {}      # (pkg, "type"/"id", 值) -> pkg
+    for pkg, tt in type_groups.items():
+        if not isinstance(tt, list):
+            errs.append(f"task_type.json[{pkg}]: task_types 必须是数组")
             continue
-        if not t.get("type"):
-            errs.append(f"{w}: 缺 type")
-        elif t["type"] in seen:
-            errs.append(f'{w}: type 重复 "{t["type"]}"')
-        else:
-            seen.add(t["type"])
-        tid = t.get("id")
-        if not tid or not isinstance(tid, str):
-            errs.append(f"{w}: 缺 id 或 id 非字符串")
-        elif tid in id_to_type:
-            errs.append(f'{w}: id 重复 "{tid}"')
-        else:
-            id_to_type[tid] = t.get("type")
-        est = t.get("estimated_seconds", 0)
-        if isinstance(est, bool) or not isinstance(est, (int, float)) or est < 0:
-            errs.append(f"{w}.estimated_seconds 必须是非负数: {est!r}")
-        d = t.get("defaults")
-        if not isinstance(d, dict):
-            errs.append(f"{w}.defaults 缺失")
-        else:
-            for k in DEFAULT_KEYS:
-                if k not in d:
-                    errs.append(f"{w}.defaults 缺字段 {k}")
-            if "cron" in d and not isinstance(d.get("cron"), str):
-                errs.append(f"{w}.defaults.cron 必须是字符串")
-        attrs = set()
-        for pi, p in enumerate(t.get("params") or []):
-            if not isinstance(p, dict):
-                errs.append(f"{w}.params[{pi}]: 必须是对象")
+        seen = set()
+        id_to_type = {}
+        for i, t in enumerate(tt):
+            w = f"task_type.json[{pkg}].task_types[{i}]"
+            if not isinstance(t, dict):
+                errs.append(f"{w}: 条目必须是对象")
                 continue
-            if not p.get("name") or not p.get("attr"):
-                errs.append(f"{w}.params[{pi}]: 缺 name/attr")
-            attr = p.get("attr")
-            if attr:
-                if attr in attrs:
-                    errs.append(f'{w}.params attr 重复 "{attr}"')
-                attrs.add(attr)
-            wd = p.get("widget")
-            if wd is not None:
-                if not isinstance(wd, dict) or wd.get("type") not in PARAM_WIDGETS:
-                    errs.append(f"{w}.params[{pi}].widget 非法: {wd!r}")
+            ttype = t.get("type")
+            if not ttype:
+                errs.append(f"{w}: 缺 type")
+            elif ttype in seen:
+                errs.append(f'{w}: type 重复 "{ttype}"')
+            else:
+                seen.add(ttype)
+            tid = t.get("id")
+            if not tid or not isinstance(tid, str):
+                errs.append(f"{w}: 缺 id 或 id 非字符串")
+            elif tid in id_to_type:
+                errs.append(f'{w}: id 重复 "{tid}"')
+            else:
+                id_to_type[tid] = ttype
+            est = t.get("estimated_seconds", 0)
+            if isinstance(est, bool) or not isinstance(est, (int, float)) or est < 0:
+                errs.append(f"{w}.estimated_seconds 必须是非负数: {est!r}")
+            d = t.get("defaults")
+            if not isinstance(d, dict):
+                errs.append(f"{w}.defaults 缺失")
+            else:
+                for k in DEFAULT_KEYS:
+                    if k not in d:
+                        errs.append(f"{w}.defaults 缺字段 {k}")
+                if "cron" in d and not isinstance(d.get("cron"), str):
+                    errs.append(f"{w}.defaults.cron 必须是字符串")
+            attrs = set()
+            for pi, p in enumerate(t.get("params") or []):
+                if not isinstance(p, dict):
+                    errs.append(f"{w}.params[{pi}]: 必须是对象")
+                    continue
+                if not p.get("name") or not p.get("attr"):
+                    errs.append(f"{w}.params[{pi}]: 缺 name/attr")
+                attr = p.get("attr")
+                if attr:
+                    if attr in attrs:
+                        errs.append(f'{w}.params attr 重复 "{attr}"')
+                    attrs.add(attr)
+                wd = p.get("widget")
+                if wd is not None:
+                    if not isinstance(wd, dict) or wd.get("type") not in PARAM_WIDGETS:
+                        errs.append(f"{w}.params[{pi}].widget 非法: {wd!r}")
+            for key, val in (("type", ttype), ("id", tid)):
+                if val:
+                    gkey = (key, val)
+                    if gkey in group_seen:
+                        errs.append(
+                            f'task_type.json: {key} "{val}" 在多个 package 组重复: '
+                            f'{group_seen[gkey]} 与 {pkg}')
+                    else:
+                        group_seen[gkey] = pkg
+    # 实例段校验
     machines = doc.get("machines")
     if not isinstance(machines, list) or not machines:
         errs.append("machines 缺失或为空")
@@ -134,6 +151,16 @@ def validate_doc(doc):
             if not isinstance(a, dict):
                 errs.append(f"{mw}.apps[{ai}]: 必须是对象")
                 continue
+            pkg = a.get("package")
+            defs = type_groups.get(pkg)
+            if not isinstance(defs, list) or not defs:
+                errs.append(f"{mw}.apps[{ai}]: task_type.json 缺少 package 分组 "
+                            f'"{pkg}"')
+            id_to_type = {}
+            for t in defs or []:
+                if isinstance(t, dict) and t.get("id"):
+                    id_to_type[t["id"]] = t.get("type")
+            local_types = {t.get("type") for t in defs or [] if isinstance(t, dict)}
             for ui_, u in enumerate(a.get("users") or []):
                 if not isinstance(u, dict):
                     errs.append(f"{mw}.apps[{ai}].users[{ui_}]: 必须是对象")
@@ -157,11 +184,11 @@ def validate_doc(doc):
                                     f'{mw} users[{ui_}] tasks[{ti}]: '
                                     f'id "{tid}" 与 type "{ttype}" 不一致')
                             ttype = resolved
-                    elif ttype not in seen:
+                    elif ttype not in local_types:
                         errs.append(
                             f'{mw} users[{ui_}] tasks[{ti}]: 引用未定义 type "{ttype}"')
                     attrs = set()
-                    for x in (tt or []):
+                    for x in defs or []:
                         if isinstance(x, dict) and x.get("type") == ttype:
                             attrs = {p.get("attr") for p in (x.get("params") or [])
                                      if isinstance(p, dict)}
@@ -185,7 +212,11 @@ class TaskConfigEditorTab(CustomTab):
         self.config = Config(self.__class__.__name__, {})
         self.logger.info(f"TaskConfigEditorTab init {self.__class__.__name__}")
 
-        self.doc = None            # 当前编辑 dict（直接改它，保存时序列化）
+        self.doc = None            # 实例段（version + machines）
+        self.type_groups = {}      # 定义段 {package: task_types list}
+        self.type_order = []       # task_type.json 的分组顺序（package 列表）
+        self.types_dirty = False   # 定义段是否未保存
+        self.cur_type_pkg = None   # 类型定义页当前编辑的 package 分组
         self.dirty = False
         self.sel = {"m": 0, "a": 0, "u": 0}
         self.expanded = set()      # 任务卡: (m, a, u, type)
@@ -269,12 +300,18 @@ class TaskConfigEditorTab(CustomTab):
         self.lbl_chain_hint = BodyLabel("")
         bar.addWidget(self.lbl_chain_hint)
         bar.addStretch(1)
-        self.search = LineEdit()
-        self.search.setPlaceholderText("搜索任务…")
+        self.btn_batch_enable = PushButton(FluentIcon.CHECKBOX, "批量启用")
+        self.btn_batch_enable.clicked.connect(self._batch_enable_dialog)
+        bar.addWidget(self.btn_batch_enable)
+        self.btn_reset_user = PushButton(FluentIcon.SYNC, "重置任务参数")
+        self.btn_reset_user.setToolTip(
+            "把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值")
+        self.btn_reset_user.clicked.connect(self._reset_user_tasks)
+        bar.addWidget(self.btn_reset_user)
+        bar.addWidget(self.search)
         self.search.setClearButtonEnabled(True)
         self.search.setFixedWidth(170)
         self.search.textChanged.connect(self._on_filter)
-        bar.addWidget(self.search)
         self.btn_add_task = PrimaryPushButton(FluentIcon.ADD, "添加任务")
         self.btn_add_task.clicked.connect(self._add_task_dialog)
         bar.addWidget(self.btn_add_task)
@@ -510,26 +547,46 @@ class TaskConfigEditorTab(CustomTab):
 
     # ============================================================ 数据
     def _reload_from_disk(self, show_info=True):
-        path = Path(DEFAULT_CONFIG_PATH)
-        if not path.exists():
-            self.doc = None
-            self._refresh_status()
-            return
-        try:
-            text = path.read_text(encoding="utf-8")
-            doc = json.loads(text)
-        except Exception as e:
-            self.logger.error(f"读取 {path} 失败: {e}")
-            self.lbl_status.setText(f"读取失败: {e}")
-            return
-        self.doc = doc
-        self._normalize_group_order()
+        cfg_path = Path(DEFAULT_CONFIG_PATH)
+        type_path = Path(DEFAULT_TYPE_PATH)
+        self.type_groups = {}
+        self.type_order = []
+        self.doc = None
+        ok = True
+        if type_path.exists():
+            try:
+                groups = json.loads(type_path.read_text(encoding="utf-8"))
+                for g in groups or []:
+                    pkg = g.get("package")
+                    self.type_groups[pkg] = g.get("task_types") or []
+                    self.type_order.append(pkg)
+            except Exception as e:
+                self.logger.error(f"读取 {type_path} 失败: {e}")
+                self.lbl_status.setText(f"读取定义失败: {e}")
+                ok = False
+        else:
+            self.lbl_status.setText(f"定义文件不存在: {type_path}")
+            ok = False
+        if cfg_path.exists():
+            try:
+                self.doc = json.loads(cfg_path.read_text(encoding="utf-8"))
+            except Exception as e:
+                self.logger.error(f"读取 {cfg_path} 失败: {e}")
+                self.lbl_status.setText(f"读取失败: {e}")
+                ok = False
+        else:
+            self.lbl_status.setText(f"实例文件不存在: {cfg_path}")
+            ok = False
+        if self.doc:
+            self._normalize_group_order()
         self.dirty = False
+        self.types_dirty = False
         self._src_dirty = False
         self._refresh_source()
         self._sync_all()
-        if show_info:
-            InfoBar.success("已加载", str(path), parent=self.window(), duration=2000)
+        if show_info and ok:
+            InfoBar.success("已加载", f"{cfg_path.name} + {type_path.name}",
+                            parent=self.window(), duration=2000)
 
     def _normalize_group_order(self):
         """把每个 user 的 tasks 稳定重排为「已启用块在前，未启用块在后」。
@@ -547,6 +604,22 @@ class TaskConfigEditorTab(CustomTab):
 
     def _dump(self):
         return json.dumps(self.doc, ensure_ascii=False, indent=2) + "\n"
+
+    def _dump_types(self):
+        """task_type.json 序列化：保持文件里的分组顺序。"""
+        return json.dumps(
+            [{"package": pkg, "task_types": self.type_groups.get(pkg) or []}
+             for pkg in self.type_order],
+            ensure_ascii=False, indent=2) + "\n"
+
+    def _cur_pkg(self):
+        """当前选中链 app 的 package；无链返回 None。"""
+        chain = self._chain()
+        return chain[1].get("package") if chain else None
+
+    def _pkg_types(self, pkg):
+        """package → 定义段列表；未分组返回 []。"""
+        return self.type_groups.get(pkg) or []
 
     def _chain(self):
         """当前选中链 (m, a, u)；越界返回 None。"""
@@ -579,19 +652,26 @@ class TaskConfigEditorTab(CustomTab):
         self.sel["u"] = max(0, min(self.sel["u"], len(users) - 1)) if users else 0
 
     def _type_def(self, type_):
-        for t in (self.doc or {}).get("task_types") or []:
+        return self._type_def_in(self._cur_pkg(), type_)
+
+    def _type_def_in(self, pkg, type_):
+        for t in self._pkg_types(pkg):
             if isinstance(t, dict) and t.get("type") == type_:
                 return t
         return None
 
     def _task_def(self, task):
-        """实例条目 → 定义段：优先按 id 反查；旧条目退回 type 查找。"""
+        """实例条目 → 定义段：优先按 id 反查；旧条目退回 type 查找。
+
+        只在当前链 app 的 package 分组里查（定义段按软件作用域）。
+        """
+        pkg = self._cur_pkg()
         tid = task.get("id")
         if tid:
-            for t in (self.doc or {}).get("task_types") or []:
+            for t in self._pkg_types(pkg):
                 if isinstance(t, dict) and t.get("id") == tid:
                     return t
-        return self._type_def(task.get("type"))
+        return self._type_def_in(pkg, task.get("type"))
 
     def _mark_dirty(self):
         self.dirty = True
@@ -619,10 +699,16 @@ class TaskConfigEditorTab(CustomTab):
             self.btn_save.setEnabled(False)
             self.btn_reload.setEnabled(False)
             return
-        errs = validate_doc(self.doc)
-        dirty = " ● 未保存" if self.dirty else ""
+        errs = validate_doc(self.doc, self.type_groups)
+        flag = ""
+        if self.dirty and self.types_dirty:
+            flag = " ● 实例+定义 未保存"
+        elif self.dirty:
+            flag = " ● 未保存"
+        elif self.types_dirty:
+            flag = " ● 定义未保存"
         self.lbl_status.setText(
-            f"configs/task_config.json{dirty} ｜ 校验: {len(errs)} 个问题")
+            f"task_config + task_type{flag} ｜ 校验: {len(errs)} 个问题")
         self.lbl_status.setToolTip("\n".join(errs[:10]))
         self.btn_save.setEnabled(True)
         self.btn_reload.setEnabled(True)
@@ -1174,7 +1260,7 @@ class TaskConfigEditorTab(CustomTab):
         if not chain or not self.doc:
             return
         have = {t.get("id") or t.get("type") for t in chain[2].get("tasks") or []}
-        missing = [t for t in self.doc.get("task_types") or []
+        missing = [t for t in self._pkg_types(self._cur_pkg())
                    if isinstance(t, dict) and (t.get("id") or t.get("type")) not in have]
         if not missing:
             InfoBar.warning("添加任务", "所有已定义类型均已添加",
@@ -1194,20 +1280,102 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_dirty()
         self._refresh_tasks_page()
 
+    def _batch_enable_dialog(self):
+        """批量多选启用/停用当前用户任务（新建用户快速勾选场景）。"""
+        chain = self._chain()
+        if not chain:
+            return
+        tasks = [t for t in chain[2].get("tasks") or [] if isinstance(t, dict)]
+        if not tasks:
+            InfoBar.warning("批量启用", "当前用户还没有任务，先「添加任务」",
+                            parent=self.window(), duration=2500)
+            return
+        items = []
+        for t in tasks:
+            tt = self._task_def(t)
+            label = (tt.get("name_prefix") if tt else None) or t.get("id") or t.get("type")
+            items.append((t, bool(t.get("enabled")), label))
+        dlg = _BatchEnableDialog(items, self.window())
+        if not dlg.exec():
+            return
+        for t, on in dlg.results:
+            t["enabled"] = bool(on)
+        self._normalize_group_order()
+        self._mark_dirty()
+        self._refresh_tasks_page()
+
+    def _reset_user_tasks(self):
+        """当前包、当前用户全部任务重置：停用 + 删覆盖字段 + 参数清空
+        （回退定义段默认值）。"""
+        chain = self._chain()
+        if not chain:
+            return
+        tasks = [t for t in chain[2].get("tasks") or [] if isinstance(t, dict)]
+        if not tasks:
+            InfoBar.warning("重置任务参数", "当前用户没有任务",
+                            parent=self.window(), duration=2500)
+            return
+        dlg = Dialog(
+            "重置任务参数",
+            f"当前包 {self._cur_pkg() or '?'} / 用户 {chain[2].get('user_id', '?')} 的 "
+            f"{len(tasks)} 个任务将全部停用，参数回到默认值。确定？",
+            self.window())
+        if not dlg.exec():
+            return
+        for t in tasks:
+            t["enabled"] = False
+            for k in DEFAULT_KEYS:
+                t.pop(k, None)
+            t["params"] = {}
+        self.expanded.clear()
+        self._normalize_group_order()
+        self._mark_dirty()
+        self._refresh_tasks_page()
+        InfoBar.success("已重置", f"{len(tasks)} 个任务已停用并恢复默认参数",
+                        parent=self.window(), duration=2500)
+
     # ==================================================== 类型定义页渲染
     def _refresh_types_page(self):
         with self._suspend_signals():
             self._clear_layout(self.type_list_lay)
-            if not self.doc:
+            if not self.doc and not self.type_groups:
                 self.type_list_lay.addWidget(BodyLabel("未加载配置"))
                 return
-            types = self.doc.get("task_types") or []
+            # 顶部：package 分组选择（类型定义跟软件绑定，按分组编辑）
+            bar = QHBoxLayout()
+            bar.addWidget(BodyLabel("软件分组:"))
+            self.type_pkg_combo = ComboBox()
+            pkgs = list(self.type_order)
+            for pkg in pkgs:
+                self.type_pkg_combo.addItem(
+                    f'{pkg}（{len(self._pkg_types(pkg))} 个类型）')
+            if not pkgs:
+                self.type_pkg_combo.addItem("（task_type.json 无分组）")
+            if self.cur_type_pkg in pkgs:
+                self.type_pkg_combo.setCurrentIndex(pkgs.index(self.cur_type_pkg))
+            elif pkgs:
+                self.cur_type_pkg = pkgs[0]
+            self.type_pkg_combo.currentIndexChanged.connect(
+                self._on_type_pkg_changed)
+            bar.addWidget(self.type_pkg_combo, 1)
+            wrap = QWidget()
+            wrap.setLayout(bar)
+            self.type_list_lay.addWidget(wrap)
+            types = self._pkg_types(self.cur_type_pkg)
             if not types:
-                self.type_list_lay.addWidget(BodyLabel("暂无类型定义"))
+                self.type_list_lay.addWidget(BodyLabel("该软件暂无类型定义"))
                 return
             for tt in types:
                 self.type_list_lay.addWidget(self._type_card(tt))
             self.type_list_lay.addStretch(1)
+
+    def _on_type_pkg_changed(self, idx):
+        if self._suspended:
+            return
+        pkgs = list(self.type_order)
+        if 0 <= idx < len(pkgs):
+            self.cur_type_pkg = pkgs[idx]
+            self._refresh_types_page()
 
     def _type_card(self, tt):
         key = ("T", tt.get("type"))
@@ -1631,6 +1799,7 @@ class TaskConfigEditorTab(CustomTab):
                         if ((t.get("id") == tid or t.get("type") == tt.get("type"))
                                 and isinstance(tparams, dict) and old in tparams):
                             tparams[new_attr] = tparams.pop(old)
+        self._mark_types_dirty()
         self._mark_dirty()
         self._card_cache = {}
         self._refresh_tasks_page()
@@ -1640,8 +1809,12 @@ class TaskConfigEditorTab(CustomTab):
         tt.setdefault("params", []).append(
             {"name": "新参数", "attr": f"new_attr_{n}", "default": None,
              "widget": None, "desc": ""})
-        self._mark_dirty()
+        self._mark_types_dirty()
         self._refresh_types_page()
+
+    def _mark_types_dirty(self):
+        self.types_dirty = True
+        self._refresh_status()
 
     def _delete_param(self, tt, p):
         params = tt.get("params") or []
@@ -1657,22 +1830,22 @@ class TaskConfigEditorTab(CustomTab):
                         if ((t.get("id") == tid or t.get("type") == tt.get("type"))
                                 and isinstance(tparams, dict)):
                             tparams.pop(attr, None)
+        self._mark_types_dirty()
         self._mark_dirty()
         self._refresh_types_page()
-        self._card_cache = {}
-        self._refresh_tasks_page()
+
     def _rename_type(self, tt, new_type):
         new_type = (new_type or "").strip()
         old = tt.get("type")
         if not new_type or new_type == old:
             return
         if any(x.get("type") == new_type
-               for x in self.doc.get("task_types") or [] if x is not tt):
+               for x in self._pkg_types(self.cur_type_pkg) if x is not tt):
             InfoBar.error("type 已存在", new_type, parent=self.window(), duration=2500)
             return
         # id 化后实例只按 id 引用定义段，type 重命名不再触碰实例条目
         tt["type"] = new_type
-        self._mark_dirty()
+        self._mark_types_dirty()
         self._refresh_types_page()
         InfoBar.success("已重命名", new_type, parent=self.window(), duration=2500)
 
@@ -1682,7 +1855,7 @@ class TaskConfigEditorTab(CustomTab):
         if not new_id or new_id == old:
             return
         if any(x.get("id") == new_id
-               for x in self.doc.get("task_types") or [] if x is not tt):
+               for x in self._pkg_types(self.cur_type_pkg) if x is not tt):
             InfoBar.error("id 已存在", new_id, parent=self.window(), duration=2500)
             return
         tid_old = old
@@ -1693,6 +1866,7 @@ class TaskConfigEditorTab(CustomTab):
                         if t.get("id") == tid_old:
                             t["id"] = new_id
         tt["id"] = new_id
+        self._mark_types_dirty()
         self._mark_dirty()
         self._refresh_types_page()
         self._card_cache = {}
@@ -1707,7 +1881,7 @@ class TaskConfigEditorTab(CustomTab):
         if v < 0:
             return
         tt["estimated_seconds"] = v
-        self._mark_dirty()
+        self._mark_types_dirty()
 
     def _delete_type(self, tt):
         n = 0
@@ -1720,10 +1894,11 @@ class TaskConfigEditorTab(CustomTab):
                                   if (tid and t.get("id") == tid)
                                   or (not tid and t.get("type") == tt.get("type"))]
                     n += before - len(u.get("tasks") or [])
-        types = self.doc.get("task_types") or []
+        types = self._pkg_types(self.cur_type_pkg)
         if tt in types:
             types.remove(tt)
         self.expanded_types.discard(("T", tt.get("type")))
+        self._mark_types_dirty()
         self._mark_dirty()
         self._refresh_types_page()
         self._card_cache = {}
@@ -1732,7 +1907,9 @@ class TaskConfigEditorTab(CustomTab):
                         parent=self.window(), duration=2500)
 
     def _add_type_dialog(self):
-        if not self.doc:
+        if not self.cur_type_pkg:
+            InfoBar.warning("添加类型", "没有可用的软件分组", parent=self.window(),
+                            duration=2500)
             return
         dlg = _InputTextDialog("添加类型", "type（唯一标识）", self.window())
         if not dlg.exec():
@@ -1740,22 +1917,22 @@ class TaskConfigEditorTab(CustomTab):
         type_ = dlg.value
         if not type_:
             return
-        if any(t.get("type") == type_ for t in self.doc.get("task_types") or []):
+        if any(t.get("type") == type_ for t in self._pkg_types(self.cur_type_pkg)):
             InfoBar.error("type 已存在", type_, parent=self.window(), duration=2500)
             return
         base_id = re.sub(r"[^a-zA-Z0-9]+", "_", type_).strip("_").lower() or "task"
         nid = base_id
         k = 1
-        existing = {t.get("id") for t in self.doc.get("task_types") or []}
+        existing = {t.get("id") for t in self._pkg_types(self.cur_type_pkg)}
         while nid in existing:
             k += 1
             nid = f"{base_id}_{k}"
-        self.doc.setdefault("task_types", []).append({
+        self.type_groups.setdefault(self.cur_type_pkg, []).append({
             "type": type_, "id": nid, "name_prefix": type_, "description": "",
             "estimated_seconds": 0,
             "defaults": _new_type_defaults(), "params": []})
         self.expanded_types.add(("T", type_))
-        self._mark_dirty()
+        self._mark_types_dirty()
         self._refresh_types_page()
 
     def _switch_page(self, key):
@@ -1781,10 +1958,13 @@ class TaskConfigEditorTab(CustomTab):
 
     def _refresh_source(self):
         self.src_edit.blockSignals(True)
-        self.src_edit.setPlainText(self._dump() if self.doc else "")
+        self.src_edit.setPlainText(
+            (self._dump() if self.doc else "") + "\n" + "-" * 60 +
+            "\n// ↑ configs/task_config.json 实例段 ↓ configs/task_type.json 定义段\n\n"
+            + (self._dump_types() if self.type_groups else ""))
         self.src_edit.blockSignals(False)
         self._src_dirty = False
-        self.lbl_src_hint.setText("与当前数据一致")
+        self.lbl_src_hint.setText("与当前数据一致（两份文件拼接）")
 
     def _on_source_changed(self):
         if self.src_edit.signalsBlocked():
@@ -1793,55 +1973,119 @@ class TaskConfigEditorTab(CustomTab):
         self.lbl_src_hint.setText("有未应用的修改，切走会丢弃")
 
     def _apply_source(self):
+        """源码页内容按分隔线切成两段：上=实例段，下=定义段。"""
+        SEP = "\n" + "-" * 60 + "\n"
+        raw = self.src_edit.toPlainText()
+        if SEP not in raw:
+            InfoBar.error("缺少分隔线", "实例段与定义段之间需要一行 '----' 分隔",
+                          parent=self.window(), duration=4000)
+            return
+        cfg_raw, type_raw = raw.split(SEP, 1)
         try:
-            doc = json.loads(self.src_edit.toPlainText())
+            doc = json.loads(cfg_raw)
+            groups = json.loads(type_raw)
         except Exception as e:
             InfoBar.error("JSON 解析失败", str(e)[:160], parent=self.window(), duration=4000)
             return
-        errs = validate_doc(doc)
+        try:
+            type_groups, type_order = {}, []
+            for g in groups or []:
+                type_groups[g.get("package")] = g.get("task_types") or []
+                type_order.append(g.get("package"))
+        except Exception as e:
+            InfoBar.error("定义段结构非法", str(e)[:160], parent=self.window(), duration=4000)
+            return
+        errs = validate_doc(doc, type_groups)
         if errs and not self._confirm_ignore_errors(errs, "应用"):
             return
         self.doc = doc
+        self.type_groups = type_groups
+        self.type_order = type_order
         self._normalize_group_order()
         self._src_dirty = False
         self._sync_all()
         self._mark_dirty()
+        self._mark_types_dirty()
         InfoBar.success("已应用", "源码修改已生效", parent=self.window(), duration=2000)
 
     def _copy_source(self):
         QApplication.clipboard().setText(self.src_edit.toPlainText())
         InfoBar.success("已复制", "JSON 源码已复制到剪贴板", parent=self.window(), duration=2000)
 
-    def _on_pivot_tasks(self):
-        self._switch_page("tasks")
-
-    def _on_pivot_types(self):
-        self._switch_page("types")
-
-    def _on_pivot_machines(self):
-        self._switch_page("machines")
-
-    def _on_pivot_source(self):
-        self._switch_page("source")
-
-
-    # ============================================================ 方案
     def _profile_dir(self):
         return Path("configs") / "task_config_profiles"
 
-    def _profiles(self):
+    def _profiles(self, pkg=None):
+        """方案名列表；给 pkg 时只列同 package 的方案。"""
         d = self._profile_dir()
         if not d.exists():
             return []
-        return sorted(p.stem for p in d.glob("*.json"))
+        names = []
+        for p in sorted(d.glob("*.json")):
+            if pkg is not None:
+                try:
+                    meta = json.loads(p.read_text(encoding="utf-8"))
+                except Exception:
+                    continue
+                if meta.get("package") != pkg:
+                    continue
+            names.append(p.stem)
+        return names
+
+    @staticmethod
+    def _profile_version(p):
+        """读取方案文件返回 (version, package, tasks)；不合法返回 (None, None, [])。"""
+        try:
+            meta = json.loads(Path(p).read_text(encoding="utf-8"))
+        except Exception:
+            return None, None, []
+        if not isinstance(meta, dict):
+            return None, None, []
+        if meta.get("version") == 2:
+            return 2, meta.get("package"), meta.get("tasks") or []
+        # v1 旧全量格式：抽取生效链启用条目，尽量兼容读取
+        tasks = []
+        pkg = None
+        for m in meta.get("machines") or []:
+            for a in m.get("apps") or []:
+                pkg = a.get("package")
+                for u in a.get("users") or []:
+                    for t in u.get("tasks") or []:
+                        if isinstance(t, dict) and t.get("enabled"):
+                            keep = {"id": t.get("id") or t.get("type"),
+                                    "params": t.get("params") or {}}
+                            tasks.append(keep)
+        return 1, pkg, tasks
+
+    def _enabled_task_snapshot(self):
+        """当前链启用任务 → [{id, params}]（方案即 app 级配置，与 user 无关）。"""
+        chain = self._chain()
+        if not chain:
+            return []
+        out = []
+        for t in chain[2].get("tasks") or []:
+            if isinstance(t, dict) and t.get("enabled"):
+                out.append({"id": t.get("id") or t.get("type"),
+                            "params": copy.deepcopy(t.get("params") or {})})
+        return out
 
     def _save_profile(self, name):
+        pkg = self._cur_pkg()
+        if not pkg:
+            InfoBar.warning("无法保存", "当前链没有 package", parent=self.window(),
+                            duration=2500)
+            return False
+        payload = {
+            "version": 2,
+            "package": pkg,
+            "tasks": self._enabled_task_snapshot(),
+        }
         d = self._profile_dir()
         d.mkdir(parents=True, exist_ok=True)
         path = d / f"{name}.json"
         try:
             path.write_text(
-                json.dumps(self.doc, ensure_ascii=False, indent=2) + "\n",
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
                 encoding="utf-8")
         except Exception as e:
             self.logger.error(f"保存方案失败: {e}")
@@ -1849,132 +2093,98 @@ class TaskConfigEditorTab(CustomTab):
             return False
         return True
 
-    def _disable_all_tasks(self, doc):
-        """实例全部置 enabled=false —— 合并用的「原始 JSON」基底。"""
-        for m in (doc.get("machines") or []):
-            for a in (m.get("apps") or []):
-                for u in (a.get("users") or []):
-                    for t in (u.get("tasks") or []):
-                        if isinstance(t, dict):
-                            t["enabled"] = False
-
-    # 有身份的列表：按列表名匹配条目；其余列表（options 等）整体替换
-    KEYED_LISTS = ("task_types", "machines", "apps", "users", "tasks", "params")
-
-    @staticmethod
-    def _profile_key(obj, list_key):
-        """有身份列表条目的合并匹配键；None = 匿名条目。"""
-        if not isinstance(obj, dict):
-            return None
-        if list_key == "task_types":
-            return ("type", obj.get("type"))
-        if list_key == "tasks":
-            return ("task", obj.get("type"))
-        if list_key == "machines":
-            return ("machine", obj.get("name"))
-        if list_key == "apps":
-            return ("app", obj.get("package"))
-        if list_key == "users":
-            return ("user", obj.get("user_id"))
-        if list_key == "params":
-            return ("param", obj.get("attr"))
-        return None
-
-    @staticmethod
-    def _merge_doc(base, overlay):
-        """方案 overlay 合并进 base（base 已全部停用），结果写入 base。
-
-        按 task_types[].type 与 machines[name]→apps[package]→users[user_id]
-        →tasks[].type 递归匹配；匹配节点以方案为准，base 独有的节点
-        （新任务/新类型/新参数）原样保留（保持停用态），方案独有的条目追加
-        （任务实例默认停用，由用户手动启用）。
-        """
-        def walk(b, o):
-            for k, ov in o.items():
-                bv = b.get(k)
-                if isinstance(ov, dict) and isinstance(bv, dict):
-                    walk(bv, ov)
-                elif isinstance(ov, list) and isinstance(bv, list):
-                    merge_lists(b, k, bv, ov)
-                else:
-                    b[k] = copy.deepcopy(ov)
-
-        def merge_lists(parent, key, bl, ol):
-            if key not in TaskConfigEditorTab.KEYED_LISTS:
-                # 匿名列表（options / 坐标等）: 整体替换
-                parent[key] = copy.deepcopy(ol)
-                return
-            for ov in ol:
-                okey = TaskConfigEditorTab._profile_key(ov, key)
-                hit = None
-                if okey is not None:
-                    for bv in bl:
-                        if TaskConfigEditorTab._profile_key(bv, key) == okey:
-                            hit = bv
-                            break
-                if hit is None:
-                    # 方案独有条目: 原样追加（忠实还原方案，保持幂等）
-                    parent.setdefault(key, []).append(copy.deepcopy(ov))
-                    continue
-                if isinstance(hit, dict) and isinstance(ov, dict):
-                    walk(hit, ov)
-                else:
-                    bl[bl.index(hit)] = copy.deepcopy(ov)
-
-        walk(base, overlay)
-
     def _apply_profile(self, name):
-        if not self.doc:
+        """把方案应用到当前链：只在目标用户已有任务范围内覆盖。
+
+        - 方案条目 ∩ 目标范围：写入 params（覆盖值）并 enabled=True；
+        - 目标范围内不在方案里的任务：enabled=False（方案语义=启用集）；
+        - 方案里有、目标范围没有的任务：忽略（不新增任务实例）。
+        """
+        chain = self._chain()
+        if not chain or not self.doc:
             return
         path = self._profile_dir() / f"{name}.json"
-        try:
-            profile = json.loads(path.read_text(encoding="utf-8"))
-            # 预演: 深拷贝上合并并校验，不碰 self.doc（取消时不留脏数据）
-            trial = copy.deepcopy(self.doc)
-            self._disable_all_tasks(trial)
-            self._merge_doc(trial, profile)
-        except Exception as e:
-            self.logger.error(f"读取方案失败: {e}")
-            InfoBar.error("读取方案失败", str(e)[:160], parent=self.window(), duration=4000)
+        ver, pkg, entries = self._profile_version(path)
+        if ver is None:
+            InfoBar.error("读取方案失败", str(path), parent=self.window(), duration=4000)
             return
-        errs = validate_doc(trial)
-        if errs and not self._confirm_ignore_errors(errs, "切换"):
+        cur_pkg = self._cur_pkg()
+        if pkg and cur_pkg and pkg != cur_pkg:
+            InfoBar.warning(
+                "package 不匹配",
+                f'方案属于 {pkg}，当前应用是 {cur_pkg}，已取消',
+                parent=self.window(), duration=4000)
             return
-        # 通过: 原位重放到 self.doc，保持 doc 与任务卡片闭包的 dict 引用不变
-        # （keep_cards 复用卡片时 _refresh_state 闭包读的仍是同一 task dict）
-        self._disable_all_tasks(self.doc)
-        self._merge_doc(self.doc, profile)
+        by_id = {}
+        for e in entries:
+            if isinstance(e, dict) and e.get("id"):
+                by_id[e["id"]] = e.get("params") or {}
+        # 预演校验（参数键必须 ⊆ 当前分组定义）
+        pkg_types = self._pkg_types(cur_pkg)
+        def_attrs = {}
+        for tt in pkg_types:
+            def_attrs[tt.get("id") or tt.get("type")] = {
+                p.get("attr") for p in (tt.get("params") or []) if isinstance(p, dict)}
+        unknown = []
+        for tid, params in by_id.items():
+            attrs = def_attrs.get(tid)
+            if attrs is None:
+                unknown.append(tid)
+                continue
+            unknown += [f"{tid}.{k}" for k in params if k not in attrs]
+        if unknown:
+            dlg = Dialog("方案含未定义任务/参数", "\n".join(unknown[:8]) +
+                         "\n仍要应用（忽略这些）吗？", self.window())
+            if not dlg.exec():
+                return
+        # 原位重放：保持 task dict 引用不变（卡片闭包仍指向同一对象）
+        user = chain[2]
+        applied = 0
+        for t in user.get("tasks") or []:
+            if not isinstance(t, dict):
+                continue
+            key = t.get("id") or t.get("type")
+            if key in by_id:
+                t["enabled"] = True
+                t["params"] = copy.deepcopy(by_id[key])
+                applied += 1
+            else:
+                t["enabled"] = False
         self._normalize_group_order()
         self._sync_all(keep_cards=True)
         self._mark_dirty()
-        InfoBar.success("方案已切换", f"{name}（记得保存落盘）",
+        InfoBar.success("方案已切换", f"{name}（覆盖 {applied} 项，记得保存落盘）",
                         parent=self.window(), duration=2500)
 
+    # ============================================================ 保存
     def _save_profile_dialog(self):
         if not self.doc:
             InfoBar.warning("无法保存", "当前未加载配置", parent=self.window(), duration=2500)
             return
-        dlg = _InputTextDialog("存为方案", "方案名称", self.window())
-        if not dlg.exec():
+        pkg = self._cur_pkg()
+        names = self._profiles(pkg)
+        dlg = _SaveProfileDialog(names, self.window())
+        if not dlg.exec() or not (dlg.name or "").strip():
             return
-        name = (dlg.value or "").strip()
-        if not name:
-            return
-        if (self._profile_dir() / f"{name}.json").exists():
+        name = dlg.name.strip()
+        if (self._profile_dir() / f"{name}.json").exists() and name not in names:
             c = Dialog("方案已存在", f"覆盖方案「{name}」？", self.window())
             if not c.exec():
                 return
         if self._save_profile(name):
-            InfoBar.success("方案已保存", name, parent=self.window(), duration=2500)
+            InfoBar.success(
+                "方案已保存",
+                f"{name}（{len(self._enabled_task_snapshot())} 个启用任务）",
+                parent=self.window(), duration=2500)
 
     def _load_profile_dialog(self):
-        names = self._profiles()
+        names = self._profiles(self._cur_pkg())
         if not names:
-            InfoBar.warning("没有方案", "先用「存为方案」保存一个",
+            InfoBar.warning("没有方案", "当前软件（package）下还没有方案，先用「存为方案」保存",
                             parent=self.window(), duration=2500)
             return
         if self.dirty:
-            c = Dialog("当前有未保存修改", "切换方案将基于当前未保存的数据合并，继续？",
+            c = Dialog("当前有未保存修改", "切换方案将基于当前数据覆盖，继续？",
                        self.window())
             if not c.exec():
                 return
@@ -2000,25 +2210,123 @@ class TaskConfigEditorTab(CustomTab):
         self._reload_from_disk()
 
     def _save(self):
-        if not self.doc:
+        if not self.doc and not self.type_groups:
             return
-        errs = validate_doc(self.doc)
+        errs = validate_doc(self.doc, self.type_groups)
         if errs and not self._confirm_ignore_errors(errs, "保存"):
             return
         path = Path(DEFAULT_CONFIG_PATH)
+        tpath = Path(DEFAULT_TYPE_PATH)
         try:
             if path.exists():
                 shutil.copy2(path, str(path) + self.BACKUP_SUFFIX)
             path.write_text(self._dump(), encoding="utf-8")
+            if self.types_dirty:
+                if tpath.exists():
+                    shutil.copy2(tpath, str(tpath) + self.BACKUP_SUFFIX)
+                tpath.write_text(self._dump_types(), encoding="utf-8")
         except Exception as e:
             self.logger.error(f"保存失败: {e}")
             InfoBar.error("保存失败", str(e)[:160], parent=self.window(), duration=4000)
             return
         self.dirty = False
+        self.types_dirty = False
         self._refresh_status()
         if self._src_dirty:
             self._refresh_source()
-        InfoBar.success("已保存", str(path), parent=self.window(), duration=2500)
+        InfoBar.success("已保存", "task_config.json + task_type.json",
+                        parent=self.window(), duration=2500)
+
+
+class _BatchEnableDialog(QDialog):
+    """批量多选启用/停用任务实例。results: [(task, bool), …]"""
+
+    def __init__(self, items, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("批量启用任务")
+        self.results = []
+        lay = QVBoxLayout(self)
+        lay.addWidget(SubtitleLabel("勾选要启用的任务（当前用户）"))
+        self.listw = QListWidget(self)
+        self.listw.setSelectionMode(QAbstractItemView.NoSelection)
+        self._boxes = []
+        for task, enabled, label in items:
+            item = QListWidgetItem()
+            self.listw.addItem(item)
+            row = QWidget()
+            rl = QHBoxLayout(row)
+            rl.setContentsMargins(8, 2, 8, 2)
+            ckb = CheckBox(str(label or "?"))
+            ckb.setChecked(enabled)
+            rl.addWidget(ckb)
+            rl.addStretch(1)
+            item.setSizeHint(row.sizeHint())
+            self.listw.setItemWidget(item, row)
+            self._boxes.append((task, ckb))
+        lay.addWidget(self.listw)
+        bar = QHBoxLayout()
+        bar.addStretch(1)
+        b_all = PushButton("全选")
+        b_all.clicked.connect(lambda: self._set_all(True))
+        b_none = PushButton("全不选")
+        b_none.clicked.connect(lambda: self._set_all(False))
+        cancel = PushButton("取消")
+        cancel.clicked.connect(self.reject)
+        ok = PrimaryPushButton("应用")
+        ok.clicked.connect(self._on_ok)
+        for w in (b_all, b_none, cancel, ok):
+            bar.addWidget(w)
+        lay.addLayout(bar)
+        self.resize(420, 520)
+
+    def _set_all(self, on):
+        for _, ckb in self._boxes:
+            ckb.setChecked(on)
+
+    def _on_ok(self):
+        self.results = [(task, ckb.isChecked()) for task, ckb in self._boxes]
+        self.accept()
+
+
+class _SaveProfileDialog(QDialog):
+    """存为方案：名称输入 + 同 package 已有方案下拉（选择即填名，保存覆盖）。"""
+
+    def __init__(self, existing_names, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("存为方案")
+        self.name = None
+        lay = QVBoxLayout(self)
+        lay.addWidget(BodyLabel("方案名称（保存当前应用启用任务的 id 与参数）"))
+        self.edit = LineEdit()
+        lay.addWidget(self.edit)
+        row = QHBoxLayout()
+        row.addWidget(BodyLabel("已有方案:"))
+        self.combo = ComboBox(self)
+        self.combo.addItem("（选择已有方案覆盖）")
+        for n in existing_names:
+            self.combo.addItem(n)
+        self.combo.currentIndexChanged.connect(self._on_pick)
+        row.addWidget(self.combo, 1)
+        lay.addLayout(row)
+        bar = QHBoxLayout()
+        bar.addStretch(1)
+        cancel = PushButton("取消")
+        cancel.clicked.connect(self.reject)
+        ok = PrimaryPushButton("保存")
+        ok.clicked.connect(self._on_ok)
+        bar.addWidget(cancel)
+        bar.addWidget(ok)
+        lay.addLayout(bar)
+        self.resize(420, 150)
+
+    def _on_pick(self, idx):
+        if idx > 0:
+            self.edit.setText(self.combo.itemText(idx))
+
+    def _on_ok(self):
+        self.name = self.edit.text().strip()
+        self.accept()
+
 
     def _toggle(self, body, key, btn):
         open_ = not body.isVisible()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-task_config_server —— 静态托管 + task_config.json 保存接口。
+task_config_server —— 静态托管 + 双配置文件保存接口。
 
 用法（项目根目录）：
     python tools/task_config_server.py            # 默认 127.0.0.1:8642
@@ -8,10 +8,11 @@ task_config_server —— 静态托管 + task_config.json 保存接口。
 
 替代 `python -m http.server`：
   - 同样的静态托管（tools/ 与 configs/ 之外仅有限白名单）
-  - 额外提供 POST /api/task_config：把请求体 JSON 原子写回
-    configs/task_config.json，供 task_config_editor.html 保存，
-    免去浏览器"另存为"弹窗。
-  - 原子写：先写 .tmp 再 os.replace；写前备份到 task_config.json.bak
+  - POST /api/task_config：请求体 {"config": …, "types": …}，
+    分别原子写回 configs/task_config.json（实例段）与
+    configs/task_type.json（定义段，可缺省不写），
+    供 task_config_editor.html 保存，免去浏览器"另存为"弹窗。
+  - 原子写：先写 .tmp 再 os.replace；写前各留 .bak 备份
 """
 import json
 import os
@@ -21,6 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent      # 项目根目录
 CONFIG = ROOT / "configs" / "task_config.json"
+TYPES = ROOT / "configs" / "task_type.json"
 HOST, DEFAULT_PORT = "127.0.0.1", 8642
 
 # 静态服务白名单之外的前缀（防目录穿越之外的多余暴露）
@@ -40,30 +42,48 @@ class Handler(SimpleHTTPRequestHandler):
         try:
             length = int(self.headers.get("Content-Length", 0))
             raw = self.rfile.read(length)
-            doc = json.loads(raw.decode("utf-8"))          # 必须是合法 JSON
+            payload = json.loads(raw.decode("utf-8"))       # 必须是合法 JSON
         except Exception as e:
             self._json_response(400, {"ok": False, "error": f"bad json: {e}"})
             return
+        # 兼容两种请求体：{"config":…, "types":…}（双文件）或旧版单文档
+        if isinstance(payload, dict) and "config" in payload:
+            doc = payload.get("config")
+            types = payload.get("types")
+        else:
+            doc = payload
+            types = None
         # 最小结构校验：防止 UI 状态异常时把垃圾写进真实配置
-        if not (isinstance(doc, dict) and isinstance(doc.get("task_types"), list)
-                and isinstance(doc.get("machines"), list)):
+        if not (isinstance(doc, dict) and isinstance(doc.get("machines"), list)):
             self._json_response(422, {"ok": False,
-                "error": "结构不符：需要包含 task_types[] 与 machines[] 的对象"})
+                "error": "结构不符：config 需要包含 machines[] 的对象"})
             return
-        text = json.dumps(doc, ensure_ascii=False, indent=2) + "\n"
+        if types is not None and not (
+                isinstance(types, list)
+                and all(isinstance(g, dict) and g.get("package") for g in types)):
+            self._json_response(422, {"ok": False,
+                "error": "结构不符：types 需要 [{package, task_types[]}] 数组"})
+            return
 
         CONFIG.parent.mkdir(parents=True, exist_ok=True)
         try:
-            if CONFIG.exists():                            # 写前备份（单份滚动）
-                bak = CONFIG.with_suffix(".json.bak")
-                bak.write_bytes(CONFIG.read_bytes())
-            tmp = CONFIG.with_suffix(".json.tmp")
-            tmp.write_text(text, encoding="utf-8")
-            os.replace(tmp, CONFIG)                        # 原子落盘
+            self._atomic_write(CONFIG, doc)
+            if types is not None:
+                self._atomic_write(TYPES, types)
         except OSError as e:
             self._json_response(500, {"ok": False, "error": f"write failed: {e}"})
             return
         self._json_response(200, {"ok": True, "path": str(CONFIG.relative_to(ROOT))})
+
+    @staticmethod
+    def _atomic_write(path, obj):
+        text = json.dumps(obj, ensure_ascii=False, indent=2) + "\n"
+        if path.exists():                                  # 写前备份（单份滚动）
+            bak = path.with_suffix(".json.bak")
+            bak.write_bytes(path.read_bytes())
+        tmp = path.with_suffix(".json.tmp")
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)                              # 原子落盘
 
     # ---- 静态文件白名单 ----
     def translate_path(self, path):

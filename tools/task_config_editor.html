@@ -231,11 +231,13 @@ const PALETTE = [
 ];
 
 const state = {
-  doc:null, fileName:null, fileHandle:null, loadedRaw:null, dirty:false,
+  doc:null, typeGroups:{}, typeOrder:[], fileName:null, fileHandle:null,
+  loadedRaw:null, loadedTypesRaw:null, dirty:false, typesDirty:false,
   sel:{m:0,a:0,u:0}, tab:'tasks',
   expanded:new Set(),      // 任务卡: `${m}/${a}/${u}/${type}`
   expandedTypes:new Set(), // 类型卡/机器卡: 'T:'+type / 'm'+index
   filter:'',
+  curTypePkg:null,         // 类型定义页当前编辑的 package 分组
 };
 const fsSupported = ('showOpenFilePicker' in window);
 let srcDirty = false;
@@ -301,7 +303,7 @@ function refreshBanner(){
   const b = $('banner');
   b.textContent = '';
   if (!state.doc) return;
-  const errs = validateDoc(state.doc);
+  const errs = validateDoc(state.doc, state.typeGroups);
   if (!errs.length) return;
   const box = el('div', 'banner-err');
   box.append(el('div', null, `结构校验：${errs.length} 个问题，保存前建议修复`));
@@ -364,69 +366,94 @@ function chainObj(){
   const u = (a.users || [])[state.sel.u]; if (!u) return null;
   return { m, a, u, mi:state.sel.m, ai:state.sel.a, ui:state.sel.u };
 }
+function curPkg(){
+  const chain = chainObj();
+  return chain ? (chain.a.package || null) : null;
+}
+function pkgTypes(pkg){
+  return state.typeGroups[pkg] || [];
+}
+function typeDefIn(pkg, type){
+  return pkgTypes(pkg).find(t => t.type === type) || null;
+}
 function typeDef(type){
-  return (state.doc && state.doc.task_types || []).find(t => t.type === type) || null;
+  return typeDefIn(curPkg(), type);
 }
 function taskDefOf(task){
-  // 实例条目优先按 id 反查定义段；旧条目（只有 type）退回 type 查找
+  // 实例条目优先按 id 反查定义段（当前链 package 分组）；旧条目退回 type 查找
+  const pkg = curPkg();
   if (task.id){
-    const byId = (state.doc && state.doc.task_types || []).find(t => t.id === task.id);
+    const byId = pkgTypes(pkg).find(t => t.id === task.id);
     if (byId) return byId;
   }
-  return typeDef(task.type);
+  return typeDefIn(pkg, task.type);
 }
 function eachTaskOfType(type, fn){
   let n = 0;
   const d = state.doc; if (!d) return 0;
   const tt = typeDef(type);
   const tid = tt && tt.id;
+  const pkg = curPkg();
   (d.machines || []).forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u =>
     (u.tasks || []).forEach(t => {
+      // 只统计同 package 分组下的实例（定义段按软件作用域）
+      if (a.package !== pkg) return;
       if ((tid && t.id === tid) || (!t.id && t.type === type)){ fn(t); n++; }
     }))));
   return n;
 }
 
 /* ---------------- validation (mirror of loader) ---------------- */
-function validateDoc(doc){
+function validateTypeGroups(typeGroups){
   const errs = [];
-  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return ['文档顶层必须是对象'];
-  const tt = doc.task_types;
-  if (!Array.isArray(tt) || !tt.length) errs.push('task_types 缺失或为空');
-  const seen = new Set();
-  const idToType = new Map();
-  (tt || []).forEach((t, i) => {
-    const w = `task_types[${i}]`;
-    if (!t || typeof t !== 'object'){ errs.push(`${w}: 条目必须是对象`); return; }
-    if (!t.type) errs.push(`${w}: 缺 type`);
-    else if (seen.has(t.type)) errs.push(`${w}: type 重复 "${t.type}"`);
-    if (t.type) seen.add(t.type);
-    if (!t.id || typeof t.id !== 'string') errs.push(`${w}: 缺 id 或 id 非字符串`);
-    else if (idToType.has(t.id)) errs.push(`${w}: id 重复 "${t.id}"`);
-    else idToType.set(t.id, t.type);
-    const est = t.estimated_seconds != null ? t.estimated_seconds : 0;
-    if (typeof est !== 'number' || !isFinite(est) || est < 0)
-      errs.push(`${w}.estimated_seconds 必须是非负数: ${JSON.stringify(est)}`);
-    const d = t.defaults;
-    if (!d || typeof d !== 'object'){ errs.push(`${w}.defaults 缺失`); }
-    else {
-      DKEYS.forEach(k => { if (!(k in d)) errs.push(`${w}.defaults 缺字段 ${k}`); });
-      if (typeof d.cron !== 'string') errs.push(`${w}.defaults.cron 必须是字符串`);
-    }
-    const attrs = new Set();
-    (t.params || []).forEach((p, pi) => {
-      if (!p || typeof p !== 'object'){ errs.push(`${w}.params[${pi}]: 必须是对象`); return; }
-      if (!p.name || !p.attr) errs.push(`${w}.params[${pi}]: 缺 name/attr`);
-      if (p.attr){
-        if (attrs.has(p.attr)) errs.push(`${w}.params attr 重复 "${p.attr}"`);
-        attrs.add(p.attr);
+  const groupSeen = new Map(); // 'type:X' / 'id:X' -> pkg
+  for (const [pkg, tt] of Object.entries(typeGroups || {})){
+    if (!Array.isArray(tt)){ errs.push(`task_type.json[${pkg}]: task_types 必须是数组`); continue; }
+    const seen = new Set();
+    tt.forEach((t, i) => {
+      const w = `task_type.json[${pkg}].task_types[${i}]`;
+      if (!t || typeof t !== 'object'){ errs.push(`${w}: 条目必须是对象`); return; }
+      if (!t.type) errs.push(`${w}: 缺 type`);
+      else if (seen.has(t.type)) errs.push(`${w}: type 重复 "${t.type}"`);
+      else seen.add(t.type);
+      if (!t.id || typeof t.id !== 'string') errs.push(`${w}: 缺 id 或 id 非字符串`);
+      const est = t.estimated_seconds != null ? t.estimated_seconds : 0;
+      if (typeof est !== 'number' || !isFinite(est) || est < 0)
+        errs.push(`${w}.estimated_seconds 必须是非负数: ${JSON.stringify(est)}`);
+      const d = t.defaults;
+      if (!d || typeof d !== 'object'){ errs.push(`${w}.defaults 缺失`); }
+      else {
+        DKEYS.forEach(k => { if (!(k in d)) errs.push(`${w}.defaults 缺字段 ${k}`); });
+        if (typeof d.cron !== 'string') errs.push(`${w}.defaults.cron 必须是字符串`);
       }
-      if (p.widget != null){
-        if (!p.widget || typeof p.widget !== 'object' || !WIDGETS.includes(p.widget.type))
-          errs.push(`${w}.params[${pi}].widget 非法: ${JSON.stringify(p.widget)}`);
-      }
+      const attrs = new Set();
+      (t.params || []).forEach((p, pi) => {
+        if (!p || typeof p !== 'object'){ errs.push(`${w}.params[${pi}]: 必须是对象`); return; }
+        if (!p.name || !p.attr) errs.push(`${w}.params[${pi}]: 缺 name/attr`);
+        if (p.attr){
+          if (attrs.has(p.attr)) errs.push(`${w}.params attr 重复 "${p.attr}"`);
+          attrs.add(p.attr);
+        }
+        if (p.widget != null){
+          if (!p.widget || typeof p.widget !== 'object' || !WIDGETS.includes(p.widget.type))
+            errs.push(`${w}.params[${pi}].widget 非法: ${JSON.stringify(p.widget)}`);
+        }
+      });
+      [['type', t.type], ['id', t.id]].forEach(([key, val]) => {
+        if (!val) return;
+        const gk = key + ':' + val;
+        if (groupSeen.has(gk))
+          errs.push(`task_type.json: ${key} "${val}" 在多个 package 组重复: ${groupSeen.get(gk)} 与 ${pkg}`);
+        else groupSeen.set(gk, pkg);
+      });
     });
-  });
+  }
+  return errs;
+}
+function validateDoc(doc, typeGroups){
+  const errs = validateTypeGroups(typeGroups);
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return errs.concat(['实例配置顶层必须是对象']);
+  if (!typeGroups || !Object.keys(typeGroups).length) return errs.concat(['task_type.json 缺失或为空']);
   if (!Array.isArray(doc.machines) || !doc.machines.length) errs.push('machines 缺失或为空');
   let chain = false;
   (doc.machines || []).forEach((m, mi) => {
@@ -434,6 +461,11 @@ function validateDoc(doc){
     const mw = `machines[${mi}](${m.name || '未命名'})`;
     (m.apps || []).forEach((a, ai) => {
       if (!a || typeof a !== 'object'){ errs.push(`${mw}.apps[${ai}]: 必须是对象`); return; }
+      const defs = typeGroups[a.package];
+      if (!Array.isArray(defs) || !defs.length)
+        errs.push(`${mw}.apps[${ai}]: task_type.json 缺少 package 分组 "${a.package}"`);
+      const idToType = new Map((defs || []).filter(t => t && t.id).map(t => [t.id, t.type]));
+      const localTypes = new Set((defs || []).map(t => t && t.type).filter(Boolean));
       (a.users || []).forEach((u, ui) => {
         if (!u || typeof u !== 'object'){ errs.push(`${mw}.apps[${ai}].users[${ui}]: 必须是对象`); return; }
         if (m.enabled && a.enabled && u.enabled) chain = true;
@@ -448,8 +480,8 @@ function validateDoc(doc){
                 errs.push(`${mw} user[${ui}] tasks[${ti}]: id "${t.id}" 与 type "${t.type}" 不一致`);
               ttype = resolved;
             }
-          } else if (!seen.has(t.type)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 type "${t.type}"`);
-          const def = (tt || []).find(x => x && x.type === ttype);
+          } else if (!localTypes.has(t.type)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 引用未定义 type "${t.type}"`);
+          const def = (defs || []).find(x => x && x.type === ttype);
           const attrs = new Set(((def && def.params) || []).map(p => p.attr));
           Object.keys(t.params || {}).forEach(k => {
             if (!attrs.has(k)) errs.push(`${mw} user[${ui}] tasks[${ti}]: 未知参数 "${k}"`);
@@ -462,6 +494,11 @@ function validateDoc(doc){
   return errs;
 }
 function stringifyDoc(){ return JSON.stringify(state.doc, null, 2) + '\n'; }
+function stringifyTypes(){
+  return JSON.stringify(state.typeOrder.map(pkg => ({
+    package: pkg, task_types: state.typeGroups[pkg] || [],
+  })), null, 2) + '\n';
+}
 
 /* ---------------- generic controls ---------------- */
 function helpTip(text){ const s = el('span', 'help', '?'); s.dataset.tip = text; return s; }
@@ -733,6 +770,53 @@ function moveTask(task, dir){
   [arr[i], arr[j]] = [arr[j], arr[i]];
   markDirty(); renderTaskList();
 }
+function batchEnableDialog(){
+  const chain = chainObj(); if (!chain) return;
+  const tasks = (chain.u.tasks || []).filter(t => t && typeof t === 'object');
+  if (!tasks.length){ toast('当前用户还没有任务，先「＋ 添加任务」'); return; }
+  const dlg = $('dlg'); dlg.textContent = '';
+  dlg.append(el('h3', null, '批量启用任务（当前用户）'));
+  const box = el('div', 'picklist');
+  const rows = tasks.map(t => {
+    const tt = taskDefOf(t);
+    const label = (tt && (tt.name_prefix || tt.type)) || t.id || t.type || '?';
+    const row = el('label', 'pick');
+    const r = document.createElement('input');
+    r.type = 'checkbox';
+    r.checked = !!t.enabled;
+    r.dataset.tid = t.id || t.type || '';
+    row.append(r);
+    row.append(el('span', 'pk-name', label));
+    box.append(row);
+    return { task: t, input: r };
+  });
+  dlg.append(box);
+  const frow = el('div', 'dbtns');
+  frow.append(
+    btn('全选', '', () => rows.forEach(x => x.input.checked = true)),
+    btn('全不选', '', () => rows.forEach(x => x.input.checked = false)),
+    btn('取消', '', () => dlg.close()),
+    btn('应用', 'primary', () => {
+      rows.forEach(x => x.task.enabled = !!x.input.checked);
+      dlg.close();
+      markDirty(); renderContent(); toast('批量启用已应用');
+    }));
+  dlg.append(frow);
+  dlg.showModal();
+}
+function resetUserTasks(){
+  const chain = chainObj(); if (!chain) return;
+  const tasks = (chain.u.tasks || []).filter(t => t && typeof t === 'object');
+  if (!tasks.length){ toast('当前用户没有任务'); return; }
+  if (!confirm(`当前包 ${curPkg() || '?'} / 用户 ${chain.u.user_id ?? '?'} 的 ${tasks.length} 个任务将全部停用，参数回到默认值。确定？`)) return;
+  tasks.forEach(t => {
+    t.enabled = false;
+    DKEYS.forEach(k => { delete t[k]; });
+    t.params = {};
+  });
+  state.expanded.clear();
+  markDirty(); renderContent(); toast(`已重置 ${tasks.length} 个任务`);
+}
 function resetTask(task, tt){
   if (!confirm(`将「${tt.name_prefix || tt.type}」的调度与参数恢复为类型默认值？`)) return;
   DKEYS.forEach(k => { delete task[k]; });   // 瘦身条目：删掉覆盖字段即回退定义段默认
@@ -758,7 +842,7 @@ function insertTask(user, type){
 function addTaskDialog(){
   const chain = chainObj(); if (!chain) return;
   const have = new Set((chain.u.tasks || []).map(t => t.id || t.type));
-  const missing = (state.doc.task_types || []).filter(t => !have.has(t.id || t.type));
+  const missing = pkgTypes(curPkg()).filter(t => !have.has(t.id || t.type));
   if (!missing.length){ toast('所有已定义类型均已添加'); return; }
   const dlg = $('dlg'); dlg.textContent = '';
   dlg.append(el('h3', null, '添加任务实例'));
@@ -899,6 +983,13 @@ function renderTasksTab(){
   bar.append(f);
   bar.append(btn('全部展开', '', expandAllTasks));
   bar.append(btn('全部收起', '', collapseAllTasks));
+  const batchB = btn('批量启用', '', batchEnableDialog);
+  batchB.disabled = !chainObj();
+  bar.append(batchB);
+  const resetB = btn('重置任务参数', '', resetUserTasks);
+  resetB.disabled = !chainObj();
+  resetB.title = '把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值';
+  bar.append(resetB);
   const addB = btn('＋ 添加任务', 'primary', addTaskDialog);
   addB.disabled = !chainObj();
   bar.append(addB);
@@ -963,39 +1054,66 @@ function attrInput(tt, p){
   });
   return i;
 }
-function prow(tt, p, index){
-  const row = el('div', 'prow');
-  row.append(bindText(() => p.name || '', v => { p.name = v; }, { placeholder:'参数名' }));
-  row.append(attrInput(tt, p));
-  row.append(paramDefaultCtl(p));
-  row.append(widgetSel(p));
-  row.append(bindText(() => (p.widget && p.widget.options || []).join(','),
-    v => { if (p.widget) p.widget.options = v.split(',').map(s => s.trim()).filter(Boolean); },
-    { placeholder:'选项,逗号分隔' }));
-  row.append(bindText(() => p.desc || '', v => { p.desc = v; }, { placeholder:'说明（悬停 ? 展示）' }));
-  row.append(btn('✕', 'danger small', () => {
-    if (!confirm(`删除参数「${p.name || p.attr}」？将同步清理实例引用。`)) return;
-    tt.params.splice(index, 1);
-    eachTaskOfType(tt.type, t => { if (t.params) delete t.params[p.attr]; });
-    markDirty(); renderContent();
+
+function renderTypesTab(){
+  const c = $('content'); c.textContent = '';
+  if (!state.doc && !Object.keys(state.typeGroups).length){ c.append(emptyState()); return; }
+  const bar = el('div', 'toolbar');
+  bar.append(el('span', 'hint', '类型定义跟软件绑定（task_type.json 按 package 分组）：defaults 是字段覆盖链的兜底值，params 决定实例页的控件。'));
+  const pkgSel = document.createElement('select');
+  pkgSel.className = 'tin';
+  state.typeOrder.forEach(pkg => {
+    const op = document.createElement('option');
+    op.value = pkg;
+    op.textContent = `${pkg}（${pkgTypes(pkg).length} 个类型）`;
+    pkgSel.append(op);
+  });
+  if (!state.typeOrder.length){
+    const op = document.createElement('option');
+    op.value = ''; op.textContent = '（task_type.json 无分组）';
+    pkgSel.append(op);
+  }
+  if (state.curTypePkg && state.typeOrder.includes(state.curTypePkg))
+    pkgSel.value = state.curTypePkg;
+  else if (state.typeOrder.length)
+    state.curTypePkg = state.typeOrder[0];
+  pkgSel.addEventListener('change', () => { state.curTypePkg = pkgSel.value; renderContent(); });
+  bar.append(pkgSel);
+  bar.append(el('div', 'grow'));
+  bar.append(btn('＋ 添加类型', 'primary', () => {
+    if (!state.curTypePkg){ alert('没有可用的软件分组'); return; }
+    dlgForm('添加类型', [{ label:'type', value:'', placeholder:'如 My New Task' }], ([type]) => {
+      type = (type || '').trim();
+      if (!type) return;
+      if (pkgTypes(state.curTypePkg).some(t => t.type === type)){ alert('type 已存在'); return; }
+      let base = slugify(type), nid = base, k = 1;
+      const existing = new Set(pkgTypes(state.curTypePkg).map(t => t.id));
+      while (existing.has(nid)){ k += 1; nid = `${base}_${k}`; }
+      state.typeGroups[state.curTypePkg].push({
+        type, id: nid, name_prefix:type, description:'',
+        estimated_seconds:0,
+        defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'' },
+        params:[],
+      });
+      state.typesDirty = true; markDirty(); renderContent();
+    });
   }));
-  return row;
-}
-function prowHead(){
-  const h = el('div', 'prowhead');
-  ['参数名', 'attr', '默认值', '控件', '选项(逗号分隔)', '说明', ''].forEach(t => h.append(el('span', null, t)));
-  return h;
+  c.append(bar);
+  const types = pkgTypes(state.curTypePkg);
+  if (!types.length){ c.append(el('div', 'empty', '该软件暂无类型定义')); return; }
+  types.forEach(tt => c.append(typeCard(tt)));
 }
 function typeRenameInput(tt){
   const i = bindText(() => tt.type, () => {});
   i.addEventListener('change', () => {
     const nv = i.value.trim();
     if (!nv || nv === tt.type){ i.value = tt.type; return; }
-    if ((state.doc.task_types || []).some(x => x !== tt && x.type === nv)){
+    if (pkgTypes(state.curTypePkg).some(x => x !== tt && x.type === nv)){
       alert('type 已存在：' + nv); i.value = tt.type; return;
     }
     // id 化后实例只按 id 引用定义段，type 重命名不再触碰实例条目
     tt.type = nv;
+    state.typesDirty = true;
     markDirty(); renderContent();
     toast('已重命名为 ' + nv);
   });
@@ -1012,9 +1130,10 @@ function deleteType(tt){
     state.doc.machines.forEach(m => (m.apps || []).forEach(a => (a.users || []).forEach(u => {
       if (u.tasks) u.tasks = u.tasks.filter(t => (tid ? t.id !== tid : t.type !== tt.type));
     })));
-    const i = state.doc.task_types.indexOf(tt);
-    if (i >= 0) state.doc.task_types.splice(i, 1);
-    state.expandedTypes.delete('T:' + tt.type);
+    const list = state.typeGroups[state.curTypePkg] || [];
+    const i = list.indexOf(tt);
+    if (i >= 0) list.splice(i, 1);
+    state.typesDirty = true;
     clampSel(); markDirty(); renderContent(); toast('已删除 ' + tt.type);
   };
 }
@@ -1025,8 +1144,6 @@ function typeCard(tt){
     grad:PALETTE[hashIdx(tt.type)],
     title:tt.type,
     sub:tt.name_prefix || '',
-    stats:`${(tt.params || []).length} 个参数 ｜ 默认 ${tt.defaults.count === 0 ? '不限' : tt.defaults.count + ' 次'} · 并发 ${tt.defaults.max_active}${tt.defaults.one_shot ? ' · 单次' : ''}`,
-    switchCtl:null,
     open,
     onToggle:o => toggleSet(state.expandedTypes, 'T:' + tt.type, o),
   });
@@ -1050,36 +1167,13 @@ function typeCard(tt){
   body.append(btn('＋ 添加参数', '', () => {
     tt.params = tt.params || [];
     tt.params.push({ name:'新参数', attr:'new_attr_' + (tt.params.length + 1), default:null, widget:null, desc:'' });
+    state.typesDirty = true;
     markDirty(); renderContent();
   }));
   const foot = el('div', 'card-foot');
   foot.append(btn('删除类型', 'danger', deleteType(tt)));
   body.append(foot);
   return card;
-}
-function renderTypesTab(){
-  const c = $('content'); c.textContent = '';
-  if (!state.doc){ c.append(emptyState()); return; }
-  const bar = el('div', 'toolbar');
-  bar.append(el('span', 'hint', '类型定义是所有任务实例的模板：defaults 是字段覆盖链的兜底值，params 决定实例页的控件。'));
-  bar.append(el('div', 'grow'));
-  bar.append(btn('＋ 添加类型', 'primary', () => {
-    dlgForm('添加类型', [{ label:'type', value:'', placeholder:'如 My New Task' }], ([type]) => {
-      type = (type || '').trim();
-      if (!type) return;
-      if ((state.doc.task_types || []).some(t => t.type === type)){ alert('type 已存在'); return; }
-      state.doc.task_types.push({
-        type, id: slugify(type), name_prefix:type, description:'',
-        estimated_seconds:0,
-        defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'' },
-        params:[],
-      });
-    });
-  }));
-  c.append(bar);
-  const types = state.doc.task_types || [];
-  if (!types.length){ c.append(el('div', 'empty', '暂无类型定义')); return; }
-  types.forEach(tt => c.append(typeCard(tt)));
 }
 
 /* ---------------- machines tab ---------------- */
@@ -1201,23 +1295,40 @@ function renderMachinesTab(){
 }
 
 /* ---------------- source tab ---------------- */
+const SRC_SEP = '\n' + '-'.repeat(60) + '\n';
+function combinedSource(){
+  return (state.doc ? stringifyDoc() : '')
+    + SRC_SEP
+    + '// ↑ configs/task_config.json 实例段 ↓ configs/task_type.json 定义段\n\n'
+    + (Object.keys(state.typeGroups).length ? stringifyTypes() : '');
+}
 function renderSourceTab(){
   const c = $('content'); c.textContent = '';
   if (!state.doc){ c.append(emptyState()); return; }
   const bar = el('div', 'toolbar');
-  const hint = el('span', 'hint', srcDirty ? '有未应用的修改，切走会丢弃' : '与当前数据一致');
+  const hint = el('span', 'hint', srcDirty ? '有未应用的修改，切走会丢弃' : '与当前数据一致（两份文件拼接）');
   bar.append(btn('校验并应用', 'primary', () => {
-    let doc;
-    try { doc = JSON.parse(ta.value); }
-    catch (e){ alert('JSON 解析失败：' + e.message); return; }
-    const errs = validateDoc(doc);
+    if (!ta.value.includes(SRC_SEP)){ alert('缺少分隔线：实例段与定义段之间需要一行 "----"'); return; }
+    const [cfgRaw, typeRaw] = ta.value.split(SRC_SEP);
+    let doc, groups;
+    try { doc = JSON.parse(cfgRaw); }
+    catch (e){ alert('实例段 JSON 解析失败：' + e.message); return; }
+    try { groups = JSON.parse(typeRaw); }
+    catch (e){ alert('定义段 JSON 解析失败：' + e.message); return; }
+    const typeGroups = {}, typeOrder = [];
+    (groups || []).forEach(g => { typeGroups[g.package] = g.task_types || []; typeOrder.push(g.package); });
+    const errs = validateDoc(doc, typeGroups);
     if (errs.length && !confirm(`存在 ${errs.length} 个校验问题，仍要应用吗？\n- ` + errs.slice(0, 5).join('\n- '))) return;
     state.doc = doc;
+    state.typeGroups = typeGroups;
+    state.typeOrder = typeOrder;
     state.loadedRaw = stringifyDoc();
+    state.loadedTypesRaw = stringifyTypes();
+    state.typesDirty = true;
     srcDirty = false;
-    clampSel(); markDirty(); setTab('tasks'); toast('已应用源码修改');
+    clampSel(); markDirty(); setTab('tasks'); toast('已应用源码修改（两份文件）');
   }));
-  bar.append(btn('从当前数据刷新', '', () => { ta.value = stringifyDoc(); srcDirty = false; hint.textContent = '与当前数据一致'; }));
+  bar.append(btn('从当前数据刷新', '', () => { ta.value = combinedSource(); srcDirty = false; hint.textContent = '与当前数据一致（两份文件拼接）'; }));
   bar.append(btn('复制全部', '', () => {
     navigator.clipboard.writeText(ta.value).then(() => toast('已复制'), () => toast('复制失败'));
   }));
@@ -1227,7 +1338,7 @@ function renderSourceTab(){
   const ta = document.createElement('textarea');
   ta.className = 'src';
   ta.spellcheck = false;
-  ta.value = stringifyDoc();
+  ta.value = combinedSource();
   ta.addEventListener('input', () => { srcDirty = true; hint.textContent = '有未应用的修改，切走会丢弃'; });
   const wrap = el('div', 'srcwrap');
   wrap.append(ta);
@@ -1372,7 +1483,7 @@ async function restoreSession(){
 /* ---------------- file io ---------------- */
 function emptyState(){
   const e = el('div', 'empty');
-  e.append(el('div', 'big', '打开 configs/task_config.json 开始编辑'));
+  e.append(el('div', 'big', '打开 configs/task_config.json + task_type.json 开始编辑'));
   e.append(el('div', null, '支持：右上角「打开配置」/ 拖拽 JSON 文件到页面'));
   if (location.protocol.startsWith('http')){
     e.append(el('div', null, '当前经 HTTP 访问但未取到 ../configs/task_config.json，请手动选择文件'));
@@ -1399,17 +1510,40 @@ async function openPicker(){
     loadText(await file.text(), file.name, handle);
   } catch (e){ toast('读取失败：' + e.message); }
 }
-function loadText(text, name, handle){
+function applyTypeGroups(groups){
+  const typeGroups = {}, typeOrder = [];
+  (groups || []).forEach(g => {
+    typeGroups[g.package] = g.task_types || [];
+    typeOrder.push(g.package);
+  });
+  state.typeGroups = typeGroups;
+  state.typeOrder = typeOrder;
+  state.curTypePkg = typeOrder[0] || null;
+}
+async function loadText(text, name, handle, typesText){
   let doc;
   try { doc = JSON.parse(text); }
   catch (e){ toast('JSON 解析失败：' + e.message); return; }
+  // 定义段：显式传入或按约定路径拉取；失败不阻塞实例段编辑（校验会提示）
+  let groups = null;
+  if (typesText != null){
+    try { groups = JSON.parse(typesText); } catch (e){ toast('task_type.json 解析失败：' + e.message); }
+  } else if (location.protocol.startsWith('http')){
+    try {
+      const r = await fetch('../configs/task_type.json', { cache:'no-store' });
+      if (r.ok) groups = await r.json();
+    } catch (e){ /* 静态托管缺失时由校验提示 */ }
+  }
   state.doc = doc;
+  applyTypeGroups(groups || []);
   state.loadedRaw = text;
+  state.loadedTypesRaw = groups ? JSON.stringify(groups) : null;
   state.fileName = name || 'task_config.json';
   state.fileHandle = handle || null;
   state.expanded.clear();
   state.expandedTypes.clear();
   state.filter = '';
+  state.typesDirty = false;
   srcDirty = false;
   clampSel();
   const chain = chainObj();
@@ -1421,18 +1555,19 @@ function loadText(text, name, handle){
   persistSession();
   if (handle) rememberHandle(handle);
   setTab('tasks');
-  toast('已加载 ' + state.fileName);
+  toast('已加载 ' + state.fileName + (groups ? ' + task_type.json' : '（定义段未取到）'));
 }
 async function doSave(saveAs = false){
   if (!state.doc){ toast('未加载配置'); return; }
-  const errs = validateDoc(state.doc);
+  const errs = validateDoc(state.doc, state.typeGroups);
   if (errs.length && !confirm(`存在 ${errs.length} 个校验问题，仍要保存吗？\n- ` + errs.slice(0, 5).join('\n- '))) return;
   const text = stringifyDoc();
+  const typesText = stringifyTypes();
 
   // 优先：本地保存服务（task_config_server.py）—— 直接写盘，零弹窗
-  if (await saveViaServer(text)) return;
+  if (await saveViaServer(text, typesText)) return;
 
-  // 次选：File System Access 句柄（file:// 打开 + 已授权）—— 直接回写
+  // 次选：File System Access 句柄（file:// 打开 + 已授权）—— 直接回写实例段
   if (state.fileHandle && !saveAs){
     try {
       let perm = await state.fileHandle.queryPermission({ mode:'readwrite' });
@@ -1442,8 +1577,9 @@ async function doSave(saveAs = false){
         await w.write(text);
         await w.close();
         state.loadedRaw = text;
+        state.loadedTypesRaw = typesText;
         persistSession();
-        markClean(); toast('已保存到 ' + state.fileName);
+        markClean(); toast('已保存到 ' + state.fileName + '（定义段经服务器同步）');
         return;
       }
     } catch (e){ toast('直接保存失败：' + e.message); }
@@ -1472,23 +1608,24 @@ async function doSave(saveAs = false){
 }
 
 let serverSaveOk = null;         // null=未探测 / true=可用 / false=不可用
-async function saveViaServer(text){
+async function saveViaServer(text, typesText){
   if (serverSaveOk === false) return false;
   if (!location.protocol.startsWith('http')) return false;
   try {
     const r = await fetch('/api/task_config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: text,
+      body: JSON.stringify({ config: text, types: typesText }),
     });
     if (r.ok){
       const j = await r.json().catch(() => ({}));
       if (j.ok){
         serverSaveOk = true;
         state.loadedRaw = text;
+        state.loadedTypesRaw = typesText;
         state.fileHandle = null;   // 磁盘已是最新，避免句柄路径写出旧权限分支
         persistSession();
-        markClean(); toast('已保存到 ' + (j.path || state.fileName));
+        markClean(); toast('已保存到 ' + (j.path || 'configs'));
         return true;
       }
     }
@@ -1510,7 +1647,7 @@ function download(text){
 function reloadDoc(){
   if (!state.loadedRaw){ toast('没有可还原的快照'); return; }
   if (state.dirty && !confirm('放弃当前未保存的修改？')) return;
-  loadText(state.loadedRaw, state.fileName, state.fileHandle);
+  loadText(state.loadedRaw, state.fileName, state.fileHandle, state.loadedTypesRaw);
 }
 
 /* ---------------- tabs & boot ---------------- */
@@ -1551,7 +1688,10 @@ async function init(){
   $('btnReload').onclick = reloadDoc;
   $('fileInput').addEventListener('change', async e => {
     const f = e.target.files[0];
-    if (f) loadText(await f.text(), f.name, null);
+    if (f){
+      const typesText = await fetchTypesText();
+      loadText(await f.text(), f.name, null, typesText);
+    }
     e.target.value = '';
   });
   window.addEventListener('keydown', e => {
@@ -1577,7 +1717,10 @@ async function init(){
     dropDepth = 0;
     $('dropHint').classList.remove('show');
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) f.text().then(t => loadText(t, f.name, null));
+    if (f) (async () => {
+      const typesText = await fetchTypesText();
+      loadText(await f.text(), f.name, null, typesText);
+    })();
   });
   renderTabs();
   renderContent();
@@ -1585,10 +1728,18 @@ async function init(){
   if (await restoreSession()) return;
   if (location.protocol.startsWith('http')){
     try {
+      const typesText = await fetchTypesText();
       const r = await fetch('../configs/task_config.json', { cache:'no-store' });
-      if (r.ok) loadText(await r.text(), 'configs/task_config.json', null);
+      if (r.ok) loadText(await r.text(), 'configs/task_config.json', null, typesText);
     } catch (e){ /* file picker fallback */ }
   }
+}
+async function fetchTypesText(){
+  if (!location.protocol.startsWith('http')) return null;
+  try {
+    const r = await fetch('../configs/task_type.json', { cache:'no-store' });
+    return r.ok ? await r.text() : null;
+  } catch (e){ return null; }
 }
 init();
 
