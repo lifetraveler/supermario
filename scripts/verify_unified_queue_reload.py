@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-"""验证 UnifiedQueue 每次 run 都从磁盘重读 task_config.json。
+"""验证 UnifiedQueue 每次 run 都从磁盘重读配置（实例段 task_config.json
+与定义段 task_type.json 双文件）。
 
 改动面：
   QueueTaskBase.run() 在构建工厂前调用 self._reload_config()（新钩子，默认空操作）
   UnifiedQueue._reload_config() 覆写为 load(CONFIG_PATH) + _resolve_task_classes()
-
-验证策略（不依赖 ok GUI 运行时，不触碰真实 configs/task_config.json）：
   1. monkeypatch UnifiedQueue.CONFIG_PATH 指向临时 JSON
   2. init 消费 v1（count=10, level=1, tick=1.0）
   3. 磁盘改 v2 → 按 run() 的真实调用顺序执行
@@ -35,32 +34,40 @@ sys.modules.setdefault("qfluentwidgets", fluent_stub)
 import src.sg.tasks.queue.UnifiedQueue as uq_mod
 from src.sg.tasks.config_loader import TaskConfigError
 from src.sg.tasks.queue.QueueTaskBase import QueueTaskBase
+from src.sg.tasks.config_loader import task_config_loader as tcl
 
 TMP = Path(tempfile.mkdtemp(prefix="uq_verify_"))
 CFG = TMP / "task_config.json"
+TYPES = TMP / "task_type.json"
 
 
 def write_cfg(count, level, tick=1.0, enabled=True):
+    type_doc = [
+        {
+            "package": "com.got.china",
+            "task_types": [
+                {
+                    "type": "Hunt Monster Troop",
+                    "id": "hunt_monster",
+                    "name_prefix": "Hunt Monster狩猎巨兽",
+                    "description": "t",
+                    "estimated_seconds": 0,
+                    "defaults": {
+                        "count": 6, "max_active": 2, "requires_march_queue": True,
+                        "next_trigger_delay": 0.0, "one_shot": False, "cron": "",
+                    },
+                    "params": [
+                        {"name": "Monster Level", "attr": "monster_level", "default": 1,
+                         "widget": {"type": "drop_down", "options": ["1", "2", "3", "4", "5"]},
+                         "desc": "d"},
+                    ],
+                },
+            ],
+        },
+    ]
+    TYPES.write_text(json.dumps(type_doc, ensure_ascii=False, indent=2), encoding="utf-8")
     doc = {
         "version": 1,
-        "task_types": [
-            {
-                "type": "Hunt Monster Troop",
-                "id": "hunt_monster",
-                "name_prefix": "Hunt Monster狩猎巨兽",
-                "description": "t",
-                "estimated_seconds": 0,
-                "defaults": {
-                    "count": 6, "max_active": 2, "requires_march_queue": True,
-                    "next_trigger_delay": 0.0, "one_shot": False, "cron": "",
-                },
-                "params": [
-                    {"name": "Monster Level", "attr": "monster_level", "default": 1,
-                     "widget": {"type": "drop_down", "options": ["1", "2", "3", "4", "5"]},
-                     "desc": "d"},
-                ],
-            },
-        ],
         "machines": [
             {
                 "name": "m1", "enabled": True, "adb_serial": "",
@@ -98,9 +105,9 @@ def run_sequence(uq):
 # ---- init：消费 v1 ----
 write_cfg(count=10, level=1, tick=1.0)
 uq_mod.CONFIG_PATH = CFG
+tcl.DEFAULT_TYPE_PATH = TYPES
 
 uq = object.__new__(uq_mod.UnifiedQueue)          # 跳过 ok Task.__init__ 链
-uq.name = "任务调度"
 uq._factories = []
 uq.logs = []
 # ok Task 运行时属性桩
