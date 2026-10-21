@@ -2260,6 +2260,39 @@ class TaskConfigEditorTab(CustomTab):
         InfoBar.success("已保存", "task_config.json + task_type.json",
                         parent=self.window(), duration=2500)
 
+    def _toggle(self, body, key, btn):
+        open_ = not body.isVisible()
+        body.setVisible(open_)
+        if open_:
+            self.expanded.add(key)
+        else:
+            self.expanded.discard(key)
+        btn.setIcon(FluentIcon.CARE_UP_SOLID if open_ else FluentIcon.CARE_DOWN_SOLID)
+        # 显隐切换后触发布局重算（updateGeometry 只失效缓存，不锁死尺寸）
+        card = body.parentWidget()
+        if card is not None:
+            card.layout().activate()
+            card.updateGeometry()
+
+    def _set_num(self, obj, key, text):
+        for cast in (int, float):
+            try:
+                obj[key] = cast(text)
+                self._mark_dirty()
+                return
+            except (ValueError, TypeError):
+                continue
+
+    def _set_bool(self, obj, key, on):
+        obj[key] = bool(on)
+        self._mark_dirty()
+
+    def _set_str(self, obj, key, text):
+        if obj.get(key) == text:
+            return
+        obj[key] = text
+        self._mark_dirty()
+
 
 class _BatchEnableDialog(QDialog):
     """批量多选启用/停用任务实例。results: [(task, bool), …]"""
@@ -2350,39 +2383,6 @@ class _SaveProfileDialog(QDialog):
         self.name = self.edit.text().strip()
         self.accept()
 
-
-    def _toggle(self, body, key, btn):
-        open_ = not body.isVisible()
-        body.setVisible(open_)
-        if open_:
-            self.expanded.add(key)
-        else:
-            self.expanded.discard(key)
-        btn.setIcon(FluentIcon.CARE_UP_SOLID if open_ else FluentIcon.CARE_DOWN_SOLID)
-        # 显隐切换后触发布局重算（updateGeometry 只失效缓存，不锁死尺寸）
-        card = body.parentWidget()
-        if card is not None:
-            card.layout().activate()
-            card.updateGeometry()
-
-    def _set_num(self, obj, key, text):
-        for cast in (int, float):
-            try:
-                obj[key] = cast(text)
-                self._mark_dirty()
-                return
-            except (ValueError, TypeError):
-                continue
-
-    def _set_bool(self, obj, key, on):
-        obj[key] = bool(on)
-        self._mark_dirty()
-
-    def _set_str(self, obj, key, text):
-        if obj.get(key) == text:
-            return
-        obj[key] = text
-        self._mark_dirty()
 
 
 class QFrameHLine(QFrame):
