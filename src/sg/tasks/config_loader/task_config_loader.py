@@ -8,9 +8,9 @@ TaskConfigLoader —— 双配置文件的解析与校验。
 
 职责（Skill A 分层：本模块属"配置注入"层，不认识任何业务名词）：
   1. 读两份 JSON、按 version 分派解析器
-  2. 取第一个 enabled 的 machine → app → user（多设备/分身派发后续实现，
-     本期只消费第一条 enabled 链，schema 已预留）
-  3. 按生效链 app 的 package 从 task_type.json 取该软件的定义段，
+  2. 解析全部 enabled 的 machine → app → user 链（parse_user_chains，
+     多 user 轮转调度用）；parse_document 取第一条，即单 user 老入口
+  3. 按每条链 app 的 package 从 task_type.json 取该软件的定义段，
      解析出 queue 全局参数 + 实例条目列表，字段覆盖链：
          task 覆盖字段 → task_types[].defaults → params[].default
   4. 结构非法（type/id 重复、实例引用未定义类型、缺失段落）直接抛
@@ -92,15 +92,20 @@ def pick_package_types(by_pkg, package):
     return raw
 
 
-def pick_active_user(doc):
+def parse_user_chains(doc):
     """
-    取第一个 enabled 的 machine → app → user。
-    多设备/多应用/多分身派发是后续功能；本期返回值即"当前生效链"，
-    并带一条 trail 供日志标注来源。
+    解析出全部 enabled 的 machine → app → user 链（按配置顺序）。
+
+    返回 [(machine, app, user, trail), …]，trail 形如
+    "machine1/com.got.china/user0"。没有任何 enabled 链时抛
+    TaskConfigError（与单链语义一致）。
+    多 user 轮转调度（5.5）由 UnifiedQueue 消费；单链场景
+    parse_document 仍只取第一条。
     """
     machines = doc.get("machines")
     if not isinstance(machines, list) or not machines:
         raise TaskConfigError("machines 缺失或为空")
+    chains = []
     for m in machines:
         if not m.get("enabled"):
             continue
@@ -111,14 +116,22 @@ def pick_active_user(doc):
                 if not u.get("enabled"):
                     continue
                 trail = f"{m.get('name')}/{a.get('package')}/user{u.get('user_id')}"
-                return m, a, u, trail
-    raise TaskConfigError("没有任何 enabled 的 machine/app/user 链")
+                chains.append((m, a, u, trail))
+    if not chains:
+        raise TaskConfigError("没有任何 enabled 的 machine/app/user 链")
+    return chains
+
+
+def pick_active_user(doc):
+    """取第一条 enabled 的链（parse_user_chains 的单链便捷入口）。"""
+    return parse_user_chains(doc)[0]
 
 
 
-def parse_document(doc, type_groups=None):
+def parse_document(doc, type_groups=None, chain=None):
     """
-    解析为运行时结构（doc 是实例段 version+machines；定义段经 type_groups 传入）：
+    解析为运行时结构（doc 是实例段 version+machines；定义段经 type_groups
+    传入；chain 指定要解析的 machine→app→user 链，缺省取第一条 enabled 链）：
       {
         "trail":  "machine1/com.got.china/user0",
         "app":    {"package":…, "user_id":…, "after_done_user_id":…},
@@ -133,19 +146,25 @@ def parse_document(doc, type_groups=None):
       estimated_seconds 任务预估处理时间（秒），预留字段，默认 0 = 未知。
 
     type_groups 是 load_type_document() 的返回值（{package: task_types list}）；
-    缺省时自动读 configs/task_type.json。定义段按生效链 app 的 package
+    缺省时自动读 configs/task_type.json。定义段按链 app 的 package
     取该软件的分组。
 
     实例条目引用方式：优先 id；旧文件写 type 仍兼容（反查定义段补 id），
     两者同时给出且不一致时启动即抛。
+
+    chain 是 parse_user_chains() 返回值的一项（machine, app, user, trail）。
+    多 user 轮转（5.5）用它逐链解析；单链老调用（chain=None）行为不变。
     """
-    trail_m, trail_a, trail_u, trail = pick_active_user(doc)
+    if chain is None:
+        chain = pick_active_user(doc)
+    trail_m, trail_a, trail_u, trail = chain
     user = trail_u
     app = trail_a
 
-    # ---------------- 定义段：按生效链 app 的 package 作用域 ----------------
+    # ---------------- 定义段：按链 app 的 package 作用域 ----------------
+    # 缺省读模块级 DEFAULT_TYPE_PATH（运行时可被测试/脚本重定向）
     if type_groups is None:
-        type_groups = load_type_document()
+        type_groups = load_type_document(DEFAULT_TYPE_PATH)
     raw_types = pick_package_types(
         type_groups, app.get("package") if isinstance(app, dict) else None)
 
@@ -270,6 +289,30 @@ def parse_document(doc, type_groups=None):
         "task_types": task_types,
         "tasks": tasks_out,
     }
+
+
+def parse_user_configs(doc, type_groups=None):
+    """
+    解析全部 enabled 链为运行时结构列表（多 user 轮转，5.5）。
+
+    每项 = parse_document(doc, type_groups, chain=chain)，并附加链标记：
+      machine  machines[].name
+      package  apps[].package
+      user_id  users[].user_id
+    返回 [cfg, …]，按配置顺序；单链场景返回 1 项，与 parse_document 等价。
+    每条链的 app 引用的 package 必须在定义文件里有分组，否则启动即抛。
+    """
+    chains = parse_user_chains(doc)
+    if type_groups is None:
+        type_groups = load_type_document(DEFAULT_TYPE_PATH)
+    out = []
+    for chain in chains:
+        cfg = parse_document(doc, type_groups, chain=chain)
+        cfg["machine"] = chain[0].get("name")
+        cfg["package"] = cfg["app"]["package"]
+        cfg["user_id"] = cfg["app"]["user_id"]
+        out.append(cfg)
+    return out
 
 
 def load(path=DEFAULT_CONFIG_PATH, type_path=None):

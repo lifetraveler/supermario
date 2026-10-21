@@ -518,10 +518,42 @@
                 {
                   "id": "hunt_monster",
                   "enabled": true,
-                  "count": 10,
+                  "count": 4,
                   "max_active": 1,
                   "params": {
                     "monster_level": "0"
+                  }
+                },
+                {
+                  "id": "train_soldier",
+                  "enabled": true
+                },
+                {
+                  "id": "league_reward_box",
+                  "enabled": true,
+                  "one_shot": true
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": true,
+                  "next_trigger_delay": 1,
+                  "one_shot": true
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": true,
+                  "one_shot": true
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": true,
+                  "one_shot": true
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": true,
+                  "params": {
+                    "beast_queue_limit": 0
                   }
                 },
                 {
@@ -532,13 +564,6 @@
                   "max_active": 1,
                   "one_shot": true,
                   "params": {}
-                },
-                {
-                  "id": "watch_tower_event",
-                  "enabled": false,
-                  "params": {
-                    "beast_queue_limit": 0
-                  }
                 },
                 {
                   "id": "cesare_fight",
@@ -562,10 +587,6 @@
                   "enabled": false
                 },
                 {
-                  "id": "train_soldier",
-                  "enabled": false
-                },
-                {
                   "id": "claim_stamina",
                   "enabled": false,
                   "params": {
@@ -585,11 +606,6 @@
                   "one_shot": true
                 },
                 {
-                  "id": "league_reward_box",
-                  "enabled": false,
-                  "one_shot": true
-                },
-                {
                   "id": "claim_buy_center_reward",
                   "enabled": false
                 },
@@ -599,22 +615,6 @@
                   "params": {
                     "team_group_name": "0"
                   },
-                  "one_shot": true
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": false,
-                  "one_shot": true
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": false,
-                  "next_trigger_delay": 1,
-                  "one_shot": true
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": false,
                   "one_shot": true
                 },
                 {

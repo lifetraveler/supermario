@@ -127,13 +127,51 @@ class QueueTaskBase(SGBaseTask):
         由 executor 调用一次，跑完整个队列直到结束。
 
         流程：
-            1. 构造并启动 TaskQueue
-            2. 调用子类的 _build_factories()，把工厂注册进队列
-            3. 循环 tick，直到队列全部完成或用户请求停止
-            4. 收尾：停止队列、刷新信息
+            1. 循环调用 _run_queue_cycle()：每圈跑完一个 user 的队列。
+            2. 每圈结束后问 _rotation_yield_reason()：非 None 表示
+               当前 user 已无事可做、应让位给下一个 user（多 user
+               轮转，5.5）；返回 None（默认）则一圈即终。
+            3. 用户停止 / 异常随时终止整个 run。
+        返回 True 表示本次激活完成（无论跑了几个 user）。
         """
         self.log_info(f"========== {self.name} 启动 ==========")
+        try:
+            while True:
+                try:
+                    if self._run_queue_cycle() == "yield":
+                        continue
+                except Exception as e:
+                    self.log_info(f"队列循环异常终止: {e}")
+                    raise
+                break
+        finally:
+            self._update_info()
+        self.log_info(f"========== {self.name} 结束 ==========")
+        return True
 
+    def _rotation_yield_reason(self):
+        """
+        单圈结束后是否让位：返回让位原因字符串（记日志用），None =
+        不让位（单 user 场景，一圈即 run 终点）。默认 None。
+
+        多 user 轮转由 UnifiedQueue 覆写：当前 user「无事可做」——
+        队列自然跑完 / 超过本轮预估时间 / 距本 user 下一任务超过
+        半小时——返回非 None，run() 主循环继续下一圈（下一个 user）。
+        """
+        return None
+
+    def _run_queue_cycle(self):
+        """
+        跑一圈完整队列：构造 TaskQueue → 重读配置 → 建工厂 → tick
+        主循环 → 收尾钩子。
+
+        返回值：
+          "done"   队列自然跑完（all_done 且非用户停止）
+          "yield"  轮转让位：队列未自然完成，但 _rotation_yield_reason()
+                   判定当前 user 无事可做（多 user 轮转，5.5）；
+                   单 user 默认钩子恒 None，不会返回该值
+          "stop"   用户请求停止
+        """
         # ---------------------------------------------------------------------
         # 1. 构造 TaskQueue
         #    executor / app / scene 由 SGBaseTask 提供，直接透传给队列。
@@ -150,7 +188,7 @@ class QueueTaskBase(SGBaseTask):
         self.queue.start()
 
         # ---------------------------------------------------------------------
-        # 1.5 配置重载钩子：每次 run 都给子类机会刷新配置源。
+        # 1.5 配置重载钩子：每圈都给子类机会刷新配置源。
         #     JSON 驱动的子类（UnifiedQueue）覆写为从磁盘重读，
         #     保证 webui 改完配置后不重启程序、直接重跑任务即生效。
         # ---------------------------------------------------------------------
@@ -172,6 +210,8 @@ class QueueTaskBase(SGBaseTask):
         #    - all_done()   ：队列中所有工厂都完成
         #    - exit_is_set()：用户点了停止
         #    - paused       ：用户暂时挂起，此时不 tick，只 sleep
+        #    - _rotation_yield_reason() 非 None：当前 user 无事可做，
+        #      提前结束本圈让位给下一个 user（单 user 默认恒 None）
         # ---------------------------------------------------------------------
         while not self.queue.all_done():
             if self.exit_is_set():
@@ -181,29 +221,42 @@ class QueueTaskBase(SGBaseTask):
                 self.sleep(tick_interval)
                 continue
 
+            if self._rotation_yield_reason() is not None:
+                break
+
             self.queue.tick()          # 让队列补任务、推进状态
             self._update_info()        # 刷新 UI 进度
             self.sleep(tick_interval)
 
         # ---------------------------------------------------------------------
         # 4. 收尾
-        #    _after_queue_done：队列自然跑完（非用户停止）时的收尾钩子，
-        #    默认空操作；JSON 驱动子类可覆写实现「完成后切分身用户启动」。
+        #    - 用户停止       → "stop"
+        #    - 自然跑完       → "done"（并触发 _after_queue_done 收尾）
+        #    - 让位           → "yield"（不触发 _after_queue_done：
+        #                      应用切换由轮转层负责，且队列还没"完成"）
         # ---------------------------------------------------------------------
+        user_stopped = self.exit_is_set()
         all_done = self.queue.all_done()
+        reason = None if user_stopped else self._rotation_yield_reason()
         self.queue.stop()
         try:
             self._on_queue_stopped()
         except Exception as e:
             self.log_info(f"收尾钩子 _on_queue_stopped 异常: {e}")
-        if all_done and not self.exit_is_set():
+        if all_done and not user_stopped:
             try:
                 self._after_queue_done()
             except Exception as e:
                 self.log_info(f"收尾钩子 _after_queue_done 异常: {e}")
-        self._update_info()
-        self.log_info(f"========== {self.name} 结束 ==========")
-        return True
+        if user_stopped:
+            return "stop"
+        if all_done:
+            # 自然完成优先于让位判定：全 DONE 且工厂配额耗尽时
+            # 即便 reason 非 None（如 budget）也是"跑完"而非让位
+            return "done"
+        if reason is not None:
+            return "yield"
+        return "done"
 
     # =========================================================================
     # UI 信息展示

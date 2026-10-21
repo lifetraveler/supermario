@@ -150,12 +150,13 @@ assert abs(gp["tick_interval"] - 0.5) < 1e-9
 reload_logs = [x for x in uq.logs if "reloaded" in x]
 assert len(reload_logs) == 2, f"应有 2 条 reloaded 日志, 实际 {len(reload_logs)}"
 
-# ---- 防回归锚点：run() 中 _reload_config 调用先于 _build_factories ----
-src = inspect.getsource(QueueTaskBase.run)
+# ---- 防回归锚点：_run_queue_cycle 中 _reload_config 调用先于
+#      _build_factories（run() 已抽成轮转主循环，配置步骤在 cycle 里）----
+src = inspect.getsource(QueueTaskBase._run_queue_cycle)
 i_reload = src.find("self._reload_config()")
 i_build = src.find("self._build_factories()")
-assert i_reload != -1, "run() 缺少 _reload_config() 调用"
-assert i_build != -1, "run() 缺少 _build_factories() 调用"
+assert i_reload != -1, "_run_queue_cycle 缺少 _reload_config() 调用"
+assert i_build != -1, "_run_queue_cycle 缺少 _build_factories() 调用"
 assert i_reload < i_build, "_reload_config 必须先于 _build_factories"
 
 # ---- 坏 JSON：reload 抛 TaskConfigError（与 __init__ 失败语义一致）----

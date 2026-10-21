@@ -39,6 +39,10 @@ class TaskFactory:
     type_id               任务类型标记（task_config.json 定义段 id），
                           耗时统计按它聚合；None = 未配置（不参与统计）
     estimated_seconds     任务预估处理时间（定义段预留字段，秒）
+    machine/package/user_id  所属链标记（machines[].name / apps[].package /
+                          users[].user_id）。多 user 轮转调度（5.5）按它
+                          区分各 user 的任务；单链场景默认 0/None。
+                          随 create 下发到任务实例。
 
     =========================================================
     建立策略（配合 TaskQueue）
@@ -64,6 +68,9 @@ class TaskFactory:
         cron=None,
         type_id=None,
         estimated_seconds=0.0,
+        machine=None,
+        package=None,
+        user_id=0,
     ):
         self.task_class = task_class
         self.count = count
@@ -76,6 +83,9 @@ class TaskFactory:
         self.cron = cron
         self.type_id = type_id
         self.estimated_seconds = float(estimated_seconds or 0)
+        self.machine = machine
+        self.package = package
+        self.user_id = user_id
         self.exhausted = False
         self.submitted = 0        # 已 create 的任务实例数（原语义）
         self.finished_count = 0   # 单实例复用型已消耗的执行次数
@@ -109,7 +119,9 @@ class TaskFactory:
           3. 把 kwargs 中的属性逐个 setattr 到任务上
           4. 如果 kwargs 没显式设置 next_trigger_delay，用工厂的
           5. 递增 submitted 并给任务一个可读名字
-          6. 打上 factory_key，方便 TaskQueue 按工厂分组
+          6. 打上 factory_key，方便 TaskQueue 按工厂分组；
+             链标记（user_id/package/machine）一并下发，轮转调度
+             与日志按它区分各 user 的任务。
         """
         task = self.task_class(executor=executor, app=app)
         task.after_init(executor=executor, scene=scene)
@@ -134,6 +146,9 @@ class TaskFactory:
         task.name = f"{self.name_prefix} #{self.submitted}"
         task.factory_key = self.key
         task.type_id = self.type_id
+        task.machine = self.machine
+        task.package = self.package
+        task.user_id = self.user_id
         return task
 
 
