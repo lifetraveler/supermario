@@ -56,6 +56,14 @@ DKEY_HELP = {
     "cron": "Cron 表达式定时触发，留空表示不使用",
 }
 
+def _fmt_val(v):
+    if isinstance(v, bool):
+        return "开" if v else "关"
+    if isinstance(v, list):
+        return "/".join(map(str, v)) if v else "-"
+    if v is None:
+        return "-"
+    return str(v)
 
 def _new_type_defaults():
     return {"count": 1, "max_active": 1, "requires_march_queue": False,
@@ -308,6 +316,8 @@ class TaskConfigEditorTab(CustomTab):
             "把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值")
         self.btn_reset_user.clicked.connect(self._reset_user_tasks)
         bar.addWidget(self.btn_reset_user)
+        self.search = LineEdit()
+        self.search.setPlaceholderText("搜索任务…")
         bar.addWidget(self.search)
         self.search.setClearButtonEnabled(True)
         self.search.setFixedWidth(170)
@@ -2011,6 +2021,19 @@ class TaskConfigEditorTab(CustomTab):
     def _copy_source(self):
         QApplication.clipboard().setText(self.src_edit.toPlainText())
         InfoBar.success("已复制", "JSON 源码已复制到剪贴板", parent=self.window(), duration=2000)
+
+    def _on_pivot_tasks(self):
+        self._switch_page("tasks")
+
+    def _on_pivot_types(self):
+        self._switch_page("types")
+
+    def _on_pivot_machines(self):
+        self._switch_page("machines")
+
+    def _on_pivot_source(self):
+        self._switch_page("source")
+
 
     def _profile_dir(self):
         return Path("configs") / "task_config_profiles"
