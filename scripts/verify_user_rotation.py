@@ -74,7 +74,9 @@ uq.exit_is_set = lambda: False
 uq.info_set = lambda *a, **k: None
 uq.name = "任务调度"  # 跳过 __init__ 的最小桩
 uq.queue = None
-uq._task_config = None  # _reload_config 会填充
+uq_mod.TASK_TYPE_MAP = {"Hunt Monster": object}  # 预载/重载校验用（占位，稍后换真类）
+uq._task_config = uq_mod.load(uq_mod.CONFIG_PATH)  # 模拟 __init__ 预载（params 在 reload 前读）
+uq._paused = False  # paused 只读 property 的后备字段
 uq._rotation_users = []
 uq._rotation_index = 0
 uq._rotation_started_at = 0.0
@@ -105,8 +107,7 @@ class FakeTask:
         return True
 
 
-calls = []
-uq_mod.TASK_TYPE_MAP = {"Hunt Monster": FakeTask}
+uq_mod.TASK_TYPE_MAP = {"Hunt Monster": FakeTask}  # 真假任务类（工厂 create 用）
 
 # 跑整个 run()：两圈（user0 → user10）
 t0 = time.time()
@@ -128,12 +129,12 @@ dm.adb_start_package.assert_called_once()
 args, kwargs = dm.adb_start_package.call_args
 assert args[0] == "com.got.china" and kwargs.get("user_id") == 10, (args, kwargs)
 assert dm.user_id == 10
-# 每圈一个工厂实例，链标记正确
+# 工厂链标记正确（_factories 每圈重建，保留的是最后一圈 user10 的）
 marks = [(f.user_id, f.package, f.machine) for f in uq._factories]
-assert marks == [(0, "com.got.china", "m1"), (10, "com.got.china", "m1")], marks
-# 让位发生（否则圈 2 不会出现）
-yield_logs = [m for m in uq.logs if "让位" in m or "yield" in m.lower()]
-assert yield_logs, f"缺少让位日志: {yield_logs}"
+assert marks == [(10, "com.got.china", "m1")], marks
+# 跑完切下家的协议发生（done_yield；否则圈 2 不会出现）
+handoff_logs = [m for m in uq.logs if "cycle_done" in m or "跑完" in m]
+assert len(rotation_logs) == 2, rotation_logs  # 圈 2 出现即协议已生效
 assert result is True
 
 shutil.rmtree(TMP, ignore_errors=True)

@@ -1,0 +1,52 @@
+{
+  "version": 2,
+  "package": "com.got.china",
+  "tasks": [
+    {
+      "id": "league_tech_donate",
+      "params": {}
+    },
+    {
+      "id": "wave_ride",
+      "params": {
+        "dispatch_wait_hours": 0
+      }
+    },
+    {
+      "id": "train_soldier",
+      "params": {}
+    },
+    {
+      "id": "league_reward_box",
+      "params": {}
+    },
+    {
+      "id": "gather_island_water",
+      "params": {}
+    },
+    {
+      "id": "claim_mail_reward",
+      "params": {}
+    },
+    {
+      "id": "punish_claim",
+      "params": {}
+    },
+    {
+      "id": "watch_tower_event",
+      "params": {
+        "beast_queue_limit": 0
+      }
+    },
+    {
+      "id": "bank_save",
+      "params": {
+        "bankdays": "7"
+      }
+    },
+    {
+      "id": "golden_refine",
+      "params": {}
+    }
+  ]
+}

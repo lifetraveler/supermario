@@ -48,7 +48,7 @@ def get_all_users(device):
     """
     output = device.shell("pm list users")
     # 同时捕获 UserInfo{ 后面的数字 ID，以及 } 后面的状态词
-    users = re.findall(r"UserInfo\{(\d+):[^}]*\}\s*(\w+)", output)
+    users = re.findall(r"UserInfo\{(\d+):[^}]*\}(?:[ \t]+(\w+))?", output)
     return [(int(uid), state) for uid, state in users]
 
 

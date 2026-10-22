@@ -879,3 +879,33 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+## [2026-10-22] 多 user 轮转调度（TaskQueue / TaskFactory / UnifiedQueue）
+
+### 原始需求（待办 5.5）
+配置启用了多个 userid 时，按 userid 启动对应的应用并执行该 user 配置的任务；执行完成（或超过预估时间，或距该 user 下一个任务超过半小时）后，关闭当前应用、启动下一个配置 userid 的应用并放到前台，再执行其任务。TaskFactory 需要增加 userid/package/machine 区分任务归属。
+
+### 实现
+- **loader 多链**：`parse_user_chains(doc)` 返回全部 enabled 的 machine→app→user 链（按配置顺序）；`parse_document(doc, type_groups, chain=…)` 支持按链解析；新增 `parse_user_configs(doc)` 逐链解析并附加 `machine/package/user_id` 标记。`pick_active_user` 退化为首链便捷入口，单链老调用行为不变。顺带修复：`parse_document`/`parse_user_configs` 缺省定义段改走 `load_type_document(DEFAULT_TYPE_PATH)`（原来用函数默认参数绑定，测试重定向 `DEFAULT_TYPE_PATH` 不生效）。
+- **TaskFactory 链标记**：新增 `machine/package/user_id` 字段，`create()` 下发到任务实例（`task.machine/package/user_id`）；`UnifiedQueue._build_factories` 从当前生效链传入。
+- **QueueTaskBase 协议**：`run()` 改为轮转主循环——每圈调 `_run_queue_cycle()`，返回 `yield`/`done_yield` 继续下一圈，`done`/`stop` 结束；`_rotation_yield_reason(queue_done=False)` 钩子（默认恒 None=单 user 一圈即终）供子类覆写；`_run_queue_cycle` 收尾段按「user_stopped > all_done > 中途让位」优先级返回。
+- **UnifiedQueue 轮转**：≥2 个 enabled user 进入轮转。每圈 `_next_rotation_user()` 按游标取链 → `_switch_app_for_user()`（`adb_stop_package` 关当前 → `adb_start_package(package, user_id)` 启动目标 → 更新 `dm.user_id`；目标=当前时跳过重启；非 ADB 环境按"已在位"处理；启动失败跳过该 user，全失败回退第一链）。`_reload_config` 重读后按 `user_id` 保留本圈已切换的链（防止重读冲掉切换状态）。`ROTATION_IDLE_GAP=1800s`。
+- **让位判定**（`_rotation_yield_reason`）：`queue_done=True`（队列自然跑完）→ 游标未回绕即 `cycle_done`（切下一个 user），回绕即本轮 pass 结束；圈中判定：超预算（Σ 启用任务 `estimated_seconds`（缺省回退 task_excute_time.json 均值）× max(1,count)，全未知不限时）→ `budget`；有 RUNNING/IN_PROGRESS 不让位（行军中绝不中途放弃）；最近可唤醒任务（SCHEDULED.trigger_time / PENDING.next_retry_time，已过视为马上）距今 >30min → `next_task_gap`；只剩 DONE/FAILED → `no_pending`；初始填充前（tasks 空）不判定。
+
+### 涉及文件
+- src/sg/tasks/config_loader/task_config_loader.py（parse_user_chains / parse_user_configs / parse_document chain 参数 / DEFAULT_TYPE_PATH 缺省修复）
+- src/sg/tasks/config_loader/__init__.py（导出）
+- src/scheduler/task_queue.py（TaskFactory machine/package/user_id + create 注入）
+- src/sg/tasks/queue/QueueTaskBase.py（run 轮转主循环 / _rotation_yield_reason / _run_queue_cycle 协议）
+- src/sg/tasks/queue/UnifiedQueue.py（轮转核心 + reload 保留当前链 + CONFIG_PATH 定义恢复）
+- tests/TestUserRotation.py（29 用例）、scripts/verify_user_rotation.py（e2e 仿真）
+- scripts/verify_unified_queue_reload.py（防回归锚点从 run() 迁到 _run_queue_cycle()）
+
+### 测试
+- `tests/TestUserRotation.py` 29 用例全绿（多链解析 / 链标记下发 / 游标与跳失败 / 让位判定六场景 / 预算 / 圈返回值协议）。
+- `tests/TestTaskQueueScheduling.py` 14 用例全绿（调度层零回归）。
+- `scripts/verify_user_rotation.py` e2e：双 user 配置 → 圈1 user0（在位不重启）→ 任务跑完 done_yield → 圈2 切 user10（stop+am start 调用序断言）→ pass 结束。
+- `scripts/verify_unified_queue_reload.py` 全过（重读行为不变）。
+- 实机未验证：分身启动 / force-stop 时序需真机确认（复用 2026-10-15 已真机验证的 adb_start_package 分身分支）。
+
+---
+

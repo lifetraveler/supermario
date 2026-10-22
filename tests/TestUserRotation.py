@@ -218,7 +218,7 @@ class TestRotationSwitch(unittest.TestCase):
     def test_cursor_advances_in_config_order(self):
         users = [make_user_cfg(0), make_user_cfg(10), make_user_cfg(11)]
         q = make_queue(users)
-        q._rotation_index = 0
+        self.assertEqual(q._next_rotation_user()["user_id"], 0)
         self.assertEqual(q._next_rotation_user()["user_id"], 10)
         self.assertEqual(q._next_rotation_user()["user_id"], 11)
         self.assertEqual(q._next_rotation_user()["user_id"], 0)  # 回绕
@@ -233,8 +233,9 @@ class TestRotationSwitch(unittest.TestCase):
             return user_id != 10  # user10 启动失败
 
         dm.adb_start_package.side_effect = start
-        q.executor.device_manager = dm
+        q._executor.device_manager = dm
         q._rotation_index = 0
+        self.assertEqual(q._next_rotation_user()["user_id"], 0)
         self.assertEqual(q._next_rotation_user()["user_id"], 11)  # 跳过 10
         self.assertEqual(q._next_rotation_user()["user_id"], 0)
 

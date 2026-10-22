@@ -503,57 +503,10 @@
               },
               "tasks": [
                 {
-                  "id": "league_tech_donate",
-                  "enabled": true,
-                  "next_trigger_delay": 1800,
-                  "one_shot": true
-                },
-                {
                   "id": "wave_ride",
                   "enabled": true,
                   "params": {
                     "dispatch_wait_hours": 0
-                  }
-                },
-                {
-                  "id": "hunt_monster",
-                  "enabled": true,
-                  "count": 4,
-                  "max_active": 1,
-                  "params": {
-                    "monster_level": "0"
-                  }
-                },
-                {
-                  "id": "train_soldier",
-                  "enabled": true
-                },
-                {
-                  "id": "league_reward_box",
-                  "enabled": true,
-                  "one_shot": true
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": true,
-                  "next_trigger_delay": 1,
-                  "one_shot": true
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": true,
-                  "one_shot": true
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": true,
-                  "one_shot": true
-                },
-                {
-                  "id": "watch_tower_event",
-                  "enabled": true,
-                  "params": {
-                    "beast_queue_limit": 0
                   }
                 },
                 {
@@ -594,13 +547,6 @@
                   }
                 },
                 {
-                  "id": "bank_save",
-                  "enabled": false,
-                  "params": {
-                    "bankdays": "7"
-                  }
-                },
-                {
                   "id": "pet_treasure_hunt",
                   "enabled": false,
                   "one_shot": true
@@ -618,55 +564,101 @@
                   "one_shot": true
                 },
                 {
-                  "id": "golden_refine",
+                  "id": "leader_reward",
+                  "enabled": false
+                },
+                {
+                  "id": "hunt_monster",
+                  "enabled": false,
+                  "count": 4,
+                  "max_active": 1,
+                  "params": {
+                    "monster_level": "0"
+                  }
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": false,
+                  "next_trigger_delay": 1800,
+                  "one_shot": true
+                },
+                {
+                  "id": "train_soldier",
+                  "enabled": false
+                },
+                {
+                  "id": "league_reward_box",
                   "enabled": false,
                   "one_shot": true
                 },
                 {
-                  "id": "leader_reward",
-                  "enabled": false
+                  "id": "gather_island_water",
+                  "enabled": false,
+                  "next_trigger_delay": 1,
+                  "one_shot": true
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": false,
+                  "one_shot": true
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": false,
+                  "one_shot": true
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": false,
+                  "params": {
+                    "beast_queue_limit": 0
+                  }
+                },
+                {
+                  "id": "bank_save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "7"
+                  }
+                },
+                {
+                  "id": "golden_refine",
+                  "enabled": false,
+                  "one_shot": true
                 }
               ]
             },
             {
               "user_id": 10,
-              "enabled": false,
+              "enabled": true,
               "queue": {
                 "tick_interval": 1,
                 "continue_after_failure": true
               },
               "tasks": [
                 {
+                  "id": "wave_ride",
+                  "enabled": true,
+                  "params": {
+                    "dispatch_wait_hours": 0
+                  }
+                },
+                {
                   "id": "cesare_fight",
                   "enabled": false,
-                  "params": {}
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": false
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": false
-                },
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": false
-                },
-                {
-                  "id": "golden_refine",
-                  "enabled": false
+                  "params": {
+                    "stamina_wait_seconds": 0
+                  }
                 },
                 {
                   "id": "claim_stamina",
-                  "enabled": false
+                  "enabled": false,
+                  "params": {
+                    "claim_cooldown": 0
+                  }
                 },
                 {
                   "id": "hunt_elite_rebels",
-                  "enabled": false
-                },
-                {
-                  "id": "league_tech_donate",
                   "enabled": false
                 },
                 {
@@ -675,6 +667,41 @@
                 },
                 {
                   "id": "cesare_fight",
+                  "enabled": false
+                },
+                {
+                  "id": "bank_save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "0"
+                  }
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_reward_box",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_warehouse_reward",
+                  "enabled": false
+                },
+                {
+                  "id": "golden_refine",
                   "enabled": false
                 }
               ]

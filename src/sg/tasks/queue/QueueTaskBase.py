@@ -128,9 +128,10 @@ class QueueTaskBase(SGBaseTask):
 
         流程：
             1. 循环调用 _run_queue_cycle()：每圈跑完一个 user 的队列。
-            2. 每圈结束后问 _rotation_yield_reason()：非 None 表示
-               当前 user 已无事可做、应让位给下一个 user（多 user
-               轮转，5.5）；返回 None（默认）则一圈即终。
+            2. 每圈返回 "yield" / "done_yield"（当前 user 无事可做 /
+               自然跑完但还有下一个 user 待跑）→ 继续下一圈；
+               "done" / "stop" → 结束。多 user 轮转（5.5）的圈数
+               由子类协议控制，默认实现一圈即终（单 user）。
             3. 用户停止 / 异常随时终止整个 run。
         返回 True 表示本次激活完成（无论跑了几个 user）。
         """
@@ -138,25 +139,26 @@ class QueueTaskBase(SGBaseTask):
         try:
             while True:
                 try:
-                    if self._run_queue_cycle() == "yield":
-                        continue
+                    result = self._run_queue_cycle()
                 except Exception as e:
                     self.log_info(f"队列循环异常终止: {e}")
                     raise
+                if result in ("yield", "done_yield"):
+                    continue
                 break
         finally:
             self._update_info()
         self.log_info(f"========== {self.name} 结束 ==========")
         return True
 
-    def _rotation_yield_reason(self):
+    def _rotation_yield_reason(self, queue_done=False):
         """
-        单圈结束后是否让位：返回让位原因字符串（记日志用），None =
-        不让位（单 user 场景，一圈即 run 终点）。默认 None。
+        当前 user 是否无事可做：返回让位原因字符串（记日志用），
+        None = 不让位。默认 None（单 user 场景，一圈即 run 终点）。
 
-        多 user 轮转由 UnifiedQueue 覆写：当前 user「无事可做」——
-        队列自然跑完 / 超过本轮预估时间 / 距本 user 下一任务超过
-        半小时——返回非 None，run() 主循环继续下一圈（下一个 user）。
+        多 user 轮转由 UnifiedQueue 覆写。queue_done=True 表示队列
+        已自然跑完（all_done），覆写方据此区分「跑完即切」与
+        「中途让位」。
         """
         return None
 
@@ -221,7 +223,8 @@ class QueueTaskBase(SGBaseTask):
                 self.sleep(tick_interval)
                 continue
 
-            if self._rotation_yield_reason() is not None:
+            if self._rotation_yield_reason() is not None:      # 让队列补任务、推进状态
+                self._update_info()   
                 break
 
             self.queue.tick()          # 让队列补任务、推进状态
@@ -231,13 +234,19 @@ class QueueTaskBase(SGBaseTask):
         # ---------------------------------------------------------------------
         # 4. 收尾
         #    - 用户停止       → "stop"
-        #    - 自然跑完       → "done"（并触发 _after_queue_done 收尾）
-        #    - 让位           → "yield"（不触发 _after_queue_done：
+        #    - 自然跑完       → "done"（并触发 _after_queue_done 收尾）；
+        #                       多 user 轮转且 _rotation_yield_reason(queue_done=True)
+        #                       判定还有下一家 → "done_yield"（本圈已
+        #                       跑完，继续下一圈切下一个 user）
+        #    - 中途让位       → "yield"（不触发 _after_queue_done：
         #                      应用切换由轮转层负责，且队列还没"完成"）
         # ---------------------------------------------------------------------
         user_stopped = self.exit_is_set()
         all_done = self.queue.all_done()
-        reason = None if user_stopped else self._rotation_yield_reason()
+        if user_stopped:
+            reason = None
+        else:
+            reason = self._rotation_yield_reason(queue_done=all_done)
         self.queue.stop()
         try:
             self._on_queue_stopped()
@@ -251,9 +260,9 @@ class QueueTaskBase(SGBaseTask):
         if user_stopped:
             return "stop"
         if all_done:
-            # 自然完成优先于让位判定：全 DONE 且工厂配额耗尽时
-            # 即便 reason 非 None（如 budget）也是"跑完"而非让位
-            return "done"
+            # 自然完成：默认一圈即终；多 user 轮转覆写 reason 判定
+            # 还有下一家时返回 done_yield（run() 主循环继续下一圈）
+            return "done_yield" if reason is not None else "done"
         if reason is not None:
             return "yield"
         return "done"

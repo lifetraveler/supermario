@@ -26,6 +26,8 @@ from src.sg.tasks.config_loader import (
 from src.sg.tasks.queue.QueueTaskBase import QueueTaskBase
 from src.sg.tasks.task_type_map import TASK_TYPE_MAP
 
+CONFIG_PATH = Path("configs") / "task_config.json"
+
 
 class UnifiedQueue(QueueTaskBase):
     """
@@ -93,7 +95,15 @@ class UnifiedQueue(QueueTaskBase):
         """
         doc = load_document(CONFIG_PATH)
         self._rotation_users = parse_user_configs(doc)
-        self._task_config = self._rotation_users[0]
+        # 轮转模式下本圈已切换的 user 不能被重读冲掉：
+        # 按 user_id 在新配置里找当前链；找不到（配置刚被改）回退第一条。
+        current_uid = (
+            self._task_config.get("user_id")
+            if isinstance(self._task_config, dict) else None)
+        keep = next(
+            (c for c in self._rotation_users if c["user_id"] == current_uid),
+            None)
+        self._task_config = keep or self._rotation_users[0]
         for cfg in self._rotation_users:
             self._resolve_task_classes(cfg)
         self.log_info(
@@ -190,47 +200,50 @@ class UnifiedQueue(QueueTaskBase):
     def _run_queue_cycle(self):
         """
         覆写：轮转模式下每圈先推进轮转游标并切换应用，再跑队列。
-        单链（_rotation_users <= 1）与基类行为完全一致。
+        单链（_rotation_users <= 1，含首圈未重载的空列表）不切换，
+        由基类跑队列——首圈 dm.user_id 与配置注入值一致（config.py
+        启动时已对齐第一条链），无需切换。
 
         切换失败（启动应用异常 / 分身未安装）→ 跳过该 user 换下一个，
         全部失败 → 正常跑第一链的任务（应用可能已在前台，交给
         DeviceManager 的 ensure_in_front 兜底）。
         """
-        if len(self._rotation_users) <= 1:
-            return super()._run_queue_cycle()
-
+        # 无论单/多链都打圈起点（预算按它起算；单链不消费预算）
         self._mark_rotation_started()
-        user_cfg = self._next_rotation_user()
-        if user_cfg is None:
-            # 所有 user 切换失败：回到第一条链硬着头皮跑（打日志告警）
-            user_cfg = self._rotation_users[0]
-            self._task_config = user_cfg
+        if len(self._rotation_users) > 1:
+            user_cfg = self._next_rotation_user()
+            if user_cfg is None:
+                # 所有 user 切换失败：回到第一条链硬着头皮跑（打日志告警）
+                user_cfg = self._rotation_users[0]
+                self._task_config = user_cfg
+                self.log_info(
+                    f"[Rotation] 所有 user 切换失败，回退第一条链 "
+                    f"{user_cfg['trail']}")
+            else:
+                self._task_config = user_cfg
             self.log_info(
-                f"[Rotation] 所有 user 切换失败，回退第一条链 "
-                f"{user_cfg['trail']}")
-        else:
-            self._task_config = user_cfg
-        self._rotation_index = self._rotation_users.index(user_cfg)
-        self.log_info(
-            f"[Rotation] 圈 {self._rotation_index + 1}/"
-            f"{len(self._rotation_users)}: {user_cfg['trail']} "
-            f"(package={user_cfg['package']}, "
-            f"user_id={user_cfg['user_id']}, "
-            f"enabled_tasks={sum(1 for t in user_cfg['tasks'] if t['enabled'])})"
-        )
+                f"[Rotation] 圈 {self._rotation_users.index(user_cfg) + 1}/"
+                f"{len(self._rotation_users)}: {user_cfg['trail']} "
+                f"(package={user_cfg['package']}, "
+                f"user_id={user_cfg['user_id']}, "
+                f"enabled_tasks={sum(1 for t in user_cfg['tasks'] if t['enabled'])})"
+            )
         return super()._run_queue_cycle()
 
     def _next_rotation_user(self):
         """
-        轮转游标推进：按配置顺序取下一个 user，跳过切换失败的。
-        返回 None 表示全部失败。
+        轮转游标：从当前游标取 user，尝试切换；无论成败游标都推进
+        （下一次从下一位开始）。首圈由 run() 重置游标=0，从第一条
+        enabled 链跑起。全部失败返回 None。
         """
         users = self._rotation_users
+        if not users:
+            return None
         for _ in range(len(users)):
-            self._rotation_index += 1
             if self._rotation_index >= len(users):
                 self._rotation_index = 0
             cfg = users[self._rotation_index]
+            self._rotation_index += 1
             if self._switch_app_for_user(cfg):
                 return cfg
         return None
@@ -238,6 +251,7 @@ class UnifiedQueue(QueueTaskBase):
     def _switch_app_for_user(self, user_cfg):
         """
         把应用切到该 user：force-stop 当前 → am start --user。
+        10.22 无需关闭，仅需要切换即可
 
         目标 user == DeviceManager 当前 user 时视为已在位（首次圈
         DeviceManager.user_id 即配置注入值，无需重启应用）。
@@ -253,10 +267,10 @@ class UnifiedQueue(QueueTaskBase):
         if target_uid == current_uid:
             self.log_info(f"[Rotation] user{target_uid} 即当前用户，无需切换")
             return True
-        try:
-            dm.adb_stop_package(package, user_id=current_uid)
-        except Exception as e:
-            self.log_info(f"[Rotation] 关闭 user{current_uid} 应用失败（继续）: {e}")
+        # try:
+        #     dm.adb_stop_package(package, user_id=current_uid)
+        # except Exception as e:
+        #     self.log_info(f"[Rotation] 关闭 user{current_uid} 应用失败（继续）: {e}")
         try:
             ok = dm.adb_start_package(package, user_id=target_uid)
         except Exception as e:
@@ -270,40 +284,61 @@ class UnifiedQueue(QueueTaskBase):
         self.log_info(f"[Rotation] 应用已切到 user{target_uid} ({package})")
         return True
 
-    def _rotation_yield_reason(self):
+    def _rotation_yield_reason(self, queue_done=False):
         """
         当前 user 是否无事可做（仅多 user 轮转模式判定；单链恒 None）。
 
-        判定按序：
-          1. 本圈已超预算（_cycle_deadline 已到）→ "budget"
-          2. 队列里有 RUNNING/IN_PROGRESS → 在忙，不让位
-          3. 最近的可唤醒任务（SCHEDULED.trigger_time /
+        queue_done=True：队列已自然跑完。跑完即切下一个 user
+        （用户语义：「执行任务完成后启动下一个 userid」）。
+        queue_done=False：圈中判定（tick 循环内每轮询问）。
+
+        圈中判定按序：
+          1. 队列里有 RUNNING/IN_PROGRESS → 在忙，不让位
+          2. 最近的可唤醒任务（SCHEDULED.trigger_time /
              PENDING.next_retry_time）距今 > ROTATION_IDLE_GAP
              → "next_task_gap"
-          4. 其余（有任务马上要跑）→ None 继续跑
+          3. 其余（有任务马上要跑）→ None 继续跑
+          4. 本圈已超预算 → "budget"
+        TODO 10.23 需要将这个队列的轮转状态传出，传到后续的队列中去，作为后续队列轮转的条件，
+        比如 现在有2个用户，用户A因为下一次任务时间是60分钟以外，所以轮转到用户B开始执行，用户
+        b花了10分钟就执行完自己的任务，现在如果再跳转到A用户，又会发现下一次任务还是50分钟后，
+        又会跳转到B，这样就有一个问题，用户AB之间一直左无效的跳转。而且现在实现的，轮转以后，
+        任务从头开始执行，这样其实有点问题，比如有些任务一天只需要执行一次，或者在上一个轮转刚刚执行完，
+        下一次需要等待好久，你这次轮转回来，没有考虑到上次的状态又执行了一遍，导致了执行失败或者无效执行，
+        浪费资源。所以需要将上一次的执行状态存下来，相同的任务需要判断一下。
+        
+        其实我的设计应该是把所有用户的任务，添加到一个队列中，执行到某一个任务的时候，
+        仅需要切换一下app即可。这样就不要考虑复杂的状态管理了
+        比如 先执行完用户A的，执行完以后，，那么就开始执行用户B的任务。根据任务里配置的userid切换即可。
         """
         if len(self._rotation_users) <= 1 or self.queue is None:
             return None
+        if queue_done:
+            # 本圈跑完。本轮 pass = 每个 user 各跑一遍；游标已指向
+            # 下一家，若回绕到 0 说明全部 user 已跑完 → pass 结束。
+            if self._rotation_index >= len(self._rotation_users):
+                return None
+            return "cycle_done"
         now = time.time()
-        deadline = self._rotation_budget_deadline()
-        if deadline is not None and now >= deadline:
-            return "budget"
+        tasks = self.queue.tasks
+        if not tasks:
+            # 初始填充前不判定（每圈启动时队列一定是空的）
+            return None
         running = [
-            t for t in self.queue.tasks
+            t for t in tasks
             if t.status in (TaskStatus.RUNNING, TaskStatus.IN_PROGRESS)
         ]
         if running:
             return None
-        next_wake = min(
-            self._next_wake_time(t) for t in self.queue.tasks
-        ) if self.queue.tasks else None
-        if next_wake is None:
-            return "no_pending"
+        next_wake = min(self._next_wake_time(t) for t in tasks)
         if next_wake == float("inf"):
             # 只剩 DONE/FAILED：队列实际已无事可做
             return "no_pending"
         if next_wake - now > self.ROTATION_IDLE_GAP:
             return f"next_task_gap({(next_wake - now) / 60:.0f}min)"
+        deadline = self._rotation_budget_deadline()
+        if deadline is not None and now >= deadline:
+            return "budget"
         return None
 
     def _next_wake_time(self, task):
