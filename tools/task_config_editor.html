@@ -455,6 +455,9 @@ function validateDoc(doc, typeGroups){
   if (!doc || typeof doc !== 'object' || Array.isArray(doc)) return errs.concat(['实例配置顶层必须是对象']);
   if (!typeGroups || !Object.keys(typeGroups).length) return errs.concat(['task_type.json 缺失或为空']);
   if (!Array.isArray(doc.machines) || !doc.machines.length) errs.push('machines 缺失或为空');
+  const rm = doc.rotation_mode;
+  if (rm !== undefined && rm !== 'task_flow' && rm !== 'user_rotation')
+    errs.push(`rotation_mode 必须是 task_flow / user_rotation: "${rm}"`);
   let chain = false;
   (doc.machines || []).forEach((m, mi) => {
     if (!m || typeof m !== 'object'){ errs.push(`machines[${mi}]: 必须是对象`); return; }
@@ -1279,6 +1282,22 @@ function renderMachinesTab(){
   const bar = el('div', 'toolbar');
   bar.append(el('span', 'hint', '运行时使用第一条全部启用的 machine → app → user 链（加载器契约）。'));
   bar.append(el('div', 'grow'));
+  // 5.7 多用户任务轮转模式（顶层 rotation_mode）
+  const modeWrap = el('span');
+  modeWrap.style.display = 'flex';
+  modeWrap.style.alignItems = 'center';
+  modeWrap.style.gap = '6px';
+  modeWrap.append(el('span', 'hint', '多用户任务轮转模式:'));
+  const modeSel = document.createElement('select');
+  [['task_flow', '任务间流转（默认）'], ['user_rotation', '完全轮转']].forEach(([v, label]) => {
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = label;
+    modeSel.append(opt);
+  });
+  modeSel.value = state.doc.rotation_mode === 'user_rotation' ? 'user_rotation' : 'task_flow';
+  modeSel.onchange = () => { state.doc.rotation_mode = modeSel.value; markDirty(); };
+  modeWrap.append(modeSel);
+  bar.append(modeWrap);
   bar.append(btn('＋ 添加机器', 'primary', () => {
     const next = 'machine' + ((state.doc.machines || []).length + 1);
     dlgForm('添加机器', [{ label:'名称', value:next }], ([name]) => {

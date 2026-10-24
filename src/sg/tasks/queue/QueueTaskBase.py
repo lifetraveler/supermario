@@ -94,6 +94,15 @@ class QueueTaskBase(SGBaseTask):
         异常由调用方捕获记日志，不影响 run() 返回值。
         """
 
+    def _setup_queue_hooks(self):
+        """
+        队列钩子装配点（TaskQueue 构造后、start 前调用），默认空操作。
+
+        5.7 任务间流转：UnifiedQueue 覆写本方法，把「按任务 user_id
+        切应用分身」挂到 queue.before_interaction；常规模式不挂任何
+        钩子，调度行为与老版本完全一致。
+        """
+
     # =========================================================================
     # 子类接口
     # =========================================================================
@@ -183,10 +192,11 @@ class QueueTaskBase(SGBaseTask):
             app=self._app,
             scene=self.scene,
         )
-        # 全局失败策略 / 调度间隔：默认读 GUI 配置；
-        # 子类可覆写 _queue_global_params() 换配置源（如 JSON 文件）。
         params = self._queue_global_params()
         self.queue.continue_after_failure = bool(params["continue_after_failure"])
+        # 队列级钩子装配（5.7 任务间流转：子类可在此挂 before_interaction）。
+        # 默认空操作，队列行为与老版本完全一致。
+        self._setup_queue_hooks()
         self.queue.start()
 
         # ---------------------------------------------------------------------

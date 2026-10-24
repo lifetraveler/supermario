@@ -238,6 +238,15 @@ class TaskQueue:
         # 样本按工厂聚合，窗口 _SAMPLE_WINDOW 防无限 count 场景增长。
         # 持久化由 QueueTaskBase 子类在 run() 收尾做（本类纯逻辑零 IO）。
         # --------------------------------------------------------
+        # 执行前钩子（5.7 任务间流转）：pick 出任务后、置 RUNNING 前
+        # 调用 task。返回 falsy → 本次不执行，任务延后重试。
+        # 典型用途：按任务 user_id 切换应用分身。默认 None = 无钩子，
+        # 调度行为与老版本完全一致。
+        # --------------------------------------------------------
+        self.before_interaction = None
+        # 钩子拒绝执行后的重试延迟（秒）：分身启动失败等现场不可用
+        # 情况下，延后重试避免空转。仅 before_interaction 非 None 时生效。
+        self.before_interaction_retry_delay = 5.0
         self.execution_samples = {}   # {type_id: deque[float]}
 
     _SAMPLE_WINDOW = 20
@@ -390,15 +399,17 @@ class TaskQueue:
         self._activate_scheduled(now)
 
         # 4. 挑一个 PENDING 交互
+        user_id=None
         candidate = self._pick_next(now)
         if candidate is not None:
+            user_id= candidate.user_id
             self._do_interaction(candidate)
 
         # 5. 初始填充
         self._replenish()
 
         # 6. 失败策略：补建 / 停止
-        self._check_stalled_factories(now)
+        self._check_stalled_factories(now,user_id)
 
 
     # --------------------------------------------------------
@@ -518,6 +529,24 @@ class TaskQueue:
         - TaskRestartRequested → 走重排流程（见 _handle_restart_requested）
         - 其它异常            → 记 FAILED，不拖垮整个 tick
         """
+        # 5.7 任务间流转：执行前钩子（切应用分身）。返回 falsy =
+        # 现场不可用（如分身启动失败），任务延后重试，不算失败。
+        hook = self.before_interaction
+        if hook is not None:
+            try:
+                ok = bool(hook(task))
+            except Exception as e:
+                logger.error(f"TaskQueue before_interaction error: {task.name}", e)
+                ok = False
+            if not ok:
+                task.status = TaskStatus.PENDING
+                task.next_retry_time = time.time() + self.before_interaction_retry_delay
+                logger.info(
+                    f"TaskQueue before_interaction declined: {task.name} "
+                    f"in {self.before_interaction_retry_delay:.1f}s"
+                )
+                return
+
         self.current_interaction = task
         task.status = TaskStatus.RUNNING
         logger.info(f"TaskQueue interaction: {task.name}")
@@ -693,7 +722,7 @@ class TaskQueue:
     # 失败策略 / 自重排
     # --------------------------------------------------------
 
-    def _check_stalled_factories(self, now):
+    def _check_stalled_factories(self, now,user_id):
         """
         失败策略扫描：某工厂的全部任务都进入终态（DONE/FAILED），
         但提交数还没用完 count → 该工厂"卡死"了。
@@ -721,6 +750,8 @@ class TaskQueue:
             不存在卡死形态。
         """
         for factory in self.factories:
+            if factory.user_id!=user_id:
+                continue
             if factory.exhausted or not factory.can_submit_more():
                 continue
             if factory.one_shot or factory.cron:
@@ -977,6 +1008,8 @@ class TaskQueue:
 
         for t in self.tasks:
             name = t.name
+            user_id=t.user_id
+            name = str(user_id) + "-"+ name
             if t.status == TaskStatus.SCHEDULED:
                 scheduled += 1
                 scheduled_items.append(

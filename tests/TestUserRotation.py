@@ -175,8 +175,8 @@ def make_queue(users):
     q._task_config = users[0]
     q._rotation_users = users
     q._rotation_index = 0
+    q._rotation_mode = "user_rotation"  # 老测试默认完全轮转（5.5 行为）
     q._rotation_started_at = time.time()
-    q._rotation_deadline = None
     q._executor = mock.Mock()          # executor 是只读 property
     q._executor.device_manager = None  # 默认非 ADB 环境
     q.logs = []
@@ -248,7 +248,8 @@ class TestRotationSwitch(unittest.TestCase):
         q.executor.device_manager = dm
         self.assertTrue(q._switch_app_for_user(users[1]))
         self.assertEqual(dm.user_id, 10)
-        dm.adb_stop_package.assert_called_once()
+        # 10.22 起：切用户无需 force-stop，仅 am start --user 即可
+        dm.adb_stop_package.assert_not_called()
 
     def test_all_switch_failures_returns_none(self):
         users = [make_user_cfg(0), make_user_cfg(10)]

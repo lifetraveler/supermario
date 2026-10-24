@@ -149,6 +149,9 @@ def validate_doc(doc, type_groups):
     machines = doc.get("machines")
     if not isinstance(machines, list) or not machines:
         errs.append("machines 缺失或为空")
+    rm = doc.get("rotation_mode")
+    if rm is not None and rm not in ("task_flow", "user_rotation"):
+        errs.append(f'rotation_mode 必须是 task_flow / user_rotation: "{rm}"')
     has_chain = False
     for mi, m in enumerate(machines or []):
         if not isinstance(m, dict):
@@ -394,11 +397,19 @@ class TaskConfigEditorTab(CustomTab):
         bar = QHBoxLayout()
         bar.addWidget(BodyLabel("运行时消费第一条全部启用的 machine → app → user 链"))
         bar.addStretch(1)
+        # 5.7 多用户任务轮转模式（顶层 rotation_mode）
+        bar.addWidget(BodyLabel("多用户任务轮转模式:"))
+        self.rotation_mode_combo = ComboBox()
+        self.rotation_mode_combo.addItems(
+            ["任务间流转（默认）", "完全轮转"])
+        self.rotation_mode_combo.currentIndexChanged.connect(
+            self._on_rotation_mode_changed)
+        bar.addWidget(self.rotation_mode_combo)
+        bar.addSpacing(12)
         self.btn_add_machine = PrimaryPushButton(FluentIcon.ADD, "添加机器")
         self.btn_add_machine.clicked.connect(self._add_machine_dialog)
         bar.addWidget(self.btn_add_machine)
         lay.addLayout(bar)
-
         self.machine_scroll = ScrollArea(self.view)
         self.machine_scroll.setWidgetResizable(True)
         self.machine_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -686,6 +697,21 @@ class TaskConfigEditorTab(CustomTab):
     def _mark_dirty(self):
         self.dirty = True
         self._refresh_status()
+
+    # ============================================================ 轮转模式（5.7）
+    def _on_rotation_mode_changed(self, index):
+        if self._suspended or not self.doc:
+            return
+        self.doc["rotation_mode"] = (
+            "user_rotation" if index == 1 else "task_flow")
+        self._mark_dirty()
+
+    def _sync_rotation_mode_ui(self):
+        """把 doc.rotation_mode 同步到下拉（不触发信号）。"""
+        with self._suspend_signals():
+            mode = (self.doc or {}).get("rotation_mode", "task_flow")
+            self.rotation_mode_combo.setCurrentIndex(
+                1 if mode == "user_rotation" else 0)
 
     def _suspend_signals(self):
         """Suspend signal-driven edits during full-list rebuild."""
@@ -1527,6 +1553,7 @@ class TaskConfigEditorTab(CustomTab):
     # ==================================================== 设备链页渲染
     def _refresh_machines_page(self):
         with self._suspend_signals():
+            self._sync_rotation_mode_ui()
             self._clear_layout(self.machine_list_lay)
             if not self.doc:
                 self.machine_list_lay.addWidget(BodyLabel("未加载配置"))

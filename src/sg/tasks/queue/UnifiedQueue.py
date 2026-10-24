@@ -6,10 +6,13 @@ UnifiedQueue —— 统一队列入口（JSON 配置驱动）。
          configs/task_type.json（按 package 分组的定义段）。
   - webui 直接读写该 JSON 即可控制参数；
   - 多设备 / 多应用 / 多分身：解析全部 enabled 的 machine → app → user 链。
-    单链（绝大多数场景）行为与老版完全一致；≥2 个 enabled user 时
-    进入轮转模式（5.5）：按配置顺序逐 user「切应用 → 跑队列」，
-    当前 user 无事可做（跑完 / 超预估 / 距下一任务 > 30 分钟）就让位。
-
+    两种多用户轮转模式（顶层 rotation_mode，5.7）：
+    task_flow 任务间流转（默认）：全部 user 的启用任务合并进同一个
+    队列贯穿执行，执行到某任务前按其 user_id 切应用分身；
+    user_rotation 完全轮转（5.5）：≥2 个 enabled user 时按配置顺序
+    逐 user「切应用 → 跑队列」，当前 user 无事可做（跑完 / 超预估 /
+    距下一任务 > 30 分钟）就让位。
+    单链场景两种模式行为与老版完全一致。
 老 GUI 配置（UnifiedQueue.json 的 "{key}: {Field}" 扁平键）已废弃；
 TaskQueue / 队列调度逻辑不变，只是工厂参数的来源换成了 JSON。
 """
@@ -69,6 +72,12 @@ class UnifiedQueue(QueueTaskBase):
         # ------------------------------------------------------------------
         self._rotation_users = []
         self._rotation_index = 0
+        # ------------------------------------------------------------------
+        # 多用户任务轮转模式（5.7）：task_flow=任务间流转（合并队列 +
+        # 执行前按任务 user_id 切分身）；user_rotation=完全轮转（5.5）。
+        # _reload_config 每圈从配置刷新。
+        # ------------------------------------------------------------------
+        self._rotation_mode = "task_flow"
         self._rotation_started_at = 0.0
         self._rotation_deadline = None
 
@@ -94,23 +103,31 @@ class UnifiedQueue(QueueTaskBase):
         单链场景 _rotation_users 只有 1 项，行为与老版一致。
         """
         doc = load_document(CONFIG_PATH)
+        # 5.7 顶层轮转模式随圈刷新；非法值 load_document 已抛
+        self._rotation_mode = doc.get("rotation_mode", "task_flow")
         self._rotation_users = parse_user_configs(doc)
-        # 轮转模式下本圈已切换的 user 不能被重读冲掉：
-        # 按 user_id 在新配置里找当前链；找不到（配置刚被改）回退第一条。
-        current_uid = (
-            self._task_config.get("user_id")
-            if isinstance(self._task_config, dict) else None)
-        keep = next(
-            (c for c in self._rotation_users if c["user_id"] == current_uid),
-            None)
-        self._task_config = keep or self._rotation_users[0]
+        # task_flow（任务间流转）：本圈任务来自全部链的合并队列，
+        # 不存在"当前链"，取第一条作日志/收尾的展示锚点。
+        if self._rotation_mode == "task_flow":
+            self._task_config = self._rotation_users[0]
+        else:
+            # 完全轮转：本圈已切换的 user 不能被重读冲掉：
+            # 按 user_id 在新配置里找当前链；找不到（配置刚被改）回退第一条。
+            current_uid = (
+                self._task_config.get("user_id")
+                if isinstance(self._task_config, dict) else None)
+            keep = next(
+                (c for c in self._rotation_users if c["user_id"] == current_uid),
+                None)
+            self._task_config = keep or self._rotation_users[0]
         for cfg in self._rotation_users:
             self._resolve_task_classes(cfg)
         self.log_info(
             f"[TaskConfig] reloaded trail={self._task_config['trail']} "
             f"types={len(self._task_config['task_types'])} "
             f"tasks={len(self._task_config['tasks'])} "
-            f"users={len(self._rotation_users)}"
+            f"users={len(self._rotation_users)} "
+            f"rotation_mode={self._rotation_mode}"
         )
 
     def _resolve_task_classes(self, cfg=None):
@@ -151,6 +168,9 @@ class UnifiedQueue(QueueTaskBase):
           - 0（默认）：不动，保持当前应用；
           - 非零且 != 当前 user_id：关闭当前应用，再以该用户启动应用。
 
+        task_flow（任务间流转）：生效链取第一条（展示锚点），
+        after_done_user_id 是全局收尾意图，两种模式语义一致。
+
         设备能力来自 DeviceManager.adb_stop_package / adb_start_package
         （后者带 user_id 时走 am start --user 分身分支）。
         非模拟器 / ADB 环境（capture 非 adb）静默跳过。
@@ -182,6 +202,33 @@ class UnifiedQueue(QueueTaskBase):
             # 切完用户后更新 DeviceManager 视角，后续截图/交互跟随新用户
             dm.user_id = target_uid
 
+    def _setup_queue_hooks(self):
+        """
+        task_flow（任务间流转，5.7）：把「按任务 user_id 切应用分身」
+        挂到 queue.before_interaction——队列 pick 出任务后、置 RUNNING
+        前调用；同 user 零开销（已在位），异 user 复用 5.5 的
+        am start --user 分支。切换失败任务延后重试，不算失败。
+        完全轮转：不挂钩子，调度行为与老版本完全一致。
+        """
+        if self._rotation_mode == "task_flow":
+            self.queue.before_interaction = self._switch_app_for_task
+
+    def _switch_app_for_task(self, task):
+        """
+        before_interaction 钩子：把应用切到该任务所属 user。
+
+        task 的 user_id/package 由 TaskFactory.create 随实例下发；
+        同 user 已在位零开销直接放行。复用 _switch_app_for_user 的
+        切换实现（非 ADB 环境视为已在位）。
+        返回 False = 现场不可用（启动失败等），队列会把任务延后重试。
+        """
+        uid = getattr(task, "user_id", 0) or 0
+        pkg = getattr(task, "package", None) or (
+            (self._task_config.get("app") or {}).get("package"))
+        # 构造与链结构同形的伪配置，复用既有切换逻辑
+        pseudo = {"package": pkg, "user_id": uid}
+        return self._switch_app_for_user(pseudo)
+
     # =========================================================================
     # 多 user 轮转调度（5.5）
     # =========================================================================
@@ -199,18 +246,23 @@ class UnifiedQueue(QueueTaskBase):
 
     def _run_queue_cycle(self):
         """
-        覆写：轮转模式下每圈先推进轮转游标并切换应用，再跑队列。
+        覆写：完全轮转模式下每圈先推进轮转游标并切换应用，再跑队列。
         单链（_rotation_users <= 1，含首圈未重载的空列表）不切换，
         由基类跑队列——首圈 dm.user_id 与配置注入值一致（config.py
         启动时已对齐第一条链），无需切换。
 
-        切换失败（启动应用异常 / 分身未安装）→ 跳过该 user 换下一个，
-        全部失败 → 正常跑第一链的任务（应用可能已在前台，交给
-        DeviceManager 的 ensure_in_front 兜底）。
+        task_flow（任务间流转，5.7 默认）：不切链、不推进游标，
+        全部 user 的任务由 _build_factories 合并进同一队列贯穿执行，
+        执行前按任务的 user_id 切分身（_setup_queue_hooks 挂钩）。
+
+        完全轮转切换失败（启动应用异常 / 分身未安装）→ 跳过该 user
+        换下一个，全部失败 → 正常跑第一链的任务（应用可能已在前台，
+        交给 DeviceManager 的 ensure_in_front 兜底）。
         """
         # 无论单/多链都打圈起点（预算按它起算；单链不消费预算）
         self._mark_rotation_started()
-        if len(self._rotation_users) > 1:
+        if (self._rotation_mode == "user_rotation"
+                and len(self._rotation_users) > 1):
             user_cfg = self._next_rotation_user()
             if user_cfg is None:
                 # 所有 user 切换失败：回到第一条链硬着头皮跑（打日志告警）
@@ -286,7 +338,12 @@ class UnifiedQueue(QueueTaskBase):
 
     def _rotation_yield_reason(self, queue_done=False):
         """
-        当前 user 是否无事可做（仅多 user 轮转模式判定；单链恒 None）。
+        当前 user 是否无事可做（仅完全轮转模式判定；单链 / task_flow
+        恒 None）。
+
+        task_flow（任务间流转，5.7）：全部 user 的任务在同一条队列
+        贯穿执行、执行前切分身，不存在"当前 user 让位"——队列跑到
+        all_done 即整批完成，中途恒不让位。
 
         queue_done=True：队列已自然跑完。跑完即切下一个 user
         （用户语义：「执行任务完成后启动下一个 userid」）。
@@ -299,18 +356,11 @@ class UnifiedQueue(QueueTaskBase):
              → "next_task_gap"
           3. 其余（有任务马上要跑）→ None 继续跑
           4. 本圈已超预算 → "budget"
-        TODO 10.23 需要将这个队列的轮转状态传出，传到后续的队列中去，作为后续队列轮转的条件，
-        比如 现在有2个用户，用户A因为下一次任务时间是60分钟以外，所以轮转到用户B开始执行，用户
-        b花了10分钟就执行完自己的任务，现在如果再跳转到A用户，又会发现下一次任务还是50分钟后，
-        又会跳转到B，这样就有一个问题，用户AB之间一直左无效的跳转。而且现在实现的，轮转以后，
-        任务从头开始执行，这样其实有点问题，比如有些任务一天只需要执行一次，或者在上一个轮转刚刚执行完，
-        下一次需要等待好久，你这次轮转回来，没有考虑到上次的状态又执行了一遍，导致了执行失败或者无效执行，
-        浪费资源。所以需要将上一次的执行状态存下来，相同的任务需要判断一下。
-        
-        其实我的设计应该是把所有用户的任务，添加到一个队列中，执行到某一个任务的时候，
-        仅需要切换一下app即可。这样就不要考虑复杂的状态管理了
-        比如 先执行完用户A的，执行完以后，，那么就开始执行用户B的任务。根据任务里配置的userid切换即可。
         """
+
+        if self._rotation_mode == "task_flow":
+            # 5.7 任务间流转：合并队列贯穿执行，中途不让位
+            return None
         if len(self._rotation_users) <= 1 or self.queue is None:
             return None
         if queue_done:
@@ -405,8 +455,25 @@ class UnifiedQueue(QueueTaskBase):
         type_id（定义段 id）随工厂下发：TaskQueue 耗时统计按它聚合，
         一次性/定时任务的预估时间展示同样按它索引。
         链标记（machine/package/user_id）一并下发（5.5 轮转区分各 user）。
+
+        task_flow（任务间流转，5.7）：遍历全部 enabled 链，把每个
+        user 的启用任务都转成工厂——所有任务进同一个 TaskQueue
+        贯穿执行，执行前由 before_interaction 按 user_id 切分身。
+        完全轮转：只用当前生效链（老行为）。
         """
-        for entry in self._task_config["tasks"]:
+        # (cfg, entry) 对：task_flow 用全部链，完全轮转用当前链
+        if self._rotation_mode == "task_flow":
+            pairs = [
+                (cfg, entry)
+                for cfg in self._rotation_users
+                for entry in cfg["tasks"]
+            ]
+        else:
+            pairs = [
+                (self._task_config, entry)
+                for entry in self._task_config["tasks"]
+            ]
+        for cfg, entry in pairs:
             if not entry["enabled"]:
                 continue
 
@@ -423,9 +490,9 @@ class UnifiedQueue(QueueTaskBase):
                 name_prefix=entry["name_prefix"],
                 type_id=entry["id"],
                 estimated_seconds=float(entry["estimated_seconds"]),
-                machine=self._task_config.get("machine"),
-                package=self._task_config.get("package"),
-                user_id=self._task_config.get("user_id", 0),
+                machine=cfg.get("machine"),
+                package=cfg.get("package"),
+                user_id=cfg.get("user_id", 0),
             ))
 
     # =========================================================================
