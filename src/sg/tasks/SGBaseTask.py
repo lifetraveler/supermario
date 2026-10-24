@@ -499,7 +499,12 @@ class SGBaseTask(MyBaseTask):
         )
 
         if box is None:
-            self.log_info(f"未找到元素，无法点击: {element.name}")
+            if isinstance(element, (list, tuple)):
+                elements = list(element)
+                for element in elements:
+                    self.log_info(f"未找到元素，无法点击: {element.name}")
+            else:
+                self.log_info(f"未找到元素，无法点击: {element.name}")
             return False
 
         click_name = name or box.name

@@ -3,14 +3,14 @@
   "package": "com.got.china",
   "tasks": [
     {
-      "id": "league_tech_donate",
-      "params": {}
-    },
-    {
       "id": "wave_ride",
       "params": {
         "dispatch_wait_hours": 0
       }
+    },
+    {
+      "id": "league_tech_donate",
+      "params": {}
     },
     {
       "id": "train_soldier",
@@ -46,6 +46,14 @@
     },
     {
       "id": "golden_refine",
+      "params": {}
+    },
+    {
+      "id": "pet_treasure_hunt",
+      "params": {}
+    },
+    {
+      "id": "claim_warehouse_reward",
       "params": {}
     }
   ]

@@ -785,6 +785,18 @@
       "file_name": "130.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 179,
+      "file_name": "131.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 180,
+      "file_name": "132.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -3159,12 +3171,12 @@
       "image_id": 138,
       "category_id": 183,
       "bbox": [
-        666,
+        670,
         1282,
-        72,
-        68
+        60,
+        34
       ],
-      "area": 4896,
+      "area": 2040,
       "iscrowd": 0
     },
     {
@@ -3421,10 +3433,10 @@
       "bbox": [
         672,
         1284,
-        59,
-        61
+        41,
+        37
       ],
-      "area": 3599,
+      "area": 1517,
       "iscrowd": 0
     },
     {
@@ -3906,6 +3918,32 @@
         72
       ],
       "area": 16560,
+      "iscrowd": 0
+    },
+    {
+      "id": 241,
+      "image_id": 180,
+      "category_id": 243,
+      "bbox": [
+        674,
+        1286,
+        55,
+        35
+      ],
+      "area": 1925,
+      "iscrowd": 0
+    },
+    {
+      "id": 242,
+      "image_id": 179,
+      "category_id": 241,
+      "bbox": [
+        674,
+        1286,
+        53,
+        39
+      ],
+      "area": 2067,
       "iscrowd": 0
     }
   ],
@@ -5108,6 +5146,16 @@
     {
       "id": 240,
       "name": "踏浪-一键领取",
+      "supercategory": ""
+    },
+    {
+      "id": 241,
+      "name": "global_activity_fight_qiesalei_convenient_entry_1",
+      "supercategory": ""
+    },
+    {
+      "id": 243,
+      "name": "global_activity_fight_qiesalei_convenient_entry_4",
       "supercategory": ""
     }
   ]

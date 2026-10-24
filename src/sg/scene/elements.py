@@ -1118,9 +1118,24 @@ GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY = SceneElement(
     resource_id="global_activity_fight_qiesalei_convenient_entry",
     desc="切萨雷征讨：主界面便捷入口",
 )# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_1 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_1",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_1",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_2 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_2",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_2",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
 GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_3 = SceneElement(
     name="global_activity_fight_qiesalei_convenient_entry_3",
     resource_id="global_activity_fight_qiesalei_convenient_entry_3",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_4 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_4",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_4",
     desc="切萨雷征讨：主界面便捷入口",
 )
 
