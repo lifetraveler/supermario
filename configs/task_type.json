@@ -14,7 +14,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -52,7 +53,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -68,7 +70,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -84,7 +87,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -116,7 +120,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -132,7 +137,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -156,7 +162,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 36000,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -172,7 +179,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -196,7 +204,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -220,7 +229,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -251,7 +261,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -298,7 +309,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -336,7 +348,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -352,7 +365,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 9000,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -368,7 +382,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -384,7 +399,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -400,7 +416,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -416,7 +433,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 28800,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -440,7 +458,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": true,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -456,7 +475,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -472,7 +492,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {

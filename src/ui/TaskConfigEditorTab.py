@@ -45,15 +45,15 @@ from src.sg.tasks.config_loader.task_config_loader import (
 
 DEFAULT_KEYS = (
     "count", "max_active", "requires_march_queue",
-    "next_trigger_delay", "one_shot", "cron",
+    "next_trigger_delay", "one_shot", "cron", "max_failures",
 )
 DKEY_HELP = {
     "count": "任务总执行次数，0 表示不限",
     "max_active": "同时运行的最大实例数",
     "requires_march_queue": "执行时是否占用军队出征队列",
     "next_trigger_delay": "执行完成后到下次触发的间隔秒数",
-    "one_shot": "启用后只执行一次然后停用",
     "cron": "Cron 表达式定时触发，留空表示不使用",
+    "max_failures": "最大失败次数：该类型失败达到此次数后不再补建（0 = 回退队列级）",
 }
 
 def _fmt_val(v):
@@ -344,6 +344,12 @@ class TaskConfigEditorTab(CustomTab):
         self.caf_switch = SwitchButton("失败后继续")
         self.caf_switch.checkedChanged.connect(self._queue_changed)
         ql.addWidget(self._field_row("失败后继续", "任务失败后是否继续调度后续任务", self.caf_switch))
+        self.mf_edit = LineEdit()
+        self.mf_edit.setFixedWidth(120)
+        self.mf_edit.textChanged.connect(self._queue_changed)
+        ql.addWidget(self._field_row(
+            "最大失败次数", "同一任务类型失败达到此次数后不再补建（0 = 不限）",
+            self.mf_edit))
         lay.addWidget(queue_card)
 
         self.lbl_count = BodyLabel("")
@@ -837,6 +843,7 @@ class TaskConfigEditorTab(CustomTab):
                 f'tick {q.get("tick_interval", 1)}s · 失败后'
                 f'{"继续" if q.get("continue_after_failure") is not False else "停止"}')
             self.tick_edit.setText(str(q.get("tick_interval", 1)))
+            self.mf_edit.setText(str(q.get("max_failures", 0)))
             self.caf_switch.setChecked(q.get("continue_after_failure") is not False)
 
             chain_id = (self.sel["m"], self.sel["a"], self.sel["u"])
@@ -1040,6 +1047,8 @@ class TaskConfigEditorTab(CustomTab):
         bits.append(f'并发 {eff("max_active", 1)}')
         bits.append("单次" if eff("one_shot", False)
                     else f'间隔 {eff("next_trigger_delay", 0)}s')
+        if eff("max_failures", 0):
+            bits.append(f'失败上限 {eff("max_failures", 0)}')
         if eff("cron", ""):
             bits.append("cron")
         if eff("requires_march_queue", False):
@@ -1184,7 +1193,7 @@ class TaskConfigEditorTab(CustomTab):
             e.textChanged.connect(lambda v, o=obj, k=key: self._set_num(o, k, v))
             host = self._field_row(
                 {"count": "执行次数", "max_active": "最大并发",
-                 "next_trigger_delay": "触发间隔(秒)"}[key],
+                 "max_failures": "最大失败次数"}[key],
                 DKEY_HELP[key], e,
                 (lambda o=obj, k=key: o.get(k, 0), default_obj.get(key, 0)))
             host._ctl_set = lambda v, e=e: e.setText(str(v))
@@ -1205,8 +1214,8 @@ class TaskConfigEditorTab(CustomTab):
 
         rows.append(num_row("count"))
         rows.append(num_row("max_active"))
-        rows.append(bool_row("requires_march_queue", "占用出征队列"))
         rows.append(num_row("next_trigger_delay"))
+        rows.append(num_row("max_failures"))
         rows.append(bool_row("one_shot", "单次执行"))
 
         e = LineEdit()
@@ -1267,6 +1276,10 @@ class TaskConfigEditorTab(CustomTab):
         q = chain[2].setdefault("queue", {})
         try:
             q["tick_interval"] = float(self.tick_edit.text() or 1)
+        except ValueError:
+            pass
+        try:
+            q["max_failures"] = int(float(self.mf_edit.text() or 0))
         except ValueError:
             pass
         q["continue_after_failure"] = bool(self.caf_switch.isChecked())

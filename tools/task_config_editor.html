@@ -212,10 +212,11 @@ textarea.src:focus{outline:none;border-color:var(--pri);box-shadow:0 0 0 3px rgb
  * ===================================================================== */
 
 const WIDGETS = ['switch','number','text','drop_down','multi_drop_down'];
-const DKEYS = ['count','max_active','requires_march_queue','next_trigger_delay','one_shot','cron'];
+const DKEYS = ['count','max_active','requires_march_queue','next_trigger_delay','one_shot','cron','max_failures'];
 const DLBL = {
   count:'执行次数', max_active:'最大并发', requires_march_queue:'占用出征队列',
   next_trigger_delay:'触发间隔(秒)', one_shot:'单次执行', cron:'Cron 表达式',
+  max_failures:'最大失败次数',
 };
 const DHELP = {
   count:'任务总执行次数，0 表示不限',
@@ -224,6 +225,7 @@ const DHELP = {
   next_trigger_delay:'执行完成后到下次触发的间隔秒数',
   one_shot:'启用后只执行一次然后停用',
   cron:'Cron 表达式定时触发，留空表示不使用',
+  max_failures:'该类型失败达到此次数后不再补建（0 = 回退队列级）',
 };
 const PALETTE = [
   ['#60a5fa','#2563eb'],['#34d399','#059669'],['#fbbf24','#d97706'],['#f472b6','#db2777'],
@@ -650,7 +652,7 @@ function makeCard(opt){
 }
 
 /* ---------------- field binders for the six default keys ---------------- */
-const NUM_STEP = { count:'1', max_active:'1', next_trigger_delay:'any' };
+const NUM_STEP = { count:'1', max_active:'1', next_trigger_delay:'any', max_failures:'1' };
 function rowNum(obj, def, key, onChange){
   const ctl = numInput(() => obj[key], v => { obj[key] = v == null ? 0 : v; if (onChange) onChange(); },
     { step:NUM_STEP[key] || 'any', min:0 });
@@ -686,6 +688,7 @@ function defaultsGrid(obj, defObj, onChange, unsetFn){
   g.append(rowNum(obj, defObj, 'next_trigger_delay', onChange, u('next_trigger_delay')));
   g.append(rowBool(obj, defObj, 'one_shot', onChange, u('one_shot')));
   g.append(rowText(obj, defObj, 'cron', onChange, { placeholder:'留空 = 不使用' }, u('cron')));
+  g.append(rowNum(obj, defObj, 'max_failures', onChange, u('max_failures')));
   return g;
 }
 /* ---------------- task instance rendering ---------------- */
@@ -698,6 +701,7 @@ function statsLine(task, tt){
   bits.push(eff('count') === 0 ? '次数不限' : `${eff('count')} 次`);
   bits.push(`并发 ${eff('max_active')}`);
   bits.push(eff('one_shot') ? '单次' : `间隔 ${fmtDur(eff('next_trigger_delay'))}`);
+  if (eff('max_failures')) bits.push(`失败上限 ${eff('max_failures')}`);
   if (eff('cron')) bits.push('cron');
   if (eff('requires_march_queue')) bits.push('占队列');
   const ps = tt.params.map(pd => {
@@ -905,7 +909,7 @@ function queueCard(u){
   const { card, body } = makeCard({
     iconChar:'队', grad:['#94a3b8','#475569'],
     title:'队列设置', sub:'当前用户的调度器参数（user 级）',
-    stats:`tick ${q.tick_interval ?? 1}s · 失败后${q.continue_after_failure === false ? '停止' : '继续'}`,
+    stats:`tick ${q.tick_interval ?? 1}s · 失败后${q.continue_after_failure === false ? '停止' : '继续'} · 失败上限 ${q.max_failures || '不限'}`,
     switchCtl:null, open:true,
   });
   const g = el('div', 'grid2');
@@ -913,6 +917,8 @@ function queueCard(u){
     numInput(() => q.tick_interval, v => { q.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
   g.append(fieldRow('失败后继续', '任务失败后是否继续调度后续任务',
     makeSwitch(() => q.continue_after_failure !== false, v => { q.continue_after_failure = !!v; }), false));
+  g.append(fieldRow('最大失败次数', '同一任务类型失败达到此次数后不再补建（0 = 不限）',
+    numInput(() => q.max_failures, v => { q.max_failures = v == null ? 0 : v; }, { step:'1', min:0 }), false));
   body.append(g);
   return card;
 }
@@ -1095,7 +1101,7 @@ function renderTypesTab(){
       state.typeGroups[state.curTypePkg].push({
         type, id: nid, name_prefix:type, description:'',
         estimated_seconds:0,
-        defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'' },
+        defaults:{ count:1, max_active:1, requires_march_queue:false, next_trigger_delay:86400, one_shot:false, cron:'', max_failures:0 },
         params:[],
       });
       state.typesDirty = true; markDirty(); renderContent();
@@ -1211,6 +1217,8 @@ function userBlock(a, m, ai, u, ui){
     numInput(() => q.tick_interval, v => { q.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
   g.append(fieldRow('失败后继续', '任务失败后是否继续调度',
     makeSwitch(() => q.continue_after_failure !== false, v => { q.continue_after_failure = !!v; }), false));
+  g.append(fieldRow('最大失败次数', '同一任务类型失败达到此次数后不再补建（0 = 不限）',
+    numInput(() => q.max_failures, v => { q.max_failures = v == null ? 0 : v; }, { step:'1', min:0 }), false));
   box.append(g);
   return box;
 }

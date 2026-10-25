@@ -28,7 +28,7 @@ DEFAULT_TYPE_PATH = Path("configs") / "task_type.json"
 # 定义段 defaults 的合法键（缺一不可，防止半截定义悄悄溜进调度）
 DEFAULT_KEYS = (
     "count", "max_active", "requires_march_queue",
-    "next_trigger_delay", "one_shot", "cron",
+    "next_trigger_delay", "one_shot", "cron", "max_failures",
 )
 # 实例条目允许覆盖的定义字段
 OVERRIDABLE_KEYS = DEFAULT_KEYS
@@ -292,6 +292,7 @@ def parse_document(doc, type_groups=None, chain=None):
     queue = {
         "tick_interval": float(queue_in.get("tick_interval", 1.0)),
         "continue_after_failure": bool(queue_in.get("continue_after_failure", True)),
+        "max_failures": int(queue_in.get("max_failures", 0) or 0),
     }
     return {
         "trail": trail,

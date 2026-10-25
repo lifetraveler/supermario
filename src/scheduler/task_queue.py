@@ -71,6 +71,7 @@ class TaskFactory:
         machine=None,
         package=None,
         user_id=0,
+        max_failures=0,
     ):
         self.task_class = task_class
         self.count = count
@@ -91,6 +92,41 @@ class TaskFactory:
         self.finished_count = 0   # 单实例复用型已消耗的执行次数
         self.initial_filled = False
         self.key = uuid.uuid4().hex[:8]
+        self.max_failures = int(max_failures or 0)
+        self.failed_count = 0
+
+    def _effective_max_failures(self, queue_limit=None):
+        """
+        失败次数上限解析：工厂级 > 0 用工厂级，否则用队列级。
+        两者都 <= 0 表示不限失败次数（现行为）。
+        """
+        if self.max_failures > 0:
+            return self.max_failures
+        if queue_limit and queue_limit > 0:
+            return int(queue_limit)
+        return 0
+
+    def _check_failures(self, queue_limit=None):
+        """
+        任务失败终态后调用：累计 failed_count，达到有效上限即标
+        exhausted——剩余 count 作废，can_submit_more() 转 False，
+        all_done() 借此收敛（不引入新的收敛路径）。
+
+        返回 True 表示本次刚好触发 exhaustion（日志用）。
+        one_shot / cron 工厂不调用本方法：它们失败也消耗次数，
+        由 finished_count 收敛，叠加失败计数会双重点火。
+        """
+        self.failed_count += 1
+        limit = self._effective_max_failures(queue_limit)
+        if limit <= 0 or self.failed_count < limit:
+            return False
+        self.exhausted = True
+        logger.info(
+            f"TaskFactory fail limit: {self.name_prefix} "
+            f"失败 {self.failed_count}/{limit} 次，停止补建该类型，"
+            f"剩余次数作废 (submitted={self.submitted}/{self.count})"
+        )
+        return True
 
     def can_submit_more(self):
         """
@@ -230,6 +266,13 @@ class TaskQueue:
         # 该值由 QueueTaskBase.run() 在构造队列时从 GUI 配置注入。
         self.continue_after_failure = True
         # --------------------------------------------------------
+        # 最大失败次数（队列级全局参数，0/未配置 = 不限）。
+        # 某类型任务的失败次数达到上限后：不再补建该类型，
+        # 已建实例继续执行，剩余 count 作废（factory.exhausted）。
+        # 任务级 max_failures > 0 时优先于本值（_effective_max_failures）。
+        # 注入：QueueTaskBase.run() 与 continue_after_failure 同源。
+        # --------------------------------------------------------
+        self.max_failures = 0
 
         # --------------------------------------------------------
         # 执行耗时统计（5.4）：按 type_id 聚合的单次交互耗时样本。
@@ -263,6 +306,24 @@ class TaskQueue:
             tid, deque(maxlen=self._SAMPLE_WINDOW)
         )
         samples.append(float(seconds))
+
+    def _on_task_failed(self, task):
+        """
+        失败终态统一汇聚点（最大失败次数功能）。
+
+        三个 FAILED 入口（FAILED 结果 / run_interaction 异常 /
+        restart 超限）都调这里。one_shot / cron 工厂跳过——
+        失败也消耗次数（finished_count），叠加失败计数会双重点火；
+        exhausted 工厂也不再累计（补建已被挡，计数无意义）。
+
+        queue.max_failures 作为兜底上限传给工厂判定。
+        """
+        factory = self._find_factory(task)
+        if factory is None or factory.one_shot or factory.cron:
+            return
+        if factory.exhausted:
+            return
+        factory._check_failures(self.max_failures)
     # --------------------------------------------------------
 
     def start(self):
@@ -569,6 +630,7 @@ class TaskQueue:
             task.status = TaskStatus.FAILED
             task.last_error = str(e)
             self.current_interaction = None
+            self._on_task_failed(task)
             # one_shot / cron 也可能在这里终态，统一交给重排判定
             self._reschedule_for_next_run(task, time.time())
             return
@@ -609,6 +671,7 @@ class TaskQueue:
 
         # 默认终态失败；one_shot / cron 由 _reschedule_for_next_run 改写去向
         task.status = TaskStatus.FAILED
+        self._on_task_failed(task)
         if not self._reschedule_for_next_run(task, time.time()):
             logger.info(
                 f"TaskQueue failed: {task.name} {task.last_error}"
@@ -656,6 +719,7 @@ class TaskQueue:
 
         if task.restart_count > self.max_restart_count:
             task.status = TaskStatus.FAILED
+            self._on_task_failed(task)
             # one_shot / cron 在这里终态同样要决定下一次去向
             self._reschedule_for_next_run(task, time.time())
             logger.info(
@@ -771,6 +835,8 @@ class TaskQueue:
             ):
                 continue
 
+            # 失败上限（最大失败次数）已在失败终态点把工厂标
+            # exhausted，本方法入口守卫会跳过，不会走到这里补建。
             if self.continue_after_failure:
                 next_task = factory.create(
                     self.executor, self.app, self.scene

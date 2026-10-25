@@ -43,7 +43,7 @@ def write_cfg():
             "defaults": {"count": 1, "max_active": 1,
                          "requires_march_queue": False,
                          "next_trigger_delay": 0, "one_shot": False,
-                         "cron": ""},
+                         "cron": "", "max_failures": 0},
             "params": [],
         }],
     }], ensure_ascii=False), encoding="utf-8")
@@ -56,6 +56,7 @@ def write_cfg():
 
     CFG.write_text(json.dumps({
         "version": 1,
+        "rotation_mode": "user_rotation",  # 5.7 缺省是 task_flow（合并单圈），本脚本验证老轮转语义
         "machines": [{"name": "m1", "enabled": True, "adb_serial": "",
                       "apps": [{"package": "com.got.china", "enabled": True,
                                 "users": [user(0), user(10)]}]}],
@@ -79,8 +80,9 @@ uq._task_config = uq_mod.load(uq_mod.CONFIG_PATH)  # 模拟 __init__ 预载（pa
 uq._paused = False  # paused 只读 property 的后备字段
 uq._rotation_users = []
 uq._rotation_index = 0
-uq._rotation_started_at = 0.0
+uq._rotation_mode = "user_rotation"  # 5.7 新字段：object.__new__ 绕过 __init__，需手工补桩
 uq._rotation_deadline = None
+
 uq._executor = mock.Mock()
 uq._app = mock.Mock()
 uq.scene = mock.Mock()
@@ -123,8 +125,8 @@ for c in dm.mock_calls:
 rotation_logs = [m for m in uq.logs if "[Rotation] 圈" in m]
 assert len(rotation_logs) == 2, f"应跑 2 圈，实际 {len(rotation_logs)}:\n" + "\n".join(rotation_logs)
 assert "user0" in rotation_logs[0] and "user10" in rotation_logs[1], rotation_logs
-# user0 在位 → 不重启；user10 → stop + start
-dm.adb_stop_package.assert_called_once()
+# user0 在位 → 不重启；user10 → 直接 start（10.22 起切换不再 force-stop）
+dm.adb_stop_package.assert_not_called()
 dm.adb_start_package.assert_called_once()
 args, kwargs = dm.adb_start_package.call_args
 assert args[0] == "com.got.china" and kwargs.get("user_id") == 10, (args, kwargs)

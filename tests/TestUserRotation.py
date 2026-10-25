@@ -61,6 +61,7 @@ def make_type_groups():
         "defaults": {
             "count": 1, "max_active": 1, "requires_march_queue": False,
             "next_trigger_delay": 0, "one_shot": False, "cron": "",
+            "max_failures": 0,
         },
         "params": [],
     }]}
@@ -159,6 +160,7 @@ def make_user_cfg(user_id, package="com.test.app", enabled_tasks=1):
              "name_prefix": "Fake", "estimated_seconds": 0,
              "count": 1, "max_active": 1, "requires_march_queue": False,
              "next_trigger_delay": 0, "one_shot": False, "cron": "",
+             "max_failures": 0,
              "params": {}}
             for i in range(2)
         ],

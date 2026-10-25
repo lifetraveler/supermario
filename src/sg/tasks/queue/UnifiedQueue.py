@@ -152,6 +152,7 @@ class UnifiedQueue(QueueTaskBase):
         return {
             "tick_interval": float(q["tick_interval"]),
             "continue_after_failure": bool(q["continue_after_failure"]),
+            "max_failures": int(q.get("max_failures", 0) or 0),
         }
 
     def _on_queue_stopped(self):
@@ -493,6 +494,7 @@ class UnifiedQueue(QueueTaskBase):
                 machine=cfg.get("machine"),
                 package=cfg.get("package"),
                 user_id=cfg.get("user_id", 0),
+                max_failures=int(entry.get("max_failures", 0) or 0),
             ))
 
     # =========================================================================

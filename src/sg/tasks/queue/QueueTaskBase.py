@@ -37,6 +37,7 @@ class QueueTaskBase(SGBaseTask):
         self.default_config.update({
             "Tick Interval": 1.0,
             "Continue After Failure": True,
+            "Max Failures": 0,
         })
         self.config_description.update({
             "Tick Interval": "调度间隔秒数。Scheduler tick interval.",
@@ -45,6 +46,12 @@ class QueueTaskBase(SGBaseTask):
                 "关闭则该类型队列立即停止。"
                 "Continue running remaining count after a failure; "
                 "off = stop that task type."
+            ),
+            "Max Failures": (
+                "同一任务类型最大失败次数，达到后不再补建该类型"
+                "（0 = 不限）。任务级 max_failures > 0 时优先。"
+                "Max failures per task type before it stops being "
+                "replenished; 0 = unlimited."
             ),
         })
         self.name = "Queue Task"
@@ -64,13 +71,15 @@ class QueueTaskBase(SGBaseTask):
 
         默认实现读 ok-script GUI 配置（老行为，薄壳任务不受影响）；
         JSON 驱动的子类覆写本方法，从 TaskConfigLoader 的解析结果取值。
-        返回 dict：{"tick_interval": float, "continue_after_failure": bool}
+        返回 dict：{"tick_interval": float, "continue_after_failure": bool,
+                    "max_failures": int}
         """
         return {
             "tick_interval": float(self.config.get("Tick Interval", 1.0)),
             "continue_after_failure": bool(
                 self.config.get("Continue After Failure", True)
             ),
+            "max_failures": int(self.config.get("Max Failures", 0) or 0),
         }
 
     def _after_queue_done(self):
@@ -194,6 +203,7 @@ class QueueTaskBase(SGBaseTask):
         )
         params = self._queue_global_params()
         self.queue.continue_after_failure = bool(params["continue_after_failure"])
+        self.queue.max_failures = int(params.get("max_failures", 0) or 0)
         # 队列级钩子装配（5.7 任务间流转：子类可在此挂 before_interaction）。
         # 默认空操作，队列行为与老版本完全一致。
         self._setup_queue_hooks()

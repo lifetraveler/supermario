@@ -1,4 +1,5 @@
 {
     "Tick Interval": 1.0,
-    "Continue After Failure": true
+    "Continue After Failure": true,
+    "Max Failures": 0
 }
