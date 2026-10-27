@@ -1549,3 +1549,90 @@ ACTIVITY_TAG_WAVE_RIDE_REMAIN_TIME = SceneElement(
     resource_id="踏浪-剩余时间",
     desc="踏浪：剩余时间 OCR 区域",
 )
+
+RECONNECT_SCENCE = SceneElement(
+    name="重新连接",
+    resource_id="重新连接",
+    desc="重新连接"
+)
+
+# ============================================================
+# 英雄招募（Hero Enlist）
+# ============================================================
+
+# 英雄列表界面：招募入口
+HERO_TAG_ENLIST_ENTRY = SceneElement(
+    name="hero_tag_enlist_entry",
+    resource_id="hero_tag_enlist_entry",
+    desc="英雄招募：英雄列表界面的招募入口",
+)
+
+# 招募界面：招募场景掩码（命中 = 当前处于招募场景）
+HERO_ADD_MASK_SCENE = SceneElement(
+    name="hero_add_mask_scene",
+    resource_id="hero_add_mask_scene",
+    desc="英雄招募：招募场景掩码特征（命中=处于招募界面）",
+)
+
+# 招募界面：免费招募按钮（灰度全局匹配，可能命中多个）
+CITY_HERO_BUTTON_ENLIST_1 = SceneElement(
+    name="city_hero_button_enlist_1",
+    resource_id="city_hero_button_enlist_1",
+    desc="英雄招募：免费招募按钮（灰度匹配，可能多个）",
+)
+
+# 招募界面：招募成功后的返回按钮（多次点击直到回到招募场景）
+HERO_ADD_BACK = SceneElement(
+    name="hero_add_back",
+    resource_id="hero_add_back",
+    desc="英雄招募：招募成功界面的返回按钮",
+)
+
+# 招募界面：下次免费时间文字（可能命中多个，向右偏移组成 OCR 区域）
+HERO_ADD_FREE_NEXT_TIME = SceneElement(
+    name="hero_add_free_next_time",
+    resource_id="hero_add_free_next_time",
+    desc="英雄招募：下次免费招募时间文字",
+)
+
+# 招募界面：时间区域（bbox，提供 OCR 区域的 x 偏移与宽度）
+HERO_TIME_AREA = SceneElement(
+    name="hero_time_area",
+    resource_id="hero_time_area",
+    desc="英雄招募：时间区域 bbox（OCR 区域 x 偏移与宽度来源）",
+)
+
+# 招募界面：普通 10 连招募按钮（bbox 直接点击）
+HERO_RECRUIT_NORMAL_TEN = SceneElement(
+    name="英雄招募普通10次",
+    resource_id="英雄招募普通10次",
+    desc="英雄招募：普通 10 连招募按钮（bbox 直接点击）",
+)
+
+# 招募界面：传奇 10 连招募按钮（bbox 直接点击）
+HERO_RECRUIT_LEGEND_TEN = SceneElement(
+    name="英雄招募传奇10次",
+    resource_id="英雄招募传奇10次",
+    desc="英雄招募：传奇 10 连招募按钮（bbox 直接点击）",
+)
+
+# 招募界面：批量招募提醒界面
+HERO_RECRUIT_BATCH_TIP_SCENE = SceneElement(
+    name="英雄招募批量提醒界面",
+    resource_id="英雄招募批量提醒界面",
+    desc="英雄招募：批量招募确认提醒界面",
+)
+
+# 招募界面：批量提醒的"不再提醒"复选框
+HERO_RECRUIT_BATCH_NO_REMIND = SceneElement(
+    name="英雄招募批量不再提醒",
+    resource_id="英雄招募批量不再提醒",
+    desc="英雄招募：批量提醒的不再提醒复选框",
+)
+
+# 招募界面：批量提醒的确认按钮
+HERO_RECRUIT_BATCH_CONFIRM = SceneElement(
+    name="英雄招募批量确认",
+    resource_id="英雄招募批量确认",
+    desc="英雄招募：批量提醒的确认按钮",
+)

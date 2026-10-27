@@ -909,3 +909,38 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-27] 英雄招募任务（Hero Enlist）
+
+### 原始需求
+主城界面点击 global_tag_hero 进入英雄列表 → 点击 hero_tag_enlist_entry 进入招募界面 → 匹配 hero_add_mask_scene 确认进入招募场景（未匹配到即失败结束）。招募分两种方式（游戏参数下拉，默认免费）：免费招募（灰度匹配 city_hero_button_enlist_1，可能 2 个，逐个点击进成功页，间隔 1s 点 hero_add_back，每 3 次校验一次 mask 特征，命中即停；找不到按钮则读下次免费时间——匹配 hero_add_free_next_time（可能多个），OCR 区域 = hero_time_area 的 x/width + 命中区域的 y/height，解析出时间回传作为下次触发间隔，失败兜底 86400）与批量招募（按配置次数循环 bbox 直接点击"英雄招募普通10次"/"英雄招募传奇10次"，出现批量提醒界面则点"不再提醒"→"确认"，领取动画期每 1s 按 ESC 直到 mask 特征重新命中，完成后退回主堡）。不占军队队列、不可并行、next_trigger_delay=0（动态间隔全走 SUCCESS wait_seconds）。
+
+### 变更点
+- `src/sg/scene/elements.py` 新增 11 个 SceneElement：HERO_TAG_ENLIST_ENTRY / HERO_ADD_MASK_SCENE / CITY_HERO_BUTTON_ENLIST_1 / HERO_ADD_BACK / HERO_ADD_FREE_NEXT_TIME / HERO_TIME_AREA / HERO_RECRUIT_NORMAL_TEN / HERO_RECRUIT_LEGEND_TEN / HERO_RECRUIT_BATCH_TIP_SCENE / HERO_RECRUIT_BATCH_NO_REMIND / HERO_RECRUIT_BATCH_CONFIRM。GLOBAL_TAG_HERO 复用已有（id:29）。中文命名元素（英雄招募普通10次 等 5 个）resource_id 与需求原文口述名一致，待 coco 标注后核对。
+- 新增 `src/sg/tasks/city/HeroEnlistTask.py`：编排 回主界面 → 进英雄列表 → 进招募界面（mask 校验失败=FAILED）→ 按模式免费/批量 → 回主界面。免费模式 `find_feature(..., use_gray_scale=True)` 拿全部命中框逐个处理；`_back_to_enlist_scene` 间隔 1s 点 back、每 3 次校验 mask；`_read_next_free_time` 多命中从上往下逐个组 OCR 框（Box(area.x, mark.y, w=area.width, h=mark.height)）；批量模式 bbox 直点 + 提醒界面处理 + `send_key("esc")` 每 1s 直发（不走 recovery 版，其 esc_cooldown 冷却满足不了 1s 节奏）。`parse_time_text` 模块级函数（与 WaveRide 同口径：中文单位词配对 > 冒号 > 裸数字）。
+- 注册三动作：`task_type_map.py` 加 `"Hero Enlist": HeroEnlistTask`；`configs/task_type.json` 定义段（type="Hero Enlist"、id=hero_enlist、count=0 无限、max_active=1、requires_march_queue=false、next_trigger_delay=0、params 三项：Enlist Mode drop_down [免费,批量] / Batch Normal Times / Batch Legend Times）；`configs/task_config.json` user0 链实例条目 enabled=true params={}。
+
+### 修复点
+- 编辑过程中 `task_type_map.py` 的 ClaimBuyCenterRewardTask import 行被误覆盖 → 已恢复；`task_config.json` user10 链的 wave_ride 条目被误删部分行 → 已恢复原状。
+
+### 涉及文件
+- src/sg/scene/elements.py（追加 11 元素）
+- src/sg/tasks/city/HeroEnlistTask.py（新增）
+- src/sg/tasks/task_type_map.py（加映射 + 恢复误删 import）
+- configs/task_type.json（定义段）
+- configs/task_config.json（实例条目 + 恢复 user10 wave_ride）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：两个 JSON 解析 OK；config_loader.load() 解析 user0 链，hero_enlist 进调度（enabled/count=0/max_active=1/delay=0/params 三项注入全对）；TASK_TYPE_MAP 与 task_type.json 双向一致（22 types）。
+- `parse_time_text` 单测 7 用例全过（'8小时30分'/'01:23:45'/'12:34'/'90'/'7小时'/空/无数字）。
+- 类级冒烟：11 元素可导入、HeroEnlistTask 接口齐全（run_interaction/_run_once/run/_step/last_error/extra_config）。
+- 独立模式 / 队列模式实机未跑（需游戏前台真实画面）。
+
+### 遗留 / 风险
+- 实机未验证：11 个新特征的截图未标注录入（ok_templates/coco_annotations.json 尚无对应 category），任务在标注完成前无法实际识别；resource_id 需与后续 coco 导出核对。
+- 中文命名元素（英雄招募普通10次 等）的 category name 是否被标注工具保留原样待确认；若 coco 导出为拼音/英文需同步改元素 resource_id。
+- 免费按钮灰度阈值 0.8、mask 特征在招募成功页停留期的表现需真机确认。
+- OCR 下次免费时间的文本格式假设基于其他任务先例（时:分:秒 / 中文单位），真实渲染识别率需实机确认；识别失败已有 86400s 兜底。
+
+---

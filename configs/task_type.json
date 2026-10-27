@@ -505,6 +505,49 @@
           }
         ]
       }
+      ,
+      {
+        "type": "Hero Enlist",
+        "id": "hero_enlist",
+        "name_prefix": "Hero Enlist英雄招募",
+        "description": "英雄招募：免费招募（OCR 下次免费时间动态回传触发间隔）或批量招募（普通/传奇 10 连次数可配）。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 0,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Enlist Mode",
+            "attr": "enlist_mode",
+            "default": "免费",
+            "widget": {
+              "type": "drop_down",
+              "options": ["免费", "批量"]
+            },
+            "desc": "招募方式：免费=免费招募（读取下次免费时间安排触发），批量=10 连招募。"
+          },
+          {
+            "name": "Batch Normal Times",
+            "attr": "batch_normal_times",
+            "default": 1,
+            "widget": null,
+            "desc": "批量招募：普通 10 连次数（仅批量模式生效）。"
+          },
+          {
+            "name": "Batch Legend Times",
+            "attr": "batch_legend_times",
+            "default": 1,
+            "widget": null,
+            "desc": "批量招募：传奇 10 连次数（仅批量模式生效）。"
+          }
+        ]
+      }
     ]
   }
 ]
