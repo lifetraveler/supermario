@@ -54,6 +54,7 @@ DKEY_HELP = {
     "next_trigger_delay": "执行完成后到下次触发的间隔秒数",
     "cron": "Cron 表达式定时触发，留空表示不使用",
     "max_failures": "最大失败次数：该类型失败达到此次数后不再补建（0 = 回退队列级）",
+    "one_shot": "只运行一次"
 }
 
 def _fmt_val(v):
@@ -1193,7 +1194,7 @@ class TaskConfigEditorTab(CustomTab):
             e.textChanged.connect(lambda v, o=obj, k=key: self._set_num(o, k, v))
             host = self._field_row(
                 {"count": "执行次数", "max_active": "最大并发",
-                 "max_failures": "最大失败次数"}[key],
+                 "max_failures": "最大失败次数","next_trigger_delay": "执行完成后到下次触发的间隔秒数"}[key],
                 DKEY_HELP[key], e,
                 (lambda o=obj, k=key: o.get(k, 0), default_obj.get(key, 0)))
             host._ctl_set = lambda v, e=e: e.setText(str(v))

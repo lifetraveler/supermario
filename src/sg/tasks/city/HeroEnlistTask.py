@@ -468,7 +468,7 @@ class HeroEnlistTask(SGBaseTask):
 
         self.ensure_in_front()
 
-        # 清掉所有已知弹窗
+        # 清掉所有已知弹窗 
         self.popup.close_all()
 
         # ---- 回到主界面 ----

@@ -2,9 +2,13 @@
   "version": 1,
   "types": {
     "hunt_monster": {
-      "avg": 2.0399365694956906e-06,
-      "samples": 3,
+      "avg": 9.77069975319453,
+      "samples": 10,
       "max_keep": 10
+    },
+    "gather_resource": {
+      "avg": 547.6938012000028,
+      "samples": 1
     }
   }
 }

@@ -7,7 +7,7 @@ from src.sg.element.overall.activity.popup import ActivityPopup
 from src.sg.helper.recovery import RecoveryAbort,RecoveryHelper  # 按实际模块路径调整
 from src.tasks.MyBaseTask import MyBaseTask
 from src.sg.scene.scene_type import SceneType
-from src.sg.scene.elements import (GLOBAL_BUTTON_TASKLIST_CLOSE,GLOBAL_MARCH_TITLE_ARROW_DOWN,ISLAND_BACK)
+from src.sg.scene.elements import (GLOBAL_BUTTON_TASKLIST_CLOSE,GLOBAL_MARCH_TITLE_ARROW_DOWN,ISLAND_BACK,RECONNECT_SCENCE)
 class TaskRestartRequested(Exception):
     """
     任务需要从头重新执行。
@@ -694,7 +694,11 @@ class SGBaseTask(MyBaseTask):
             scene = self.scene_detector.detect()
             self.log_info(f"当前场景: {scene.type.value}")
 
-            if scene.type in (SceneType.ISLAND_AREA_SYMBOL):
+            if scene.type in (SceneType.RECONNECT_SCENCE):
+                self.log_info("游戏锻炼，重新连接中")
+                self._wait_and_click(RECONNECT_SCENCE,with_recovery=False,timeout=2.0)  
+                self.sleep(2)
+            elif scene.type in (SceneType.ISLAND_AREA_SYMBOL):
                 self._wait_and_click(ISLAND_BACK,with_recovery=False,timeout=2.0)                
             elif scene.type in (SceneType.CITY, SceneType.WORLD_MAP):
                 self.log_info("已在主界面")

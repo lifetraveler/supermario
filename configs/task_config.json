@@ -21,12 +21,98 @@
               },
               "tasks": [
                 {
-                  "id": "gather_resource",
+                  "id": "train_soldier",
+                  "enabled": true,
+                  "params": {},
+                  "next_trigger_delay": 28800
+                },
+                {
+                  "id": "league_reward_box",
+                  "enabled": true,
+                  "one_shot": false,
+                  "params": {},
+                  "next_trigger_delay": 28800
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": true,
+                  "next_trigger_delay": 28800,
+                  "one_shot": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": true,
+                  "one_shot": false,
+                  "params": {}
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": true,
+                  "one_shot": false,
+                  "params": {},
+                  "cron": "",
+                  "next_trigger_delay": 28800
+                },
+                {
+                  "id": "bank_save",
                   "enabled": true,
                   "params": {
-                    "team_group_name": "0"
+                    "bankdays": "7"
                   },
-                  "one_shot": true
+                  "next_trigger_delay": 86400
+                },
+                {
+                  "id": "golden_refine",
+                  "enabled": true,
+                  "one_shot": false,
+                  "params": {},
+                  "next_trigger_delay": 86400
+                },
+                {
+                  "id": "pet_treasure_hunt",
+                  "enabled": true,
+                  "one_shot": false,
+                  "next_trigger_delay": 0,
+                  "params": {}
+                },
+                {
+                  "id": "claim_warehouse_reward",
+                  "enabled": true,
+                  "params": {},
+                  "next_trigger_delay": 600
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": true,
+                  "next_trigger_delay": 1800,
+                  "one_shot": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_stamina",
+                  "enabled": true,
+                  "params": {
+                    "claim_cooldown": 0
+                  }
+                },
+                {
+                  "id": "claim_buy_center_reward",
+                  "enabled": true
+                },
+                {
+                  "id": "leader_reward",
+                  "enabled": true
+                },
+                {
+                  "id": "hero_enlist",
+                  "enabled": true,
+                  "params": {
+                    "enlist_mode": "免费",
+                    "batch_normal_times": 1,
+                    "batch_legend_times": 0
+                  },
+                  "one_shot": false
                 },
                 {
                   "id": "cesare_fight",
@@ -60,97 +146,6 @@
                   "enabled": false
                 },
                 {
-                  "id": "claim_stamina",
-                  "enabled": false,
-                  "params": {
-                    "claim_cooldown": 0
-                  }
-                },
-                {
-                  "id": "wave_ride",
-                  "enabled": false,
-                  "params": {
-                    "dispatch_wait_hours": 0
-                  }
-                },
-                {
-                  "id": "train_soldier",
-                  "enabled": false,
-                  "params": {},
-                  "next_trigger_delay": 28800
-                },
-                {
-                  "id": "league_reward_box",
-                  "enabled": false,
-                  "one_shot": false,
-                  "params": {},
-                  "next_trigger_delay": 28800
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": false,
-                  "next_trigger_delay": 28800,
-                  "one_shot": false,
-                  "params": {}
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": false,
-                  "one_shot": false,
-                  "params": {}
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": false,
-                  "one_shot": false,
-                  "params": {},
-                  "cron": "",
-                  "next_trigger_delay": 28800
-                },
-                {
-                  "id": "bank_save",
-                  "enabled": false,
-                  "params": {
-                    "bankdays": "7"
-                  },
-                  "next_trigger_delay": 86400
-                },
-                {
-                  "id": "golden_refine",
-                  "enabled": false,
-                  "one_shot": false,
-                  "params": {},
-                  "next_trigger_delay": 86400
-                },
-                {
-                  "id": "pet_treasure_hunt",
-                  "enabled": false,
-                  "one_shot": false,
-                  "next_trigger_delay": 0,
-                  "params": {}
-                },
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": false,
-                  "params": {},
-                  "next_trigger_delay": 600
-                },
-                {
-                  "id": "watch_tower_event",
-                  "enabled": false,
-                  "params": {
-                    "beast_queue_limit": 0
-                  }
-                },
-                {
-                  "id": "claim_buy_center_reward",
-                  "enabled": false
-                },
-                {
-                  "id": "leader_reward",
-                  "enabled": false
-                },
-                {
                   "id": "hunt_monster",
                   "enabled": false,
                   "count": 4,
@@ -160,35 +155,38 @@
                   }
                 },
                 {
-                  "id": "league_tech_donate",
+                  "id": "gather_resource",
                   "enabled": false,
-                  "next_trigger_delay": 1800,
-                  "one_shot": false,
-                  "params": {}
+                  "params": {
+                    "team_group_name": "0"
+                  },
+                  "one_shot": true
                 },
-
                 {
-                  "id": "hero_enlist",
-                  "enabled": true,
-                  "params": {}
+                  "id": "wave_ride",
+                  "enabled": false,
+                  "params": {
+                    "dispatch_wait_hours": 0
+                  }
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": false,
+                  "params": {
+                    "beast_queue_limit": 0
+                  }
                 }
               ]
             },
             {
               "user_id": 10,
-              "enabled": false,
+              "enabled": true,
               "queue": {
                 "tick_interval": 1.0,
                 "continue_after_failure": true,
                 "max_failures": 3
               },
               "tasks": [
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": true,
-                  "next_trigger_delay": 600,
-                  "params": {}
-                },
                 {
                   "id": "bank_save",
                   "enabled": true,
@@ -232,20 +230,19 @@
                   "params": {}
                 },
                 {
-                  "id": "watch_tower_event",
-                  "enabled": true,
-                  "params": {
-                    "beast_queue_limit": 0
-                  }
-                },
-                {
                   "id": "train_soldier",
                   "enabled": true,
                   "params": {}
                 },
                 {
+                  "id": "claim_warehouse_reward",
+                  "enabled": true,
+                  "params": {}
+                },
+                {
                   "id": "claim_buy_center_reward",
-                  "enabled": true
+                  "enabled": true,
+                  "params": {}
                 },
                 {
                   "id": "leader_reward",
@@ -253,32 +250,32 @@
                   "params": {}
                 },
                 {
-                  "id": "hunt_monster",
+                  "id": "claim_stamina",
                   "enabled": true,
                   "params": {
-                    "monster_level": "0"
-                  },
-                  "count": 5
+                    "claim_cooldown": 0
+                  }
+                },
+                {
+                  "id": "hero_enlist",
+                  "enabled": true,
+                  "params": {
+                    "enlist_mode": "免费",
+                    "batch_normal_times": 0,
+                    "batch_legend_times": 0
+                  }
                 },
                 {
                   "id": "cesare_fight",
                   "enabled": false,
                   "params": {
-                    "stamina_wait_seconds": 0,
-                    "min_stamina": 12
-                  },
-                  "count": 10
+                    "stamina_wait_seconds": 0
+                  }
                 },
                 {
                   "id": "hunt_elite_rebels",
-                  "enabled": false
-                },
-                {
-                  "id": "claim_stamina",
                   "enabled": false,
-                  "params": {
-                    "claim_cooldown": 0
-                  }
+                  "params": {}
                 },
                 {
                   "id": "gather_resource",
@@ -298,10 +295,25 @@
                   "params": {}
                 },
                 {
+                  "id": "hunt_monster",
+                  "enabled": false,
+                  "params": {
+                    "monster_level": "0"
+                  },
+                  "count": 4
+                },
+                {
                   "id": "wave_ride",
                   "enabled": false,
                   "params": {
                     "dispatch_wait_hours": 0
+                  }
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": false,
+                  "params": {
+                    "beast_queue_limit": 0
                   }
                 }
               ]

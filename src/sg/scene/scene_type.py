@@ -11,6 +11,8 @@ class SceneType(str, Enum):
     WORLD_MAP = "world_map"
     
     ISLAND_AREA_SYMBOL = "island_area_symbol"
+    
+    RECONNECT_SCENCE = "reconnect_scence"
 
     TOWER_DEFENSE = "tower_defense"
 
