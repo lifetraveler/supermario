@@ -548,6 +548,39 @@
           }
         ]
       }
+      ,
+      {
+        "type": "Arena Challenge",
+        "id": "arena_challenge",
+        "name_prefix": "Arena Challenge竞技场",
+        "description": "竞技场挑战：任务列表找训练士兵-弓进弓兵营，竞技场购买/免费次数挑战绿色对手，一键上阵+战斗+快速通过，按剩余次数循环。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 86400,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Challenge Limit",
+            "attr": "challenge_limit",
+            "default": 0,
+            "widget": null,
+            "desc": "每次挑战次数。0 = 不限制，以竞技场挑战剩余次数 OCR 为准；大于 0 时取两者较小值。"
+          },
+          {
+            "name": "Buy Times",
+            "attr": "buy_times",
+            "default": 0,
+            "widget": null,
+            "desc": "无免费次数后购买次数。0 = 不购买；大于 0 时先进入购买次数流程，OCR 当前值后按差量点增/减再消耗钻石确认。"
+          }
+        ]
+      }
     ]
   }
 ]

@@ -181,6 +181,7 @@ class GatherResourceTask(SGBaseTask):
         游戏确认搜索后会居中目标并弹出采集确认面板，
         时间区域 OCR 只做暂存展示，不参与判定。
         """
+        is_large=False
         # ---- 搜索（重开面板，面板内状态可能已变） ----
         if key is None:
             if not self._step(

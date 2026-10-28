@@ -34,6 +34,7 @@ from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
 from src.sg.tasks.city.WaveRideTask import WaveRideTask
 from src.sg.tasks.daily.ClaimBuyCenterRewardTask import ClaimBuyCenterRewardTask
 from src.sg.tasks.city.HeroEnlistTask import HeroEnlistTask
+from src.sg.tasks.city.ArenaChallengeTask import ArenaChallengeTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -58,4 +59,5 @@ TASK_TYPE_MAP = {
     "Watch Tower Event":     WatchTowerEventTask,
     "Wave Ride":             WaveRideTask,
     "Hero Enlist":           HeroEnlistTask,
+    "Arena Challenge":       ArenaChallengeTask,
 }

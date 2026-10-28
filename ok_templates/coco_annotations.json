@@ -4199,7 +4199,7 @@
     {
       "id": 247,
       "image_id": 184,
-      "category_id": 247,
+      "category_id": 277,
       "bbox": [
         621,
         137,
@@ -4212,7 +4212,7 @@
     {
       "id": 248,
       "image_id": 184,
-      "category_id": 248,
+      "category_id": 247,
       "bbox": [
         65,
         650,
@@ -4225,7 +4225,7 @@
     {
       "id": 249,
       "image_id": 184,
-      "category_id": 249,
+      "category_id": 250,
       "bbox": [
         461,
         766,
@@ -4238,7 +4238,7 @@
     {
       "id": 250,
       "image_id": 184,
-      "category_id": 250,
+      "category_id": 248,
       "bbox": [
         63,
         764,
@@ -4253,18 +4253,18 @@
       "image_id": 184,
       "category_id": 251,
       "bbox": [
-        619,
-        857,
-        72,
-        43
+        526,
+        816,
+        253,
+        216
       ],
-      "area": 3096,
+      "area": 54648,
       "iscrowd": 0
     },
     {
       "id": 252,
       "image_id": 185,
-      "category_id": 252,
+      "category_id": 253,
       "bbox": [
         174,
         977,
@@ -4277,7 +4277,7 @@
     {
       "id": 253,
       "image_id": 185,
-      "category_id": 253,
+      "category_id": 249,
       "bbox": [
         585,
         979,
@@ -4290,7 +4290,7 @@
     {
       "id": 254,
       "image_id": 186,
-      "category_id": 256,
+      "category_id": 252,
       "bbox": [
         580,
         957,
@@ -4303,7 +4303,7 @@
     {
       "id": 255,
       "image_id": 186,
-      "category_id": 255,
+      "category_id": 256,
       "bbox": [
         408,
         532,
@@ -4316,7 +4316,7 @@
     {
       "id": 256,
       "image_id": 195,
-      "category_id": 254,
+      "category_id": 259,
       "bbox": [
         627,
         269,
@@ -4329,7 +4329,7 @@
     {
       "id": 257,
       "image_id": 196,
-      "category_id": 257,
+      "category_id": 254,
       "bbox": [
         349,
         1004,
@@ -4342,7 +4342,7 @@
     {
       "id": 258,
       "image_id": 195,
-      "category_id": 260,
+      "category_id": 255,
       "bbox": [
         201,
         1533,
@@ -4355,7 +4355,7 @@
     {
       "id": 259,
       "image_id": 195,
-      "category_id": 259,
+      "category_id": 260,
       "bbox": [
         631,
         1527,
@@ -4485,7 +4485,7 @@
     {
       "id": 269,
       "image_id": 199,
-      "category_id": 269,
+      "category_id": 304,
       "bbox": [
         199,
         776,
@@ -4524,7 +4524,7 @@
     {
       "id": 272,
       "image_id": 201,
-      "category_id": 272,
+      "category_id": 269,
       "bbox": [
         572,
         882,
@@ -4537,7 +4537,7 @@
     {
       "id": 273,
       "image_id": 202,
-      "category_id": 273,
+      "category_id": 272,
       "bbox": [
         199,
         553,
@@ -4550,7 +4550,7 @@
     {
       "id": 274,
       "image_id": 202,
-      "category_id": 274,
+      "category_id": 273,
       "bbox": [
         414,
         857,
@@ -4563,7 +4563,7 @@
     {
       "id": 275,
       "image_id": 202,
-      "category_id": 275,
+      "category_id": 274,
       "bbox": [
         199,
         1162,
@@ -4576,7 +4576,7 @@
     {
       "id": 276,
       "image_id": 203,
-      "category_id": 276,
+      "category_id": 275,
       "bbox": [
         548,
         1142,
@@ -4589,7 +4589,7 @@
     {
       "id": 277,
       "image_id": 204,
-      "category_id": 277,
+      "category_id": 276,
       "bbox": [
         57,
         1414,
@@ -4721,8 +4721,8 @@
       "image_id": 211,
       "category_id": 285,
       "bbox": [
-        365,
-        433,
+        357,
+        1209,
         183,
         88
       ],
@@ -4771,7 +4771,7 @@
     {
       "id": 291,
       "image_id": 187,
-      "category_id": 291,
+      "category_id": 257,
       "bbox": [
         67,
         336,
@@ -4784,7 +4784,7 @@
     {
       "id": 292,
       "image_id": 187,
-      "category_id": 292,
+      "category_id": 291,
       "bbox": [
         654,
         727,
@@ -4797,7 +4797,7 @@
     {
       "id": 293,
       "image_id": 188,
-      "category_id": 293,
+      "category_id": 294,
       "bbox": [
         134,
         872,
@@ -4810,7 +4810,7 @@
     {
       "id": 294,
       "image_id": 188,
-      "category_id": 294,
+      "category_id": 292,
       "bbox": [
         664,
         884,
@@ -4823,7 +4823,7 @@
     {
       "id": 295,
       "image_id": 192,
-      "category_id": 296,
+      "category_id": 293,
       "bbox": [
         144,
         413,
@@ -4935,6 +4935,19 @@
         41
       ],
       "area": 2009,
+      "iscrowd": 0
+    },
+    {
+      "id": 304,
+      "image_id": 207,
+      "category_id": 296,
+      "bbox": [
+        751,
+        752,
+        61,
+        61
+      ],
+      "area": 3721,
       "iscrowd": 0
     }
   ],
@@ -6171,57 +6184,57 @@
     },
     {
       "id": 247,
-      "name": "常规活动_联盟总动员任务入口",
+      "name": "联盟总动员-2-剩余次数-ocr",
       "supercategory": ""
     },
     {
       "id": 248,
-      "name": "总动员剩余次数",
+      "name": "联盟总动员-2-1.2倍率奖励",
       "supercategory": ""
     },
     {
       "id": 249,
-      "name": "总动员双倍奖励标志",
+      "name": "联盟总动员-4-接受按钮",
       "supercategory": ""
     },
     {
       "id": 250,
-      "name": "总动员1.2倍率奖励",
+      "name": "联盟总动员-2-双倍奖励标志",
       "supercategory": ""
     },
     {
       "id": 251,
-      "name": "总动员刷新点击区域",
+      "name": "联盟总动员-3-刷新点击区域-相对2识别出偏移值",
       "supercategory": ""
     },
     {
       "id": 252,
-      "name": "总动员刷新按钮",
+      "name": "联盟总动员-5-刷新确认按钮",
       "supercategory": ""
     },
     {
       "id": 253,
-      "name": "总动员接受按钮",
+      "name": "联盟总动员-4-刷新按钮",
       "supercategory": ""
     },
     {
       "id": 254,
-      "name": "联盟商店3折",
+      "name": "联盟商店-4-购买确认",
       "supercategory": ""
     },
     {
       "id": 255,
-      "name": "总动员刷新确认界面",
+      "name": "联盟商店-2-今日灰度",
       "supercategory": ""
     },
     {
       "id": 256,
-      "name": "总动员刷新确认按钮",
+      "name": "联盟总动员-5-界面-刷新确认界面",
       "supercategory": ""
     },
     {
       "id": 257,
-      "name": "联盟商店购买确认",
+      "name": "联盟总动员-任务2倍标志",
       "supercategory": ""
     },
     {
@@ -6231,12 +6244,12 @@
     },
     {
       "id": 259,
-      "name": "联盟商店本周灰度处理",
+      "name": "联盟商店-3-3折",
       "supercategory": ""
     },
     {
       "id": 260,
-      "name": "联盟商店今日灰度",
+      "name": "联盟商店-2-本周灰度处理",
       "supercategory": ""
     },
     {
@@ -6281,47 +6294,47 @@
     },
     {
       "id": 269,
-      "name": "黄金科技研究入口",
+      "name": "黄金科技研究-3",
       "supercategory": ""
     },
     {
       "id": 270,
-      "name": "黄金科技研究状态",
+      "name": "黄金科技研究状态-1-状态判断-空闲",
       "supercategory": ""
     },
     {
       "id": 271,
-      "name": "战争学院-黄金科技",
+      "name": "黄金科技-2",
       "supercategory": ""
     },
     {
       "id": 272,
-      "name": "黄金科技研究",
+      "name": "皇家科技-4-弓-科技1",
       "supercategory": ""
     },
     {
       "id": 273,
-      "name": "皇家科技-弓-科技1",
+      "name": "黄金科技-4-骑-科技1",
       "supercategory": ""
     },
     {
       "id": 274,
-      "name": "黄金科技-骑-科技1",
+      "name": "黄金科技-4-步-科技1",
       "supercategory": ""
     },
     {
       "id": 275,
-      "name": "黄金科技-步-科技1",
+      "name": "黄金科技研究-5-确认按钮-预估时间框",
       "supercategory": ""
     },
     {
       "id": 276,
-      "name": "黄金科技研究-确认按钮-预估时间框",
+      "name": "黄金科技研究-6-状态时间-互助",
       "supercategory": ""
     },
     {
       "id": 277,
-      "name": "黄金科技研究-状态时间-互助",
+      "name": "联盟总动员-1-任务入口-灰度",
       "supercategory": ""
     },
     {
@@ -6391,22 +6404,22 @@
     },
     {
       "id": 291,
-      "name": "联盟总动员切换任务2倍标志",
+      "name": "联盟总动员-目标-黄金-奖励-1000",
       "supercategory": ""
     },
     {
       "id": 292,
-      "name": "联盟总动员切换目标-黄金-奖励-1000",
+      "name": "联盟总动员-目标-黄金-100块",
       "supercategory": ""
     },
     {
       "id": 293,
-      "name": "联盟总动员-切换目标-训练-860",
+      "name": "联盟总动员-目标-训练-520",
       "supercategory": ""
     },
     {
       "id": 294,
-      "name": "联盟总动员-切换目标-黄金-100块",
+      "name": "联盟总动员-目标-训练-860",
       "supercategory": ""
     },
     {
@@ -6416,7 +6429,7 @@
     },
     {
       "id": 296,
-      "name": "联盟总动员-切换目标-训练-520",
+      "name": "竞技场-战斗",
       "supercategory": ""
     },
     {
@@ -6452,6 +6465,11 @@
     {
       "id": 303,
       "name": "竞技场-购买次数-识别",
+      "supercategory": ""
+    },
+    {
+      "id": 304,
+      "name": "黄金科技研究入口-1",
       "supercategory": ""
     }
   ]

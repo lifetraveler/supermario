@@ -1636,3 +1636,127 @@ HERO_RECRUIT_BATCH_CONFIRM = SceneElement(
     resource_id="英雄招募批量确认",
     desc="英雄招募：批量提醒的确认按钮",
 )
+
+# ============================================================
+# 竞技场挑战（Arena Challenge）
+# ============================================================
+
+# 任务列表：城市标签（灰度匹配，命中 = 当前在"城市"分类页）
+GLOBAL_TASK_LIST_CITY_TAG = SceneElement(
+    name="global_task_list_city_tag",
+    resource_id="global_task_list_city_tag",
+    desc="任务列表：城市标签（灰度匹配）",
+)
+
+# 任务列表：训练士兵-弓 条目（点击跳转弓兵营）
+GLOBAL_TASK_LIST_SOLDIER_ARCHER_ENTRY = SceneElement(
+    name="训练士兵-弓",
+    resource_id="训练士兵-弓",
+    desc="任务列表：训练士兵-弓条目（点击跳转弓兵营）",
+)
+
+# 弓兵兵营旁边-竞技场区域（bbox 直接点击，不需要匹配）
+CITY_BARRACKS_ARCANE_AREA = SceneElement(
+    name="弓兵兵营旁边-竞技场",
+    resource_id="弓兵兵营旁边-竞技场",
+    desc="城市：弓兵兵营旁边-竞技场区域（bbox 直接点击）",
+)
+
+# 竞技场界面：挑战按钮（点击弹出挑战列表）
+ARENA_BUTTON_CHALLENGE = SceneElement(
+    name="竞技场挑战",
+    resource_id="竞技场挑战",
+    desc="竞技场：挑战按钮（弹出挑战列表）",
+)
+
+# 竞技场：增加次数按钮（进入购买次数流程）
+ARENA_BUTTON_ADD_TIMES = SceneElement(
+    name="竞技场增加次数",
+    resource_id="竞技场增加次数",
+    desc="竞技场：增加次数按钮（购买次数入口）",
+)
+
+# 购买次数界面：当前购买次数（OCR 区域）
+ARENA_BUY_TIMES_OCR_AREA = SceneElement(
+    name="竞技场-购买次数-识别",
+    resource_id="竞技场-购买次数-识别",
+    desc="竞技场：购买次数界面当前次数 OCR 区域",
+)
+
+# 购买次数界面：增加按钮
+ARENA_BUY_TIMES_BUTTON_ADD = SceneElement(
+    name="竞技场-购买次数-增加",
+    resource_id="竞技场-购买次数-增加",
+    desc="竞技场：购买次数界面增加按钮",
+)
+
+# 购买次数界面：减少按钮
+ARENA_BUY_TIMES_BUTTON_SUB = SceneElement(
+    name="竞技场-购买次数-减少",
+    resource_id="竞技场-购买次数-减少",
+    desc="竞技场：购买次数界面减少按钮",
+)
+
+# 购买次数界面：消耗钻石确认按钮
+ARENA_BUY_TIMES_BUTTON_CONFIRM = SceneElement(
+    name="竞技场购买次数消耗钻石",
+    resource_id="竞技场购买次数消耗钻石",
+    desc="竞技场：购买次数消耗钻石确认按钮",
+)
+
+# 竞技场：挑战剩余次数（OCR 区域）
+ARENA_CHALLENGE_REMAIN_TIMES = SceneElement(
+    name="竞技场挑战剩余次数",
+    resource_id="竞技场挑战剩余次数",
+    desc="竞技场：挑战剩余次数 OCR 区域",
+)
+
+# 竞技场：挑战对手列表区域（绿色对手检索范围）
+ARENA_OPPONENT_LIST_AREA = SceneElement(
+    name="竞技场挑战对手列表",
+    resource_id="竞技场挑战对手列表",
+    desc="竞技场：挑战对手列表区域（绿色对手检索范围）",
+)# 竞技场：挑战对手列表区域（绿色对手检索范围）
+ARENA_FIGHT = SceneElement(
+    name="竞技场-战斗",
+    resource_id="竞技场-战斗",
+    desc="竞技场：竞技场-战斗",
+)
+
+
+
+
+# 竞技场：一键上阵按钮
+ARENA_BUTTON_ONE_KEY_DEPLOY = SceneElement(
+    name="竞技场一键上阵",
+    resource_id="竞技场一键上阵",
+    desc="竞技场：一键上阵按钮",
+)
+
+# 竞技场：战斗按钮（布阵界面）
+ARENA_BUTTON_FIGHT = SceneElement(
+    name="竞技场挑战-战斗",
+    resource_id="竞技场挑战-战斗",
+    desc="竞技场：挑战-战斗按钮（布阵界面）",
+)
+
+# 快速挑战流程：第 1 步按钮
+ARENA_QUICK_PASS_1 = SceneElement(
+    name="竞技场快速通过1",
+    resource_id="竞技场快速通过1",
+    desc="竞技场：快速挑战流程第 1 步按钮",
+)
+
+# 快速挑战流程：第 2 步按钮
+ARENA_QUICK_PASS_2 = SceneElement(
+    name="竞技场快速通过2",
+    resource_id="竞技场快速通过2",
+    desc="竞技场：快速挑战流程第 2 步按钮",
+)
+
+# 快速挑战流程：第 3 步按钮
+ARENA_QUICK_PASS_3 = SceneElement(
+    name="竞技场快速通过3",
+    resource_id="竞技场快速通过3",
+    desc="竞技场：快速挑战流程第 3 步按钮",
+)

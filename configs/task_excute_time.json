@@ -3,12 +3,16 @@
   "types": {
     "hunt_monster": {
       "avg": 9.77069975319453,
-      "samples": 10,
-      "max_keep": 10
+      "samples": 10
     },
     "gather_resource": {
       "avg": 547.6938012000028,
       "samples": 1
+    },
+    "arena_challenge": {
+      "avg": 33.41978929999823,
+      "samples": 1,
+      "max_keep": 10
     }
   }
 }

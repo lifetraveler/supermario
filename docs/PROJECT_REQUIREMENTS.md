@@ -944,3 +944,48 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - OCR 下次免费时间的文本格式假设基于其他任务先例（时:分:秒 / 中文单位），真实渲染识别率需实机确认；识别失败已有 86400s 兜底。
 
 ---
+
+## [2026-10-28] 竞技场挑战（Arena Challenge）
+
+### 原始需求
+建立新分支（feature/arena-challenge，并把建分支固化进 Skill B 标准流程）。新增竞技场挑战任务：
+- 参数：每次挑战次数（默认 0=不限，以 OCR 剩余次数为准）、无免费次数后购买次数（默认 0=不购买）。
+- 流程：城市主界面 → 任务列表 → 灰度匹配 global_task_list_city_tag → 上滑检索"训练士兵-弓" → 点击跳转弓兵营 → 点击"弓兵兵营旁边-竞技场"（bbox 直点）→ 点击"竞技场挑战"弹挑战列表。
+- 购买次数（参数>0 时）：点"竞技场增加次数"进购买流程 → OCR"竞技场-购买次数-识别" → 与参数对比按差量点增加/减少 → 点"竞技场购买次数消耗钻石"。
+- OCR"竞技场挑战剩余次数"得挑战次数，循环：对手列表区域找绿色 RGB(3,208,111)，多个取第一个点击 → 一键上阵 → 战斗 → 等 2s → 匹配"竞技场快速通过1"命中则快速挑战（快速通过2 → 等 2s → 快速通过3）。
+- 达到 challenge_limit 或剩余次数用尽 → 退出到主堡界面。
+
+### 变更点
+- 新增 16 个 SceneElement（src/sg/scene/elements.py 尾部"竞技场挑战"段）：GLOBAL_TASK_LIST_CITY_TAG / GLOBAL_TASK_LIST_SOLDIER_ARCHER_ENTRY / CITY_BARRACKS_ARCANE_AREA / ARENA_BUTTON_CHALLENGE / ARENA_BUTTON_ADD_TIMES / ARENA_BUY_TIMES_OCR_AREA / ARENA_BUY_TIMES_BUTTON_ADD / ARENA_BUY_TIMES_BUTTON_SUB / ARENA_BUY_TIMES_BUTTON_CONFIRM / ARENA_CHALLENGE_REMAIN_TIMES / ARENA_OPPONENT_LIST_AREA / ARENA_BUTTON_ONE_KEY_DEPLOY / ARENA_BUTTON_FIGHT / ARENA_QUICK_PASS_1 / ARENA_QUICK_PASS_2 / ARENA_QUICK_PASS_3。
+- 新增 src/sg/tasks/city/ArenaChallengeTask.py：SGBaseTask 子类，_step 编排，run_interaction 返回 (InteractionResult, wait_seconds)，保留 _run_once/run 双入口。
+- 绿色对手检索：ok 框架 ok.util.color.find_color_rectangles，color_range={'r':[0,33],'g':[178,238],'b':[81,141]}（RGB(3,208,111)±30），项目内首次引入颜色矩形检索。
+- 滑到底判定：相邻两次滑动后 global_task_list_city_tag 灰度匹配位置不变 → 列表到底，任务视为完成（非失败）。
+- 注册三动作：task_type_map.py 加 "Arena Challenge" 映射；configs/task_type.json 加定义段（id=arena_challenge，count=1/max_active=1/requires_march_queue=false/next_trigger_delay=86400，params: challenge_limit=0、buy_times=0）；configs/task_config.json user0/user10 各加 enabled=true 实例条目。
+- Skill B（.agents/skills/new-task-development/SKILL.md）：流程总览新增第 1 步"建功能分支"，新增 §11.2 功能分支规范，检查清单补分支项，定义段文件名纠正为 task_type.json（defaults 七键含 max_failures）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（16 元素）
+- src/sg/tasks/city/ArenaChallengeTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0 enabled=true / user1 enabled=false 实例条目）
+- .agents/skills/new-task-development/SKILL.md（分支规范）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：两个 JSON 解析 OK；config_loader.parse_document 解析出 arena_challenge 实例（enabled=true/count=1/max_active=1/delay=86400/params 两项注入全对）；TASK_TYPE_MAP 与 task_type.json 双向一致（23 types）；实例段全部 id 有定义。
+- parse_times_text 单测 7 用例全过（'3/5'/'12'/'1,200'/'5 / 10'/'无'/None/'剩余 3 次'）。
+- 类级冒烟：16 元素可导入，ArenaChallengeTask 接口齐全（run_interaction/_run_once/run/check_completed/_step/last_error/extra_config/challenge_limit/buy_times）。
+- 实机已跑一次：task_excute_time.json 记录 arena_challenge 样本 1 次（avg≈33.4s），成功走通加载链；更完整的实机回归待后续观察。
+
+### 遗留 / 风险
+- 实机仅跑通一次，尚未充分回归：16 个特征模板已在 ok_templates/coco_annotations.json 有标注（id 278-288/299/300-303），但识别率与 bbox 精度需真机确认；"弓兵兵营旁边-竞技场"为 bbox 直点，依赖 COCO 标注坐标准确。
+- 绿色 RGB(3,208,111) ±30 容差是对屏幕渲染颜色的假设，实际对手列表若带渐变/暗色滤镜可能漏检，需真机调整 green_color_range。
+- 上滑滑到底判定基于 city_tag 位置不变，若任务列表滑动时标签一起移动（吸顶除外）会误判提前结束。
+- 购买次数 OCR 失败时直接点消耗钻石确认（不做增减），若当前值远大于目标会多买，需真机确认 OCR 稳定性。
+
+---
+
