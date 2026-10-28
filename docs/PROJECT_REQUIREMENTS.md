@@ -1025,3 +1025,74 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 - 状态底栏「联盟互助」直接点特征框中心，若框内互助按钮不在中心需真机调整点击偏移。
 
 ---
+
+## [2026-10-28] 联盟商店购买（League Shop Buy）
+
+### 原始需求
+进入主界面（城市或世界，不在主界面则先 ESC 退回主界面），点击 global_tag_league 进入联盟界面，点击 league_shop_entry 进入联盟商店界面。先确定本次要处理的页签列表：若系统日期为周一，则处理 [今日, 本周] 两个页签；其余星期仅处理 [今日]。对每个待处理页签执行「买空」循环：在商品列表区域循环灰度检索 联盟商店-3-3折 折扣角标，每匹配到一个即点击其所在商品卡片，弹出「确定购买」弹窗后点击 联盟商店-4-购买确认（数量保持默认 1），弹窗关闭后回到商品列表重新检索，直到该页签下再也匹配不到 3 折角标为止。防御分支：点击角标后若超时未弹出确认弹窗（商品已售完/角标残留），记录其位置不再点击，继续检索其余角标，防止死循环。整个任务从头到尾一次都未匹配到 3 折角标则返回失败，不需要重试。全部买空后返回主界面，任务返回成功；下次触发时间按配置固定间隔（商店顶部「下次刷新」倒计时暂无 coco 特征，不做 OCR）。
+
+### 变更点
+- 新任务 LeagueShopBuyTask（src/sg/tasks/league/LeagueShopBuyTask.py）：回主界面 → GLOBAL_TAG_LEAGUE → LEAGUE_SHOP_ENTRY → 按星期选页签（周一 [今日,本周]，其余 [今日]）→ 逐页签买空 → 回主界面。不占军队队列，next_trigger_delay=86400 每日一次，不可并行 count=1/max_active=1，无 params。
+- 页签状态机（灰度匹配，模板语义已按 coco 裁剪核实）：LEAGUE_SHOP_TAG_TODAY_SELECTED（今日-选中态 浅底深字）命中 或 LEAGUE_SHOP_TAG_WEEK_UNSELECTED（本周-未选中态 深底白字）命中 → 在今日页；两者都不命中 → 在本周页。页签点击热区 coco 无特征（需求允许），用 get_box_by_name 取页签标注 bbox 直接点击；切换成功用状态特征消失/重现验证。
+- 买空循环用 find_feature 多匹配（非 _wait_element 单匹配）：同屏多角标时最高置信度可能恰是已跳过位置，多匹配才能继续选其余角标，避免误判买空。弹窗超时的角标位置记入 _skipped_positions（40px 网格量化去重，上限 32），_find_badge 自动跳过；单页签购买次数上限 60 防异常死循环。
+- 注册三动作：task_type_map.py 加 "League Shop Buy" 映射；task_type.json 加定义段（id=league_shop_buy，params=[]）；task_config.json user0 enabled=true、user10 enabled=false 实例条目。
+- elements.py 追加联盟商店段 4 个特征常量（254/255/259/260）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（4 元素：LEAGUE_SHOP_BUY_CONFIRM / LEAGUE_SHOP_TAG_TODAY_SELECTED / LEAGUE_SHOP_SALE_BADGE / LEAGUE_SHOP_TAG_WEEK_UNSELECTED）
+- src/sg/tasks/league/LeagueShopBuyTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0 enabled=true / user10 enabled=false 实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 注册冒烟通过：config_loader.load() 装载 League Shop Buy 定义段与 user0 enabled 实例条目；TASK_TYPE_MAP 与 task_type.json 双向一致（25 types），league_shop_buy → LeagueShopBuyTask，Arena Challenge / Hero Enlist 映射完整无缺。
+- 类级冒烟通过：任务类 import OK（继承 SGBaseTask，14 方法齐全），星期分支逻辑验证（周一=0 → [today,week]，其余 → [today]），4 个特征常量 resource_id 与 coco 一致。
+- 独立模式/队列模式实机验证：未跑（本机无模拟器会话，特征模板已入库，待真机验证）。
+
+### 遗留 / 风险
+- 4 个特征模板未真机验证识别率；尤其 LEAGUE_SHOP_BUY_CONFIRM 模板含币图标+具体价格「7,800」，不同商品价格不同，若匹配率低需换成纯按钮底色特征（需补充 coco 标注）。
+- 3 折角标模板只覆盖 -70% 红色角标；其他折扣档位（如绿色 -40%）不在购买范围，若需求扩大需补特征。
+- 页签切换依赖 get_box_by_name 静态标注 bbox（900x1600 标注分辨率），分辨率适配由框架缩放机制承担，真机需确认点击落点。
+- 「确定购买」弹窗若被其他系统弹窗（如部队抵达通知条）遮挡，确认按钮匹配可能失败走防御分支跳过该商品，下轮重检会再试，不影响买空正确性。
+
+---
+
+
+## [2026-10-28] 联盟商店购买 — 最小折扣多选参数
+
+### 原始需求
+加一个参数「最小折扣」，多选，可选 3 折、6 折、原价，默认勾选 3 折；选择多个则购买多个折扣档位。折扣对应特征：3折=联盟商店-3-3折、6折=联盟商店-3-6折、原价=联盟商店-3-原价（coco id 259/305/306，后两者为本需求新增标注）。
+
+### 变更点
+- elements.py 追加 LEAGUE_SHOP_SALE_BADGE_60（联盟商店-3-6折）/ LEAGUE_SHOP_SALE_BADGE_FULL（联盟商店-3-原价）两个角标常量。
+- LeagueShopBuyTask：新增队列注入字段 min_discount（list，默认 ["3折"]）；类常量 DISCOUNT_BADGE_MAP 档位→特征映射；_active_badge_elements() 按参数解析角标列表（去重保序，非法档位忽略）；_find_badge() 改为逐档位多匹配检索同一帧先到先得；日志/失败文案从「3 折」改为「所选折扣」。
+- task_type.json 定义段 params[] 增加 Min Discount（attr=min_discount，widget=multi_drop_down options=[3折,6折,原价]，default=["3折"]），更新 description。
+- 连带修复 UI 既有 bug：TaskConfigEditorTab._multi_toggle 全仓无定义（multi_drop_down 勾选即 AttributeError），按 _drop_changed 同款契约补实现（勾选加入/取消移除、字符串比较、_mark_dirty）。
+
+### 修复点
+- TaskConfigEditorTab._multi_toggle 缺失（既有 bug，multi_drop_down 控件首次实际使用即暴露）。
+
+### 涉及文件
+- src/sg/scene/elements.py（+2 元素）
+- src/sg/tasks/league/LeagueShopBuyTask.py（min_discount 字段 / DISCOUNT_BADGE_MAP / _active_badge_elements / _find_badge 多档位）
+- configs/task_type.json（定义段 params）
+- src/ui/TaskConfigEditorTab.py（_multi_toggle 补缺）
+- ok_templates/coco_annotations.json（305/306 新特征标注，用户外部新增）
+
+### 测试
+- config_loader.load() 通过：min_discount 默认值 ["3折"] 正确装载；TASK_TYPE_MAP 与 task_type.json 双向一致（25 types）。
+- 任务类逻辑验证（绕开框架构造）：档位映射 resource_id 与 coco 一致；多选保序去重；空选/非法档位返回空；_pos_key 位置键正确。
+- _multi_toggle 逻辑验证（stub _mark_dirty）：勾选/重复勾选/取消、params 写入、dirty 计数全部通过。
+- 实机验证：未跑（待真机确认 6 折/原价角标识别率）。
+
+### 遗留 / 风险
+- 「原价」角标若与商品卡底色对比度不足，灰度匹配率待真机确认；匹配不到原价角标时任务行为与「全部页签无所选折扣 → FAILED」语义一致（勾选原价且全无原价商品时会判 FAILED，属预期但需用户知晓——勾选越多档位，FAILED 越难触发）。
+- _multi_toggle 存 params 为字符串列表（["3折"]），与 drop_down 的字符串值不同型；loader 直接透传无类型校验，UI 回显按 str(x) 比较，闭环成立。
+
+---
+

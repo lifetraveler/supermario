@@ -22,6 +22,7 @@ from src.sg.tasks.daily.LeaderRewardTask import LeaderRewardTask
 from src.sg.tasks.daily.PunishClaimTask import PunishClaimTask
 from src.sg.tasks.daily.PetTreasureHuntTask import PetTreasureHuntTask
 from src.sg.tasks.league.LeagueRewardBoxTask import LeagueRewardBoxTask
+from src.sg.tasks.league.LeagueShopBuyTask import LeagueShopBuyTask
 from src.sg.tasks.league.LeagueTechDonateTask import LeagueTechDonateTask
 from src.sg.tasks.island.GatherIslandWaterTask import GatherIslandWaterTask
 from src.sg.tasks.world.CesareFightTask import CesareFightTask
@@ -61,5 +62,6 @@ TASK_TYPE_MAP = {
     "Wave Ride":             WaveRideTask,
     "Hero Enlist":           HeroEnlistTask,
     "Arena Challenge":       ArenaChallengeTask,
+    "League Shop Buy":       LeagueShopBuyTask,
     "Golden Tech Research":  GoldenTechResearchTask,
 }

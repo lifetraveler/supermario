@@ -11,6 +11,14 @@
     },
     "arena_challenge": {
       "avg": 33.41978929999823,
+      "samples": 1
+    },
+    "golden_tech_research": {
+      "avg": 36.35196290000022,
+      "samples": 1
+    },
+    "league_shop_buy": {
+      "avg": 13.848875399999088,
       "samples": 1,
       "max_keep": 10
     }

@@ -995,6 +995,12 @@
       "file_name": "167.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 216,
+      "file_name": "157.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -4550,7 +4556,7 @@
     {
       "id": 274,
       "image_id": 202,
-      "category_id": 273,
+      "category_id": 274,
       "bbox": [
         414,
         857,
@@ -4563,7 +4569,7 @@
     {
       "id": 275,
       "image_id": 202,
-      "category_id": 274,
+      "category_id": 273,
       "bbox": [
         199,
         1162,
@@ -4836,27 +4842,27 @@
     {
       "id": 296,
       "image_id": 181,
-      "category_id": 295,
+      "category_id": 308,
       "bbox": [
-        321,
-        524,
-        74,
-        80
+        289,
+        504,
+        128,
+        132
       ],
-      "area": 5920,
+      "area": 16896,
       "iscrowd": 0
     },
     {
       "id": 297,
       "image_id": 181,
-      "category_id": 297,
+      "category_id": 295,
       "bbox": [
-        688,
-        356,
-        57,
-        61
+        647,
+        328,
+        141,
+        121
       ],
-      "area": 3477,
+      "area": 17061,
       "iscrowd": 0
     },
     {
@@ -4948,6 +4954,84 @@
         61
       ],
       "area": 3721,
+      "iscrowd": 0
+    },
+    {
+      "id": 305,
+      "image_id": 195,
+      "category_id": 305,
+      "bbox": [
+        333,
+        267,
+        51,
+        41
+      ],
+      "area": 2091,
+      "iscrowd": 0
+    },
+    {
+      "id": 306,
+      "image_id": 195,
+      "category_id": 306,
+      "bbox": [
+        28,
+        248,
+        59,
+        57
+      ],
+      "area": 3363,
+      "iscrowd": 0
+    },
+    {
+      "id": 307,
+      "image_id": 204,
+      "category_id": 307,
+      "bbox": [
+        42,
+        762,
+        114,
+        92
+      ],
+      "area": 10488,
+      "iscrowd": 0
+    },
+    {
+      "id": 308,
+      "image_id": 215,
+      "category_id": 297,
+      "bbox": [
+        800,
+        1040,
+        66,
+        72
+      ],
+      "area": 4752,
+      "iscrowd": 0
+    },
+    {
+      "id": 309,
+      "image_id": 181,
+      "category_id": 311,
+      "bbox": [
+        402,
+        1333,
+        102,
+        59
+      ],
+      "area": 6018,
+      "iscrowd": 0
+    },
+    {
+      "id": 310,
+      "image_id": 216,
+      "category_id": 310,
+      "bbox": [
+        323,
+        1337,
+        256,
+        59
+      ],
+      "area": 15104,
       "iscrowd": 0
     }
   ],
@@ -6314,7 +6398,7 @@
     },
     {
       "id": 273,
-      "name": "黄金科技-4-骑-科技1",
+      "name": "黄金科技-4-骑士-科技1",
       "supercategory": ""
     },
     {
@@ -6424,7 +6508,7 @@
     },
     {
       "id": 295,
-      "name": "宠物技能-狮子宝藏",
+      "name": "宠物技能-2-猎豹宠物粮",
       "supercategory": ""
     },
     {
@@ -6434,7 +6518,7 @@
     },
     {
       "id": 297,
-      "name": "宠物技能-猎豹宠物粮",
+      "name": "宠物技能-1-入口",
       "supercategory": ""
     },
     {
@@ -6470,6 +6554,36 @@
     {
       "id": 304,
       "name": "黄金科技研究入口-1",
+      "supercategory": ""
+    },
+    {
+      "id": 305,
+      "name": "联盟商店-3-6折",
+      "supercategory": ""
+    },
+    {
+      "id": 306,
+      "name": "联盟商店-3-原价",
+      "supercategory": ""
+    },
+    {
+      "id": 307,
+      "name": "黄金科技研究-初始状态",
+      "supercategory": ""
+    },
+    {
+      "id": 308,
+      "name": "宠物技能-2-狮子宝藏",
+      "supercategory": ""
+    },
+    {
+      "id": 310,
+      "name": "宠物技能-3-冷却时间",
+      "supercategory": ""
+    },
+    {
+      "id": 311,
+      "name": "宠物技能-4-使用按钮",
       "supercategory": ""
     }
   ]

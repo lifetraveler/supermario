@@ -624,6 +624,32 @@
           }
         ]
       }
+      ,
+      {
+        "type": "League Shop Buy",
+        "id": "league_shop_buy",
+        "name_prefix": "League Shop联盟商店",
+        "description": "联盟商店购买：进联盟商店，周一处理今日+本周页签、其余仅今日，灰度检索所选折扣角标（最小折扣多选：3折/6折/原价，多选全买）逐个买空（确认弹窗默认数量 1），含售完角标防御分支；全部页签无所选折扣则失败不重试。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 86400,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Min Discount",
+            "attr": "min_discount",
+            "default": ["3折"],
+            "widget": {"type": "multi_drop_down", "options": ["3折", "6折", "原价"]},
+            "desc": "最小折扣多选：勾选的档位全部购买（3折=-70%红标，6折，原价）。默认仅勾选 3 折。"
+          }
+        ]
+      }
     ]
   }
 ]

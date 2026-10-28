@@ -1179,6 +1179,19 @@ class TaskConfigEditorTab(CustomTab):
         task.setdefault("params", {})[attr] = val
         self._mark_dirty()
 
+    def _multi_toggle(self, task, attr, opt, checked):
+        """multi_drop_down 参数勾选提交：勾选加入、取消移除，保持 options 顺序。"""
+        params = task.setdefault("params", {})
+        cur = list(params.get(attr) or [])
+        s = str(opt)
+        if checked:
+            if s not in cur:
+                cur.append(s)
+        else:
+            cur = [x for x in cur if x != s]
+        params[attr] = cur
+        self._mark_dirty()
+
     def _defaults_rows(self, obj, default_obj):
         """六个调度键的编辑行。obj 是任务实例或类型 defaults dict。
 

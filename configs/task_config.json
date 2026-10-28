@@ -21,13 +21,9 @@
               },
               "tasks": [
                 {
-                  "id": "hunt_monster",
+                  "id": "league_shop_buy",
                   "enabled": true,
-                  "params": {
-                    "monster_level": "0"
-                  },
-                  "count": 8,
-                  "next_trigger_delay": 180
+                  "params": {}
                 },
                 {
                   "id": "arena_challenge",
@@ -97,11 +93,6 @@
                   }
                 },
                 {
-                  "id": "golden_tech_research",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
                   "id": "league_reward_box",
                   "enabled": false,
                   "params": {}
@@ -166,6 +157,24 @@
                   "id": "pet_treasure_hunt",
                   "enabled": false,
                   "params": {}
+                },
+                {
+                  "id": "hunt_monster",
+                  "enabled": false,
+                  "params": {
+                    "monster_level": "0"
+                  },
+                  "count": 8,
+                  "next_trigger_delay": 180
+                },
+                {
+                  "id": "golden_tech_research",
+                  "enabled": false,
+                  "params": {
+                    "troop_priority": "0",
+                    "sub_tech_names": "0",
+                    "default_retry_wait": 0
+                  }
                 }
               ]
             },
@@ -178,6 +187,11 @@
                 "max_failures": 3
               },
               "tasks": [
+                {
+                  "id": "golden_tech_research",
+                  "enabled": true,
+                  "params": {}
+                },
                 {
                   "id": "bank_save",
                   "enabled": false,
@@ -294,8 +308,8 @@
                   "params": {}
                 },
                 {
-                  "id": "golden_tech_research",
-                  "enabled": true,
+                  "id": "league_shop_buy",
+                  "enabled": false,
                   "params": {}
                 }
               ]

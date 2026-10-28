@@ -1835,3 +1835,50 @@ GOLDEN_TECH_STATUS_TIME_HELP = SceneElement(
     resource_id="黄金科技研究-6-状态时间-互助",
     desc="研究中底栏：OCR 剩余研究时间 + 联盟互助按钮",
 )
+
+
+# ============================================================
+# 联盟商店（League Shop）
+# ============================================================
+
+# 联盟商店：确认购买弹窗的购买按钮（币图标+价格，模板取自弹窗按钮中心）
+LEAGUE_SHOP_BUY_CONFIRM = SceneElement(
+    name="联盟商店-4-购买确认",
+    resource_id="联盟商店-4-购买确认",
+    desc="联盟商店：确定购买弹窗的购买确认按钮",
+)
+
+# 联盟商店：「今日」页签选中态（浅底深字，命中 = 当前停留在今日页）
+LEAGUE_SHOP_TAG_TODAY_SELECTED = SceneElement(
+    name="联盟商店-2-今日灰度",
+    resource_id="联盟商店-2-今日灰度",
+    desc="联盟商店：「今日」页签选中态（灰度匹配）",
+)
+
+# 联盟商店：3 折折扣角标（红色 -70%，售完后角标消失，循环匹配实现买空）
+LEAGUE_SHOP_SALE_BADGE = SceneElement(
+    name="联盟商店-3-3折",
+    resource_id="联盟商店-3-3折",
+    desc="联盟商店：3 折折扣角标（灰度匹配，买空循环检索对象）",
+)
+
+# 联盟商店：「本周」页签未选中态（深底白字，命中 = 本周未被选中）
+LEAGUE_SHOP_TAG_WEEK_UNSELECTED = SceneElement(
+    name="联盟商店-2-本周灰度处理",
+    resource_id="联盟商店-2-本周灰度处理",
+    desc="联盟商店：「本周」页签未选中态（灰度匹配）",
+)
+
+# 联盟商店：6 折折扣角标（可选购买折扣档位之一）
+LEAGUE_SHOP_SALE_BADGE_60 = SceneElement(
+    name="联盟商店-3-6折",
+    resource_id="联盟商店-3-6折",
+    desc="联盟商店：6 折折扣角标（灰度匹配，可选购买折扣档位）",
+)
+
+# 联盟商店：原价角标（可选购买折扣档位之一）
+LEAGUE_SHOP_SALE_BADGE_FULL = SceneElement(
+    name="联盟商店-3-原价",
+    resource_id="联盟商店-3-原价",
+    desc="联盟商店：原价角标（灰度匹配，可选购买折扣档位）",
+)
