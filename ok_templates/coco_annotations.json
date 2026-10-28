@@ -1001,6 +1001,54 @@
       "file_name": "157.png",
       "width": 900,
       "height": 1600
+    },
+    {
+      "id": 217,
+      "file_name": "166.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 218,
+      "file_name": "168.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 219,
+      "file_name": "169.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 220,
+      "file_name": "170.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 221,
+      "file_name": "171.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 222,
+      "file_name": "172.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 223,
+      "file_name": "173.png",
+      "width": 900,
+      "height": 1600
+    },
+    {
+      "id": 224,
+      "file_name": "174.png",
+      "width": 900,
+      "height": 1600
     }
   ],
   "annotations": [
@@ -4259,12 +4307,12 @@
       "image_id": 184,
       "category_id": 251,
       "bbox": [
-        526,
-        816,
-        253,
-        216
+        552,
+        765,
+        209,
+        267
       ],
-      "area": 54648,
+      "area": 55803,
       "iscrowd": 0
     },
     {
@@ -5032,6 +5080,331 @@
         59
       ],
       "area": 15104,
+      "iscrowd": 0
+    },
+    {
+      "id": 311,
+      "image_id": 184,
+      "category_id": 309,
+      "bbox": [
+        325,
+        656,
+        41,
+        43
+      ],
+      "area": 1763,
+      "iscrowd": 0
+    },
+    {
+      "id": 312,
+      "image_id": 217,
+      "category_id": 312,
+      "bbox": [
+        388,
+        961,
+        130,
+        63
+      ],
+      "area": 8190,
+      "iscrowd": 0
+    },
+    {
+      "id": 313,
+      "image_id": 218,
+      "category_id": 314,
+      "bbox": [
+        294,
+        478,
+        333,
+        57
+      ],
+      "area": 18981,
+      "iscrowd": 0
+    },
+    {
+      "id": 314,
+      "image_id": 218,
+      "category_id": 313,
+      "bbox": [
+        132,
+        904,
+        51,
+        37
+      ],
+      "area": 1887,
+      "iscrowd": 0
+    },
+    {
+      "id": 315,
+      "image_id": 218,
+      "category_id": 315,
+      "bbox": [
+        560,
+        900,
+        41,
+        43
+      ],
+      "area": 1763,
+      "iscrowd": 0
+    },
+    {
+      "id": 316,
+      "image_id": 218,
+      "category_id": 316,
+      "bbox": [
+        379,
+        1048,
+        187,
+        61
+      ],
+      "area": 11407,
+      "iscrowd": 0
+    },
+    {
+      "id": 317,
+      "image_id": 218,
+      "category_id": 317,
+      "bbox": [
+        790,
+        476,
+        57,
+        57
+      ],
+      "area": 3249,
+      "iscrowd": 0
+    },
+    {
+      "id": 318,
+      "image_id": 221,
+      "category_id": 318,
+      "bbox": [
+        47,
+        748,
+        800,
+        798
+      ],
+      "area": 638400,
+      "iscrowd": 0
+    },
+    {
+      "id": 319,
+      "image_id": 219,
+      "category_id": 319,
+      "bbox": [
+        117,
+        819,
+        295,
+        142
+      ],
+      "area": 41890,
+      "iscrowd": 0
+    },
+    {
+      "id": 320,
+      "image_id": 219,
+      "category_id": 320,
+      "bbox": [
+        495,
+        823,
+        309,
+        140
+      ],
+      "area": 43260,
+      "iscrowd": 0
+    },
+    {
+      "id": 321,
+      "image_id": 220,
+      "category_id": 321,
+      "bbox": [
+        359,
+        620,
+        441,
+        248
+      ],
+      "area": 109368,
+      "iscrowd": 0
+    },
+    {
+      "id": 322,
+      "image_id": 222,
+      "category_id": 322,
+      "bbox": [
+        652,
+        1064,
+        135,
+        82
+      ],
+      "area": 11070,
+      "iscrowd": 0
+    },
+    {
+      "id": 323,
+      "image_id": 192,
+      "category_id": 323,
+      "bbox": [
+        656,
+        433,
+        112,
+        80
+      ],
+      "area": 8960,
+      "iscrowd": 0
+    },
+    {
+      "id": 324,
+      "image_id": 223,
+      "category_id": 324,
+      "bbox": [
+        406,
+        839,
+        88,
+        80
+      ],
+      "area": 7040,
+      "iscrowd": 0
+    },
+    {
+      "id": 325,
+      "image_id": 223,
+      "category_id": 325,
+      "bbox": [
+        148,
+        847,
+        94,
+        70
+      ],
+      "area": 6580,
+      "iscrowd": 0
+    },
+    {
+      "id": 326,
+      "image_id": 223,
+      "category_id": 326,
+      "bbox": [
+        666,
+        843,
+        98,
+        82
+      ],
+      "area": 8036,
+      "iscrowd": 0
+    },
+    {
+      "id": 327,
+      "image_id": 223,
+      "category_id": 327,
+      "bbox": [
+        398,
+        1174,
+        120,
+        78
+      ],
+      "area": 9360,
+      "iscrowd": 0
+    },
+    {
+      "id": 328,
+      "image_id": 184,
+      "category_id": 328,
+      "bbox": [
+        48,
+        1095,
+        55,
+        281
+      ],
+      "area": 15455,
+      "iscrowd": 0
+    },
+    {
+      "id": 329,
+      "image_id": 184,
+      "category_id": 329,
+      "bbox": [
+        105,
+        1097,
+        167,
+        272
+      ],
+      "area": 45424,
+      "iscrowd": 0
+    },
+    {
+      "id": 330,
+      "image_id": 224,
+      "category_id": 330,
+      "bbox": [
+        779,
+        488,
+        53,
+        45
+      ],
+      "area": 2385,
+      "iscrowd": 0
+    },
+    {
+      "id": 331,
+      "image_id": 224,
+      "category_id": 331,
+      "bbox": [
+        178,
+        973,
+        183,
+        57
+      ],
+      "area": 10431,
+      "iscrowd": 0
+    },
+    {
+      "id": 332,
+      "image_id": 224,
+      "category_id": 332,
+      "bbox": [
+        568,
+        971,
+        143,
+        63
+      ],
+      "area": 9009,
+      "iscrowd": 0
+    },
+    {
+      "id": 333,
+      "image_id": 224,
+      "category_id": 333,
+      "bbox": [
+        361,
+        614,
+        439,
+        267
+      ],
+      "area": 117213,
+      "iscrowd": 0
+    },
+    {
+      "id": 334,
+      "image_id": 219,
+      "category_id": 334,
+      "bbox": [
+        85,
+        1032,
+        717,
+        41
+      ],
+      "area": 29397,
+      "iscrowd": 0
+    },
+    {
+      "id": 335,
+      "image_id": 184,
+      "category_id": 335,
+      "bbox": [
+        383,
+        1300,
+        63,
+        61
+      ],
+      "area": 3843,
       "iscrowd": 0
     }
   ],
@@ -6577,6 +6950,11 @@
       "supercategory": ""
     },
     {
+      "id": 309,
+      "name": "联盟总动员-购买次数入口",
+      "supercategory": ""
+    },
+    {
       "id": 310,
       "name": "宠物技能-3-冷却时间",
       "supercategory": ""
@@ -6584,6 +6962,126 @@
     {
       "id": 311,
       "name": "宠物技能-4-使用按钮",
+      "supercategory": ""
+    },
+    {
+      "id": 312,
+      "name": "联盟总动员-购买次数-第一次免费",
+      "supercategory": ""
+    },
+    {
+      "id": 313,
+      "name": "联盟总动员-钻石购买-次数-减少",
+      "supercategory": ""
+    },
+    {
+      "id": 314,
+      "name": "联盟总动员-购买次数-消耗钻石-界面",
+      "supercategory": ""
+    },
+    {
+      "id": 315,
+      "name": "联盟总动员-钻石购买-次数-增加",
+      "supercategory": ""
+    },
+    {
+      "id": 316,
+      "name": "联盟总动员-钻石购买-次数-提交",
+      "supercategory": ""
+    },
+    {
+      "id": 317,
+      "name": "联盟总动员-钻石购买-次数-取消购买",
+      "supercategory": ""
+    },
+    {
+      "id": 318,
+      "name": "联盟总动员-任务滚动窗口",
+      "supercategory": ""
+    },
+    {
+      "id": 319,
+      "name": "联盟总动员-专属任务1",
+      "supercategory": ""
+    },
+    {
+      "id": 320,
+      "name": "联盟总动员-专属任务2",
+      "supercategory": ""
+    },
+    {
+      "id": 321,
+      "name": "联盟总动员-任务描述区域",
+      "supercategory": ""
+    },
+    {
+      "id": 322,
+      "name": "联盟总动员-任务目标-训练",
+      "supercategory": ""
+    },
+    {
+      "id": 323,
+      "name": "联盟总动员-任务目标-黄金",
+      "supercategory": ""
+    },
+    {
+      "id": 324,
+      "name": "联盟总动员-任务目标-巨兽",
+      "supercategory": ""
+    },
+    {
+      "id": 325,
+      "name": "联盟总动员-任务目标-野兽",
+      "supercategory": ""
+    },
+    {
+      "id": 326,
+      "name": "联盟总动员-任务目标-锤子",
+      "supercategory": ""
+    },
+    {
+      "id": 327,
+      "name": "联盟总动员-任务目标-钻石",
+      "supercategory": ""
+    },
+    {
+      "id": 328,
+      "name": "联盟总动员-公共任务-基准点",
+      "supercategory": ""
+    },
+    {
+      "id": 329,
+      "name": "联盟总动员-公共任务-偏移区域",
+      "supercategory": ""
+    },
+    {
+      "id": 330,
+      "name": "联盟总动员-4-公共任务-关闭",
+      "supercategory": ""
+    },
+    {
+      "id": 331,
+      "name": "联盟总动员-4-公共任务-刷新",
+      "supercategory": ""
+    },
+    {
+      "id": 332,
+      "name": "联盟总动员-4-公共任务-接受",
+      "supercategory": ""
+    },
+    {
+      "id": 333,
+      "name": "联盟总动员-4-公共任务-描述",
+      "supercategory": ""
+    },
+    {
+      "id": 334,
+      "name": "联盟总动员-公共任务-滚动区域-上沿",
+      "supercategory": ""
+    },
+    {
+      "id": 335,
+      "name": "联盟总动员-公共任务-奖励标志",
       "supercategory": ""
     }
   ]

@@ -3,22 +3,10 @@
   "package": "com.got.china",
   "tasks": [
     {
-      "id": "wave_ride",
+      "id": "bank_save",
       "params": {
-        "dispatch_wait_hours": 0
+        "bankdays": "7"
       }
-    },
-    {
-      "id": "league_tech_donate",
-      "params": {}
-    },
-    {
-      "id": "train_soldier",
-      "params": {}
-    },
-    {
-      "id": "league_reward_box",
-      "params": {}
     },
     {
       "id": "gather_island_water",
@@ -29,23 +17,19 @@
       "params": {}
     },
     {
-      "id": "punish_claim",
+      "id": "league_tech_donate",
       "params": {}
     },
     {
-      "id": "watch_tower_event",
-      "params": {
-        "beast_queue_limit": 0
-      }
-    },
-    {
-      "id": "bank_save",
-      "params": {
-        "bankdays": "7"
-      }
+      "id": "league_reward_box",
+      "params": {}
     },
     {
       "id": "golden_refine",
+      "params": {}
+    },
+    {
+      "id": "punish_claim",
       "params": {}
     },
     {
@@ -55,6 +39,46 @@
     {
       "id": "claim_warehouse_reward",
       "params": {}
+    },
+    {
+      "id": "claim_buy_center_reward",
+      "params": {}
+    },
+    {
+      "id": "leader_reward",
+      "params": {}
+    },
+    {
+      "id": "watch_tower_event",
+      "params": {
+        "beast_queue_limit": 0
+      }
+    },
+    {
+      "id": "arena_challenge",
+      "params": {
+        "challenge_limit": 5
+      }
+    },
+    {
+      "id": "hunt_elite_rebels",
+      "params": {}
+    },
+    {
+      "id": "hero_enlist",
+      "params": {
+        "enlist_mode": "0",
+        "batch_normal_times": 0,
+        "batch_legend_times": 0
+      }
+    },
+    {
+      "id": "league_shop_buy",
+      "params": {
+        "min_discount": [
+          "3折"
+        ]
+      }
     }
   ]
 }

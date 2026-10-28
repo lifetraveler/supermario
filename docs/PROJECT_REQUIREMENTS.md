@@ -1096,3 +1096,44 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-29] 联盟总动员（League Mobilization，OCR 文字匹配版）
+
+### 原始需求
+联盟总动员-刷新高效指定-ocr文字匹配版。主界面点 global_entry_common_activity 进常规活动，页签滑动区域循环滑动灰度匹配 联盟总动员-1-任务入口-灰度（顶部奖杯页签）进入。主循环每轮先 OCR 联盟总动员-2-剩余次数-ocr 解析"可接次数 x/20"，x+购买当日次数 y=0 则 FAILED（无多余次数）；y>0 且 x=0 时逐次购买（购买次数入口 → 第一次免费直接点 / 消耗钻石面板提交）。专属任务1/2 依次：点击卡槽 → OCR 任务描述区域（去换行）与 专属任务目标 多选参数（训练12万"通过训练/晋升士兵提升120000点实力"/黄金150/巨兽5/10/15次）包含匹配，命中点 4-接受按钮，未命中点 4-刷新按钮并 OCR 刷新倒计时，两个卡槽取更近时间回传。公共任务：在 任务滚动窗口 向上滑动（幅度=公共任务滚动幅度参数，默认0.3）检索 公共任务目标 多选项；基准点+偏移区域构成卡片 bbox，bbox 内匹配 奖励标志=未接任务，点开 OCR 4-公共任务-描述 校验后 接受/刷新（受 公共任务刷新 开关控制）/关闭；刷新开启时最后向下滑回 滚动区域-上沿，再按基准点行高（最大y+height+5 起点、行高差为距）逐行向下清扫未接卡片：命中 公共任务刷新目标 保留（关闭窗口），未命中刷新。不占军队队列、立即触发、不可并行（count=1）。
+
+### 变更点
+- 新增 `src/sg/element/overall/activity/mobilization.py`：Mobilization 领域对象（进界面滑动灰度检索、剩余次数 OCR、购买次数两分支、专属卡槽处理、公共任务阶段 A 检索 + 阶段 B 逐行清扫、倒计时解析、基准点行高滑动计算）。
+- 新增 `src/sg/tasks/league/LeagueMobilizationTask.py`：聚合任务（编排 + 次数主循环 + 刷新倒计时取更近回传 wait_seconds）。
+- `src/sg/scene/elements.py` 追加 39 个 LEAGUE_MOB_* 元素（与 coco id 247–335 一一对应，双向校验 0 缺失 0 多余）。
+- `src/sg/tasks/task_type_map.py` 加 `"League Mobilization": LeagueMobilizationTask`（第 26 种）。
+- `configs/task_type.json` 加定义段：defaults（count=1/max_active=1/requires_march_queue=false/next_trigger_delay=0），params 6 项——专属任务目标/公共任务刷新目标/公共任务目标均为 multi_drop_down（选项 训练12万/黄金150/巨兽5/巨兽10/巨兽15，默认勾选训练12万），购买当日次数 number 默认 1，公共任务刷新 switch 默认 false，公共任务滚动幅度 number 默认 0.3。
+- `configs/task_config.json` 两个 user 链各追加 `{"id": "league_mobilization", "enabled": true, "params": {}}` 实例条目。
+
+### 修复点
+- 初版领域对象偏移 bbox 误用 `box_of_screen` 的相对比例 width/height（该方法按比例而非像素取参），改为全屏 box 基底覆写像素 x/y/width/height（Box 可变）。
+- 公共任务滑动参数错误落在 swipe 调用尾部造成语法损坏，重写 `_scroll_window_px` 修复。
+
+### 涉及文件
+- src/sg/element/overall/activity/mobilization.py（新增）
+- src/sg/tasks/league/LeagueMobilizationTask.py（新增）
+- src/sg/scene/elements.py（追加 39 元素）
+- src/sg/tasks/task_type_map.py（+1 映射）
+- configs/task_type.json（+1 定义段）
+- configs/task_config.json（2 个实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节归档）
+
+### 测试
+- 独立模式：未跑（需真机游戏前台；run() 入口已按 HuntScareWolf/HeroEnlist 模式实现）。
+- 队列模式：未跑（真机确认）。
+- 注册冒烟：config_loader.load() 通过；定义段 id ↔ type ↔ TASK_TYPE_MAP 三向一致（26 种）；两条 user 链均解析出 enabled=true 的 league_mobilization 实例且 params 六键齐全；elements.py 39 元素与 coco 全集 0 缺 0 多；4 个改动文件 py_compile 通过。
+
+### 遗留 / 风险
+- 目标关键词匹配按参数顺序首个命中（训练12万→"训练"、黄金150→"黄金"、巨兽5/10/15→"巨兽"）；巨兽三档 OCR 文案若不含具体次数数字，无法区分 5/10/15 次——需真机 OCR "击败巨兽N次" 原文确认后细化关键词。
+- 公共任务卡片图标特征（任务目标-训练/黄金/巨兽等）已入库但当前匹配全走 OCR 文案（需求即为 OCR 版）；若真机描述区域 OCR 不可靠，可在 MOBILITY_GOALS 补 element 字段切回特征匹配。
+- 钻石购买面板按默认数量直接提交（需求：剩余次数>0 时按需增减）；若真机默认数量≠1 需补 增/减 调节逻辑（元素已备好）。
+- 阶段 B 清扫的"保留=关闭窗口"分支：关闭窗口是否影响可接次数待真机确认。
+- 刷新确认弹窗（联盟总动员-5-界面-刷新确认界面 / 5-刷新确认按钮）已入库未接线：专属刷新分支当前点 4-刷新按钮后直接 OCR 倒计时；若真机刷新后必须二次确认，需在 run_exclusive_slot 刷新分支插入确认步骤。
+
+---
+

@@ -37,6 +37,7 @@ from src.sg.tasks.daily.ClaimBuyCenterRewardTask import ClaimBuyCenterRewardTask
 from src.sg.tasks.city.HeroEnlistTask import HeroEnlistTask
 from src.sg.tasks.city.ArenaChallengeTask import ArenaChallengeTask
 from src.sg.tasks.city.GoldenTechResearchTask import GoldenTechResearchTask
+from src.sg.tasks.league.LeagueMobilizationTask import LeagueMobilizationTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -64,4 +65,5 @@ TASK_TYPE_MAP = {
     "Arena Challenge":       ArenaChallengeTask,
     "League Shop Buy":       LeagueShopBuyTask,
     "Golden Tech Research":  GoldenTechResearchTask,
+    "League Mobilization":   LeagueMobilizationTask,
 }

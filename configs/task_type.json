@@ -504,8 +504,7 @@
             "desc": "派遣船只后的下次触发小时数，默认 8。OCR 剩余时间失败时的兜底。"
           }
         ]
-      }
-      ,
+      },
       {
         "type": "Hero Enlist",
         "id": "hero_enlist",
@@ -528,7 +527,10 @@
             "default": "免费",
             "widget": {
               "type": "drop_down",
-              "options": ["免费", "批量"]
+              "options": [
+                "免费",
+                "批量"
+              ]
             },
             "desc": "招募方式：免费=免费招募（读取下次免费时间安排触发），批量=10 连招募。"
           },
@@ -547,8 +549,7 @@
             "desc": "批量招募：传奇 10 连次数（仅批量模式生效）。"
           }
         ]
-      }
-      ,
+      },
       {
         "type": "Arena Challenge",
         "id": "arena_challenge",
@@ -580,8 +581,7 @@
             "desc": "无免费次数后购买次数。0 = 不购买；大于 0 时先进入购买次数流程，OCR 当前值后按差量点增/减再消耗钻石确认。"
           }
         ]
-      }
-      ,
+      },
       {
         "type": "Golden Tech Research",
         "id": "golden_tech_research",
@@ -604,7 +604,11 @@
             "default": "弓",
             "widget": {
               "type": "drop_down",
-              "options": ["弓", "骑", "步"]
+              "options": [
+                "弓",
+                "骑",
+                "步"
+              ]
             },
             "desc": "兵种优先级：优先尝试研究的分支节点（弓/骑/步），命中哪个研究哪个。"
           },
@@ -612,7 +616,9 @@
             "name": "Sub Tech Names",
             "attr": "sub_tech_names",
             "default": "",
-            "widget": {"type": "text"},
+            "widget": {
+              "type": "text"
+            },
             "desc": "子项研究特征名（coco 中的 resource_id），逗号分隔多个；留空则只用默认第 4 步三选一节点。"
           },
           {
@@ -623,8 +629,7 @@
             "desc": "OCR 剩余研究时间失败时的兜底重试间隔（秒）。"
           }
         ]
-      }
-      ,
+      },
       {
         "type": "League Shop Buy",
         "id": "league_shop_buy",
@@ -644,9 +649,117 @@
           {
             "name": "Min Discount",
             "attr": "min_discount",
-            "default": ["3折"],
-            "widget": {"type": "multi_drop_down", "options": ["3折", "6折", "原价"]},
+            "default": [
+              "3折"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "3折",
+                "6折",
+                "原价"
+              ]
+            },
             "desc": "最小折扣多选：勾选的档位全部购买（3折=-70%红标，6折，原价）。默认仅勾选 3 折。"
+          }
+        ]
+      },
+      {
+        "type": "League Mobilization",
+        "id": "league_mobilization",
+        "name_prefix": "League Mobilization联盟总动员",
+        "description": "联盟总动员：进入常规活动找联盟总动员页签，OCR 可接次数并按需购买（首次免费/钻石提交），专属任务描述匹配接受/刷新并回传最近刷新倒计时，公共任务滑动检索+奖励标志扫描接受目标；刷新开启时回滚上沿按基准点行高逐行清扫。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "专属任务目标",
+            "attr": "exclusive_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "专属卡槽 OCR 描述包含匹配的目标，多选按顺序优先。"
+          },
+          {
+            "name": "购买当日次数",
+            "attr": "buy_times",
+            "default": 1,
+            "widget": {
+              "type": "number"
+            },
+            "desc": "当天最多购买次数（首次免费自动优先，其后钻石提交）。"
+          },
+          {
+            "name": "公共任务刷新",
+            "attr": "public_refresh",
+            "default": false,
+            "widget": {
+              "type": "switch"
+            },
+            "desc": "开启后不匹配的公共任务会刷新，并在接受阶段后回滚上沿按行高逐行清扫未接任务。"
+          },
+          {
+            "name": "公共任务滚动幅度",
+            "attr": "public_scroll_step",
+            "default": 0.3,
+            "widget": {
+              "type": "number"
+            },
+            "desc": "公共任务列表每次滑动幅度（相对屏高 0-1），默认 0.3。"
+          },
+          {
+            "name": "公共任务刷新目标",
+            "attr": "public_refresh_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "清扫阶段值得保留（不刷新）的未接任务目标，多选。"
+          },
+          {
+            "name": "公共任务目标",
+            "attr": "public_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "公共任务描述匹配接受的目标，多选按顺序优先。"
           }
         ]
       }

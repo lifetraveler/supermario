@@ -1882,3 +1882,280 @@ LEAGUE_SHOP_SALE_BADGE_FULL = SceneElement(
     resource_id="联盟商店-3-原价",
     desc="联盟商店：原价角标（灰度匹配，可选购买折扣档位）",
 )
+
+
+# ============================================================
+# 联盟总动员（League Mobilization）
+# ============================================================
+
+LEAGUE_MOB_ENTRY_TAG = SceneElement(
+    name="联盟总动员-1-任务入口-灰度",
+    resource_id="联盟总动员-1-任务入口-灰度",
+    desc="常规活动：联盟总动员页签（顶部奖杯页签，灰度匹配）",
+)
+
+# 联盟总动员界面：剩余可接次数 OCR 区域（"可接次数 x/20"）
+LEAGUE_MOB_TIMES_OCR = SceneElement(
+    name="联盟总动员-2-剩余次数-ocr",
+    resource_id="联盟总动员-2-剩余次数-ocr",
+    desc="联盟总动员：剩余可接次数 OCR 区域",
+)
+
+# 专属卡槽：1.2 倍率角标（仅记录，不作为接取/刷新门槛）
+LEAGUE_MOB_RATE_120 = SceneElement(
+    name="联盟总动员-2-1.2倍率奖励",
+    resource_id="联盟总动员-2-1.2倍率奖励",
+    desc="联盟总动员：1.2 倍率角标（灰度匹配）",
+)
+
+# 任务窗口：接受按钮
+LEAGUE_MOB_ACCEPT_BUTTON = SceneElement(
+    name="联盟总动员-4-接受按钮",
+    resource_id="联盟总动员-4-接受按钮",
+    desc="联盟总动员：任务描述窗口接受按钮",
+)
+
+# 专属卡槽：双倍（200%）角标（仅记录）
+LEAGUE_MOB_RATE_200 = SceneElement(
+    name="联盟总动员-2-双倍奖励标志",
+    resource_id="联盟总动员-2-双倍奖励标志",
+    desc="联盟总动员：双倍（200%）奖励角标",
+)
+
+# 专属卡槽：刷新点击区域（以倍率角标 bbox 偏移的点击区域）
+LEAGUE_MOB_REFRESH_CLICK_AREA = SceneElement(
+    name="联盟总动员-3-刷新点击区域-相对2识别出偏移值",
+    resource_id="联盟总动员-3-刷新点击区域-相对2识别出偏移值",
+    desc="联盟总动员：专属卡槽刷新点击区域（偏移计算用）",
+)
+
+# 刷新确认弹窗：确认按钮
+LEAGUE_MOB_REFRESH_CONFIRM = SceneElement(
+    name="联盟总动员-5-刷新确认按钮",
+    resource_id="联盟总动员-5-刷新确认按钮",
+    desc="联盟总动员：刷新确认弹窗的确认按钮",
+)
+
+# 任务窗口：刷新按钮（专属任务描述窗口内）
+LEAGUE_MOB_REFRESH_BUTTON = SceneElement(
+    name="联盟总动员-4-刷新按钮",
+    resource_id="联盟总动员-4-刷新按钮",
+    desc="联盟总动员：任务描述窗口刷新按钮",
+)
+
+# 刷新确认弹窗：界面特征（弹窗在场的标志）
+LEAGUE_MOB_REFRESH_CONFIRM_SCENE = SceneElement(
+    name="联盟总动员-5-界面-刷新确认界面",
+    resource_id="联盟总动员-5-界面-刷新确认界面",
+    desc="联盟总动员：刷新确认弹窗界面特征",
+)
+
+# 专属卡槽：2 倍标志（旧模板，仅记录）
+LEAGUE_MOB_RATE_2X = SceneElement(
+    name="联盟总动员-任务2倍标志",
+    resource_id="联盟总动员-任务2倍标志",
+    desc="联盟总动员：专属卡槽 2 倍标志（旧模板）",
+)
+
+# 目标奖励角标：黄金奖励 1000
+LEAGUE_MOB_GOAL_GOLD_REWARD_1000 = SceneElement(
+    name="联盟总动员-目标-黄金-奖励-1000",
+    resource_id="联盟总动员-目标-黄金-奖励-1000",
+    desc="联盟总动员：目标卡片黄金奖励 1000 角标",
+)
+
+# 目标奖励角标：黄金 100 块
+LEAGUE_MOB_GOAL_GOLD_100 = SceneElement(
+    name="联盟总动员-目标-黄金-100块",
+    resource_id="联盟总动员-目标-黄金-100块",
+    desc="联盟总动员：目标卡片黄金 100 块角标",
+)
+
+# 目标奖励角标：训练 520
+LEAGUE_MOB_GOAL_TRAIN_520 = SceneElement(
+    name="联盟总动员-目标-训练-520",
+    resource_id="联盟总动员-目标-训练-520",
+    desc="联盟总动员：目标卡片训练 520 角标",
+)
+
+# 目标奖励角标：训练 860
+LEAGUE_MOB_GOAL_TRAIN_860 = SceneElement(
+    name="联盟总动员-目标-训练-860",
+    resource_id="联盟总动员-目标-训练-860",
+    desc="联盟总动员：目标卡片训练 860 角标",
+)
+
+# 购买次数：入口按钮
+LEAGUE_MOB_BUY_TIMES_ENTRY = SceneElement(
+    name="联盟总动员-购买次数入口",
+    resource_id="联盟总动员-购买次数入口",
+    desc="联盟总动员：购买次数入口按钮",
+)
+
+# 购买次数：第一次免费按钮
+LEAGUE_MOB_BUY_FIRST_FREE = SceneElement(
+    name="联盟总动员-购买次数-第一次免费",
+    resource_id="联盟总动员-购买次数-第一次免费",
+    desc="联盟总动员：购买次数第一次免费按钮",
+)
+
+# 钻石购买：次数减少按钮
+LEAGUE_MOB_DIAMOND_BUY_DECREASE = SceneElement(
+    name="联盟总动员-钻石购买-次数-减少",
+    resource_id="联盟总动员-钻石购买-次数-减少",
+    desc="联盟总动员：钻石购买次数减少按钮",
+)
+
+# 钻石购买：消耗钻石面板特征
+LEAGUE_MOB_BUY_DIAMOND_PANEL = SceneElement(
+    name="联盟总动员-购买次数-消耗钻石-界面",
+    resource_id="联盟总动员-购买次数-消耗钻石-界面",
+    desc="联盟总动员：消耗钻石购买面板特征",
+)
+
+# 钻石购买：次数增加按钮
+LEAGUE_MOB_DIAMOND_BUY_INCREASE = SceneElement(
+    name="联盟总动员-钻石购买-次数-增加",
+    resource_id="联盟总动员-钻石购买-次数-增加",
+    desc="联盟总动员：钻石购买次数增加按钮",
+)
+
+# 钻石购买：次数提交按钮
+LEAGUE_MOB_DIAMOND_BUY_SUBMIT = SceneElement(
+    name="联盟总动员-钻石购买-次数-提交",
+    resource_id="联盟总动员-钻石购买-次数-提交",
+    desc="联盟总动员：钻石购买次数提交按钮",
+)
+
+# 钻石购买：取消购买按钮
+LEAGUE_MOB_DIAMOND_BUY_CANCEL = SceneElement(
+    name="联盟总动员-钻石购买-次数-取消购买",
+    resource_id="联盟总动员-钻石购买-次数-取消购买",
+    desc="联盟总动员：钻石购买取消按钮",
+)
+
+# 公共任务：滚动窗口区域
+LEAGUE_MOB_SCROLL_WINDOW = SceneElement(
+    name="联盟总动员-任务滚动窗口",
+    resource_id="联盟总动员-任务滚动窗口",
+    desc="联盟总动员：公共任务滚动窗口区域",
+)
+
+# 专属任务卡槽 1
+LEAGUE_MOB_EXCLUSIVE_SLOT_1 = SceneElement(
+    name="联盟总动员-专属任务1",
+    resource_id="联盟总动员-专属任务1",
+    desc="联盟总动员：专属任务卡槽 1",
+)
+
+# 专属任务卡槽 2
+LEAGUE_MOB_EXCLUSIVE_SLOT_2 = SceneElement(
+    name="联盟总动员-专属任务2",
+    resource_id="联盟总动员-专属任务2",
+    desc="联盟总动员：专属任务卡槽 2",
+)
+
+# 任务描述窗口：描述 OCR 区域
+LEAGUE_MOB_DESC_AREA = SceneElement(
+    name="联盟总动员-任务描述区域",
+    resource_id="联盟总动员-任务描述区域",
+    desc="联盟总动员：任务描述窗口 OCR 区域",
+)
+
+# 公共任务卡片：训练类目标特征
+LEAGUE_MOB_GOAL_TRAIN = SceneElement(
+    name="联盟总动员-任务目标-训练",
+    resource_id="联盟总动员-任务目标-训练",
+    desc="联盟总动员：公共任务训练目标特征",
+)
+
+# 公共任务卡片：黄金类目标特征
+LEAGUE_MOB_GOAL_GOLD = SceneElement(
+    name="联盟总动员-任务目标-黄金",
+    resource_id="联盟总动员-任务目标-黄金",
+    desc="联盟总动员：公共任务黄金目标特征",
+)
+
+# 公共任务卡片：巨兽类目标特征
+LEAGUE_MOB_GOAL_BEAST = SceneElement(
+    name="联盟总动员-任务目标-巨兽",
+    resource_id="联盟总动员-任务目标-巨兽",
+    desc="联盟总动员：公共任务巨兽目标特征",
+)
+
+# 公共任务卡片：野兽类目标特征
+LEAGUE_MOB_GOAL_WILD_BEAST = SceneElement(
+    name="联盟总动员-任务目标-野兽",
+    resource_id="联盟总动员-任务目标-野兽",
+    desc="联盟总动员：公共任务野兽目标特征",
+)
+
+# 公共任务卡片：锤子类目标特征
+LEAGUE_MOB_GOAL_HAMMER = SceneElement(
+    name="联盟总动员-任务目标-锤子",
+    resource_id="联盟总动员-任务目标-锤子",
+    desc="联盟总动员：公共任务锤子目标特征",
+)
+
+# 公共任务卡片：钻石类目标特征
+LEAGUE_MOB_GOAL_DIAMOND = SceneElement(
+    name="联盟总动员-任务目标-钻石",
+    resource_id="联盟总动员-任务目标-钻石",
+    desc="联盟总动员：公共任务钻石目标特征",
+)
+
+# 公共任务列表：基准点（每行卡片定位锚点，可多命中）
+LEAGUE_MOB_PUBLIC_BASE_POINT = SceneElement(
+    name="联盟总动员-公共任务-基准点",
+    resource_id="联盟总动员-公共任务-基准点",
+    desc="联盟总动员：公共任务卡片基准点（多命中）",
+)
+
+# 公共任务列表：偏移区域（宽高模板，决定卡片 bbox 尺寸）
+LEAGUE_MOB_PUBLIC_OFFSET_AREA = SceneElement(
+    name="联盟总动员-公共任务-偏移区域",
+    resource_id="联盟总动员-公共任务-偏移区域",
+    desc="联盟总动员：公共任务偏移区域（宽高模板）",
+)
+
+# 公共任务窗口：关闭按钮
+LEAGUE_MOB_PUBLIC_CLOSE = SceneElement(
+    name="联盟总动员-4-公共任务-关闭",
+    resource_id="联盟总动员-4-公共任务-关闭",
+    desc="联盟总动员：公共任务窗口关闭按钮",
+)
+
+# 公共任务窗口：刷新按钮
+LEAGUE_MOB_PUBLIC_REFRESH = SceneElement(
+    name="联盟总动员-4-公共任务-刷新",
+    resource_id="联盟总动员-4-公共任务-刷新",
+    desc="联盟总动员：公共任务窗口刷新按钮",
+)
+
+# 公共任务窗口：接受按钮
+LEAGUE_MOB_PUBLIC_ACCEPT = SceneElement(
+    name="联盟总动员-4-公共任务-接受",
+    resource_id="联盟总动员-4-公共任务-接受",
+    desc="联盟总动员：公共任务窗口接受按钮",
+)
+
+# 公共任务窗口：描述 OCR 区域
+LEAGUE_MOB_PUBLIC_DESC = SceneElement(
+    name="联盟总动员-4-公共任务-描述",
+    resource_id="联盟总动员-4-公共任务-描述",
+    desc="联盟总动员：公共任务窗口描述 OCR 区域",
+)
+
+# 公共任务列表：滚动区域上沿（回滚到底部的标志）
+LEAGUE_MOB_SCROLL_TOP_EDGE = SceneElement(
+    name="联盟总动员-公共任务-滚动区域-上沿",
+    resource_id="联盟总动员-公共任务-滚动区域-上沿",
+    desc="联盟总动员：公共任务滚动区域上沿标志",
+)
+
+# 公共任务卡片：奖励标志（未接任务的标志）
+LEAGUE_MOB_PUBLIC_REWARD_FLAG = SceneElement(
+    name="联盟总动员-公共任务-奖励标志",
+    resource_id="联盟总动员-公共任务-奖励标志",
+    desc="联盟总动员：公共任务未接任务奖励标志",
+)
