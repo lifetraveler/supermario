@@ -21,78 +21,13 @@
               },
               "tasks": [
                 {
-                  "id": "league_reward_box",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "bank_save",
-                  "enabled": true,
-                  "params": {
-                    "bankdays": "7"
-                  }
-                },
-                {
-                  "id": "golden_refine",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "league_tech_donate",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "wave_ride",
-                  "enabled": true,
-                  "params": {
-                    "dispatch_wait_hours": 0
-                  }
-                },
-                {
-                  "id": "watch_tower_event",
-                  "enabled": true,
-                  "params": {
-                    "beast_queue_limit": 0
-                  }
-                },
-                {
-                  "id": "train_soldier",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "pet_treasure_hunt",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
                   "id": "hunt_monster",
                   "enabled": true,
                   "params": {
                     "monster_level": "0"
                   },
-                  "count": 9
+                  "count": 8,
+                  "next_trigger_delay": 180
                 },
                 {
                   "id": "arena_challenge",
@@ -160,6 +95,77 @@
                     "batch_normal_times": 0,
                     "batch_legend_times": 0
                   }
+                },
+                {
+                  "id": "golden_tech_research",
+                  "enabled": true,
+                  "params": {}
+                },
+                {
+                  "id": "league_reward_box",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "bank_save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "7"
+                  }
+                },
+                {
+                  "id": "golden_refine",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_warehouse_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "wave_ride",
+                  "enabled": false,
+                  "params": {
+                    "dispatch_wait_hours": 0
+                  }
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": false,
+                  "params": {
+                    "beast_queue_limit": 0
+                  }
+                },
+                {
+                  "id": "train_soldier",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "pet_treasure_hunt",
+                  "enabled": false,
+                  "params": {}
                 }
               ]
             },
@@ -285,6 +291,11 @@
                 {
                   "id": "hero_enlist",
                   "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "golden_tech_research",
+                  "enabled": true,
                   "params": {}
                 }
               ]

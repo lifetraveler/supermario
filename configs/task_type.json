@@ -581,6 +581,49 @@
           }
         ]
       }
+      ,
+      {
+        "type": "Golden Tech Research",
+        "id": "golden_tech_research",
+        "name_prefix": "Golden Tech黄金科技",
+        "description": "黄金科技研究：任务列表找黄金科技研究入口并确认空闲，进战争学院科技树按兵种优先级选分支研究，OCR 剩余时间并联盟互助，按研究完成时间回传下次触发。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Troop Priority",
+            "attr": "troop_priority",
+            "default": "弓",
+            "widget": {
+              "type": "drop_down",
+              "options": ["弓", "骑", "步"]
+            },
+            "desc": "兵种优先级：优先尝试研究的分支节点（弓/骑/步），命中哪个研究哪个。"
+          },
+          {
+            "name": "Sub Tech Names",
+            "attr": "sub_tech_names",
+            "default": "",
+            "widget": {"type": "text"},
+            "desc": "子项研究特征名（coco 中的 resource_id），逗号分隔多个；留空则只用默认第 4 步三选一节点。"
+          },
+          {
+            "name": "Default Retry Wait",
+            "attr": "default_retry_wait",
+            "default": 3600,
+            "widget": null,
+            "desc": "OCR 剩余研究时间失败时的兜底重试间隔（秒）。"
+          }
+        ]
+      }
     ]
   }
 ]

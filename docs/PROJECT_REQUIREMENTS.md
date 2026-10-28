@@ -989,3 +989,39 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-28] 黄金科技研究（Golden Tech Research）
+
+### 原始需求
+进入城市主界面，点击任务列表，在「科技研究」分区定位黄金科技研究入口-1（必要时在任务列表搜索区域内循环上滑检索）。检索到入口后，先判断其下方状态特征"黄金科技研究状态-1-状态判断-空闲"是否为「空闲中」：不满足（已有研究在进行）则返回失败，不需重试。满足则点击入口，游戏跳转至战争学院建筑，点击黄金科技-2 进入科技树界面，点击黄金科技研究-3 定位当前可研究节点，按配置的兵种优先级在 皇家科技-4-弓-科技1 / 黄金科技-4-骑-科技1 / 黄金科技-4-步-科技1 三个互为备选的分支节点中选择其一点击。弹出研究确认弹窗后，点击黄金科技研究-5-确认按钮-预估时间框中的「研究」按钮开始研究。研究启动后在黄金科技研究-6-状态时间-互助底栏 OCR 剩余研究时间，并点击「联盟互助」，返回主界面，任务返回成功以及研究完成时间。参数：兵种优先级下拉（弓/骑/步）；子项研究特征名（可直接配置 coco 中的对应特征 name）。
+
+### 变更点
+- 新增 10 个 SceneElement 常量（coco id 268-276、304）：TASKLIST_TECH_RESEARCH_SECTION / GOLDEN_TECH_RESEARCH_ENTRY / GOLDEN_TECH_RESEARCH_STATUS_IDLE / GOLDEN_TECH_ACADEMY / GOLDEN_TECH_RESEARCH_NODE / GOLDEN_TECH_ARCHER_NODE_1 / GOLDEN_TECH_CAVALRY_NODE_1 / GOLDEN_TECH_INFANTRY_NODE_1 / GOLDEN_TECH_CONFIRM_RESEARCH_BUTTON / GOLDEN_TECH_STATUS_TIME_HELP。
+- 新增 src/sg/tasks/city/GoldenTechResearchTask.py：开任务列表 → 上滑检索黄金科技研究入口 → 空闲状态门槛判断 → 点击入口 → 战争学院 → 科技树可研究节点 → sub_tech_names 子项特征优先、troop_priority（弓/骑/步）默认分支三选一（优先项未出现时回退其余两个分支）→ 确认弹窗点「研究」→ 状态底栏 OCR 剩余时间 + 点击联盟互助 → 回主界面。
+- 调度语义对齐 ClaimWarehouseReward：SUCCESS 回传 wait_seconds=剩余研究时间，队列置 IN_PROGRESS，check_completed 到点放行；注册 count=1/max_active=1/requires_march_queue=false/next_trigger_delay=0。
+- 入口非「空闲」（研究进行中）或列表滑到底无入口 → FAILED 不重试（需求原文）。
+- 注册三动作：task_type_map.py 加 "Golden Tech Research" 映射；task_type.json 加定义段（id=golden_tech_research，params: troop_priority 下拉、sub_tech_names 文本、default_retry_wait=3600）；task_config.json user0/user10 各加 enabled=true 实例条目（params 留空用默认值）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（10 元素）
+- src/sg/tasks/city/GoldenTechResearchTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0/user10 enabled=true 实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：elements.py 编译 OK，248 个常量无重名、resource_id 无重复；TASK_TYPE_MAP import OK（24 types），golden_tech_research → GoldenTechResearchTask；config_loader.load() / load_type_document() 解析通过，实例条目与定义段全部装载；TASK_TYPE_MAP 与 task_type.json 按 id 双向一致（全部实例 id 有定义且可映射）。
+- 类级冒烟：任务类 import OK，__init__ 注入 3 个参数字段（troop_priority/sub_tech_names/default_retry_wait），全部引用元素存在；任务类遵循工厂 kwargs→setattr 注入契约（task_queue.py:166-168）。
+- 独立模式/队列模式实机验证：未跑（本机无模拟器会话，特征模板已入库，待真机验证）。
+
+### 遗留 / 风险
+- 10 个特征模板尚未真机验证识别率；黄金科技研究-5 确认按钮在弹窗内，若特征截图为整框而非按钮本体，点击可能落点偏差，需真机确认。
+- sub_tech_names 依赖 get_box_by_name（bbox 直点），子项特征必须是 coco 已标注且有 bbox 的资源。
+- 研究进行中返回 FAILED 走 max_failures 统计（当前 max_failures=0 不停止），若日志噪音明显可改为入口状态判断前置 RETRY 语义，需真机观察后决定。
+- 状态底栏「联盟互助」直接点特征框中心，若框内互助按钮不在中心需真机调整点击偏移。
+
+---

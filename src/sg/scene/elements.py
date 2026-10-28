@@ -1760,3 +1760,78 @@ ARENA_QUICK_PASS_3 = SceneElement(
     resource_id="竞技场快速通过3",
     desc="竞技场：快速挑战流程第 3 步按钮",
 )
+
+
+# ============================================================
+# 黄金科技研究（Golden Tech Research）
+# ============================================================
+
+# 任务列表：科技研究分区标题（定位分区用，不点击）
+TASKLIST_TECH_RESEARCH_SECTION = SceneElement(
+    name="任务列表-科技研究",
+    resource_id="任务列表-科技研究",
+    desc="任务列表内「科技研究」分区标题，用于定位分区",
+)
+
+# 任务列表：黄金科技研究入口
+GOLDEN_TECH_RESEARCH_ENTRY = SceneElement(
+    name="黄金科技研究入口-1",
+    resource_id="黄金科技研究入口-1",
+    desc="任务列表中的黄金科技研究条目，点击进入战争学院",
+)
+
+# 任务列表：黄金科技研究状态判断-空闲（前置门槛）
+GOLDEN_TECH_RESEARCH_STATUS_IDLE = SceneElement(
+    name="黄金科技研究状态-1-状态判断-空闲",
+    resource_id="黄金科技研究状态-1-状态判断-空闲",
+    desc="黄金科技研究入口状态：「空闲中」才继续，否则失败返回",
+)
+
+# 战争学院建筑（跳转后点击打开研究界面）
+GOLDEN_TECH_ACADEMY = SceneElement(
+    name="黄金科技-2",
+    resource_id="黄金科技-2",
+    desc="跳转后点击战争学院建筑，打开黄金科技研究界面",
+)
+
+# 科技树：当前可研究节点
+GOLDEN_TECH_RESEARCH_NODE = SceneElement(
+    name="黄金科技研究-3",
+    resource_id="黄金科技研究-3",
+    desc="科技树中当前可研究节点",
+)
+
+# 科技树：弓兵分支科技节点（三选一）
+GOLDEN_TECH_ARCHER_NODE_1 = SceneElement(
+    name="皇家科技-4-弓-科技1",
+    resource_id="皇家科技-4-弓-科技1",
+    desc="弓兵分支科技节点（第 4 步三选一）",
+)
+
+# 科技树：骑兵分支科技节点（三选一）
+GOLDEN_TECH_CAVALRY_NODE_1 = SceneElement(
+    name="黄金科技-4-骑-科技1",
+    resource_id="黄金科技-4-骑-科技1",
+    desc="骑兵分支科技节点（第 4 步三选一）",
+)
+
+# 科技树：步兵分支科技节点（三选一）
+GOLDEN_TECH_INFANTRY_NODE_1 = SceneElement(
+    name="黄金科技-4-步-科技1",
+    resource_id="黄金科技-4-步-科技1",
+    desc="步兵分支科技节点（第 4 步三选一）",
+)
+
+# 研究确认弹窗：「研究」按钮（框内含预估研究时长，可选 OCR）
+GOLDEN_TECH_CONFIRM_RESEARCH_BUTTON = SceneElement(
+    name="黄金科技研究-5-确认按钮-预估时间框",
+    resource_id="黄金科技研究-5-确认按钮-预估时间框",
+    desc="研究确认弹窗的「研究」按钮，含预估研究时长",
+)
+
+# 研究启动后底栏：剩余时间 + 联盟互助
+GOLDEN_TECH_STATUS_TIME_HELP = SceneElement(
+    name="黄金科技研究-6-状态时间-互助",
+    resource_id="黄金科技研究-6-状态时间-互助",
+    desc="研究中底栏：OCR 剩余研究时间 + 联盟互助按钮",
+)

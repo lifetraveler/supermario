@@ -35,6 +35,7 @@ from src.sg.tasks.city.WaveRideTask import WaveRideTask
 from src.sg.tasks.daily.ClaimBuyCenterRewardTask import ClaimBuyCenterRewardTask
 from src.sg.tasks.city.HeroEnlistTask import HeroEnlistTask
 from src.sg.tasks.city.ArenaChallengeTask import ArenaChallengeTask
+from src.sg.tasks.city.GoldenTechResearchTask import GoldenTechResearchTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -60,4 +61,5 @@ TASK_TYPE_MAP = {
     "Wave Ride":             WaveRideTask,
     "Hero Enlist":           HeroEnlistTask,
     "Arena Challenge":       ArenaChallengeTask,
+    "Golden Tech Research":  GoldenTechResearchTask,
 }
