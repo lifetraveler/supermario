@@ -1,5 +1,7 @@
 {
     "Tick Interval": 1.0,
     "Continue After Failure": true,
-    "Max Failures": 0
+    "Max Failures": 0,
+    "Max Idle Sleep": 30.0,
+    "Min Sleep": 0.05
 }

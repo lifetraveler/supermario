@@ -12,6 +12,7 @@
 UnifiedQueue 实例通过 __new__ 跳过 __init__ 构造（跳过 Qt / 配置 IO），
 依赖以属性注入，因此真实方法（含 super() 调用）全部可用。
 """
+import threading
 import time
 import unittest
 from unittest import mock
@@ -387,17 +388,22 @@ class TestCycleReturnCodes(unittest.TestCase):
         obj.scene = mock.Mock()
         obj.queue = None
         obj._factories = []
+        # B2（事件驱动主循环）需要的 __init__ 属性：__new__ 绕过了
+        # __init__，这里按最小集补齐，语义与真构造一致。
+        obj._wake_cond = threading.Condition()
+        obj._wake_flag = False
+        obj._last_info_version = -1
         obj._queue_global_params = lambda: {
             "tick_interval": 0.0, "continue_after_failure": True}
         obj._reload_config = mock.Mock()
         obj._build_factories = mock.Mock()
-        obj._log_factories_summary = mock.Mock()
-        obj._on_queue_stopped = mock.Mock()
         obj._after_queue_done = mock.Mock()
         obj._update_info = mock.Mock()
         obj._rotation_yield_reason = mock.Mock(
             side_effect=reason_side_effects or None,
             return_value=None)  # side_effect 耗尽后回退 None（继续跑）
+        # B2 主循环会等唤醒；__new__ 构造下 stub 掉真实等待。
+        obj._wait_wake = lambda timeout: None
         return obj, obj._after_queue_done
 
     def _run(self, obj, all_done_side_effects):
@@ -407,6 +413,8 @@ class TestCycleReturnCodes(unittest.TestCase):
         with mock.patch(
                 "src.sg.tasks.queue.QueueTaskBase.TaskQueue") as tq_cls:
             queue = mock.Mock()
+            # B2：主循环 tick 后查 next_wakeup_time；None = 走兜底间隔。
+            queue.next_wakeup_time.return_value = None
             queue.all_done.side_effect = (
                 all_done_side_effects if all_done_side_effects else True)
             tq_cls.return_value = queue
