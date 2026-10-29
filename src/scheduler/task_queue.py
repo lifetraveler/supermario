@@ -292,7 +292,111 @@ class TaskQueue:
         self.before_interaction_retry_delay = 5.0
         self.execution_samples = {}   # {type_id: deque[float]}
 
+        # --------------------------------------------------------
+        # 事件驱动调度：
+        # - wake_callback：队列状态变化时通知主循环"现在有活干了"，
+        #   取代固定间隔轮询。回调可能从任意线程触发，实现方自行保证
+        #   线程安全；回调异常吞掉记 debug，绝不拖垮调度。
+        # - version：对外可见状态变化的单调递增计数，UI 刷新用它
+        #   门控，避免每 tick 全量 get_snapshot。
+        # - _in_progress_count：按 factory_key 维护的 O(1) IN_PROGRESS
+        #   计数，消除 _activate_scheduled / _pick_next 里每任务全量
+        #   扫描的 O(N²) 热点。普通 dict + get(key, 0)，不用
+        #   defaultdict（避免 getattr 探测时意外建键）。
+        # --------------------------------------------------------
+        self.wake_callback = None
+        self.version = 0
+        self._in_progress_count = {}
+
     _SAMPLE_WINDOW = 20
+
+    # --------------------------------------------------------
+    # 事件驱动基础设施（B1.1 / B1.3）
+    # --------------------------------------------------------
+
+    def _notify_wake(self):
+        """
+        通知主循环"队列有变化，可以提前 tick"。
+        回调崩溃只记 debug：唤醒失败最坏退化为等下一个兜底间隔，
+        绝不能让 callback 的异常打断状态流转本身。
+        """
+        cb = self.wake_callback
+        if cb is None:
+            return
+        try:
+            cb()
+        except Exception as e:
+            logger.debug(f"TaskQueue wake_callback error: {e}")
+
+    def _bump(self):
+        """
+        状态可见变化统一出口：version+1（UI 门控用）+ 唤醒通知。
+        所有让"队列对外观感"变化的位置都必须走这里，
+        状态无变化的内部扫描不得调用（version 不动 = UI 可跳过刷新）。
+        """
+        self.version += 1
+        self._notify_wake()
+
+    def _sync_in_progress(self, task, old_status, new_status):
+        """
+        维护 per-factory 的 O(1) IN_PROGRESS 计数。
+        key 取 getattr(task, 'factory_key', None)：无 key 的任务
+        （不走工厂的裸 add）不进计数器，_count_in_progress 对它们
+        返回 0，语义与旧的全量扫描一致。
+        """
+        key = getattr(task, "factory_key", None)
+        if key is None:
+            return
+        if old_status == TaskStatus.IN_PROGRESS and new_status != TaskStatus.IN_PROGRESS:
+            self._in_progress_count[key] = max(
+                0, self._in_progress_count.get(key, 0) - 1
+            )
+        elif new_status == TaskStatus.IN_PROGRESS and old_status != TaskStatus.IN_PROGRESS:
+            self._in_progress_count[key] = (
+                self._in_progress_count.get(key, 0) + 1
+            )
+
+    def _set_status(self, task, new_status):
+        """
+        任务状态赋值统一入口：赋值 + 计数同步 + _bump。
+        队列内所有 task.status 写入必须走这里，保证 IN_PROGRESS
+        计数器与真实状态永远一致，也保证每次流转都触发唤醒。
+        """
+        old = getattr(task, "status", None)
+        task.status = new_status
+        self._sync_in_progress(task, old, new_status)
+        self._bump()
+
+    def _drop_in_progress_ref(self, task):
+        """
+        任务被移出队列（remove_task / clear）时归还 IN_PROGRESS 名额。
+        只处理计数器；状态本身不再改写（任务对象已离开队列）。
+        """
+        if getattr(task, "status", None) == TaskStatus.IN_PROGRESS:
+            self._sync_in_progress(task, TaskStatus.IN_PROGRESS, TaskStatus.DONE)
+
+    def start(self):
+        self.started = True
+        self.paused = False
+        # start 本身不改状态机，但主循环需要立刻感知"可以跑了"。
+        self._bump()
+        logger.info("TaskQueue started")
+
+    def stop(self):
+        self.started = False
+        self._bump()
+        logger.info("TaskQueue stopped")
+
+    def pause(self):
+        self.paused = True
+        self._bump()
+        logger.info("TaskQueue paused")
+
+    def resume(self):
+        self.paused = False
+        # resume 后主循环必须立刻醒来继续 tick，不能等兜底间隔。
+        self._bump()
+        logger.info("TaskQueue resumed")
 
     def _record_execution(self, task, seconds):
         """
@@ -324,28 +428,7 @@ class TaskQueue:
         if factory.exhausted:
             return
         factory._check_failures(self.max_failures)
-    # --------------------------------------------------------
 
-    def start(self):
-        self.started = True
-        self.paused = False
-        logger.info("TaskQueue started")
-
-    def stop(self):
-        self.started = False
-        logger.info("TaskQueue stopped")
-
-    def pause(self):
-        self.paused = True
-        logger.info("TaskQueue paused")
-
-    def resume(self):
-        self.paused = False
-        logger.info("TaskQueue resumed")
-
-    # --------------------------------------------------------
-    # 添加 / 移除
-    # --------------------------------------------------------
 
     def add(self, task):
         """
@@ -381,8 +464,16 @@ class TaskQueue:
         # 重排计数器：从 0 起算，只在 _handle_restart_requested 里 +1。
         # 每次进入队列都重置，follower 是全新实例自然从 0 开始。
         task.restart_count = 0
-        
+
         self.tasks.append(task)
+        # 新任务无论落什么初始状态都是"队列观感变化"（有新东西要
+        # 调度了），即使初始状态不是 PENDING 也要 bump——主循环需要
+        # 醒来重算 next_wakeup_time。注意此时任务刚 append，若初始
+        # 状态恰为 IN_PROGRESS（罕见，调用方预置），计数按 key 正常 +1。
+        self._sync_in_progress(
+            task, None, getattr(task, "status", None)
+        )
+        self._bump()
         logger.info(
             f"TaskQueue add: {task.name} ({task.task_id}) "
             f"status={task.status.value}"
@@ -391,6 +482,11 @@ class TaskQueue:
 
     def add_factory(self, factory: TaskFactory):
         self.factories.append(factory)
+        # 新工厂意味着 _replenish 即将建任务、stalled 扫描新增对象，
+        # 主循环必须醒来。仅当工厂尚未初始填充时才 bump：已填充工厂
+        # 重复注册不会带来新任务，避免无谓的空唤醒。
+        if not factory.initial_filled:
+            self._bump()
         logger.info(
             f"TaskQueue add factory: {factory.name_prefix} "
             f"x {factory.count}, max_active={factory.max_active}, "
@@ -402,6 +498,10 @@ class TaskQueue:
         for i, t in enumerate(self.tasks):
             if t.task_id == task_id:
                 self.tasks.pop(i)
+                # 移除对象若占着 IN_PROGRESS 名额必须归还计数器，
+                # 否则 max_active 永远被幽灵任务占满。
+                self._drop_in_progress_ref(t)
+                self._bump()
                 logger.info(f"TaskQueue remove: {t.name} ({task_id})")
                 if self.current_interaction is t:
                     self.current_interaction = None
@@ -409,15 +509,22 @@ class TaskQueue:
         return False
 
     def clear(self):
+        # 全量清空：先按当前队列把 IN_PROGRESS 计数清零，再清容器。
+        for t in self.tasks:
+            self._drop_in_progress_ref(t)
         self.tasks.clear()
         self.factories.clear()
         self.current_interaction = None
+        self._bump()
         logger.info("TaskQueue cleared")
 
     def pause_task(self, task_id):
         for t in self.tasks:
             if t.task_id == task_id:
                 t.paused = True
+                # paused 改变调度观感（next_wakeup_time 会跳过它），
+                # 通知主循环与 UI。
+                self._bump()
                 logger.info(f"TaskQueue pause_task: {t.name}")
                 return True
         return False
@@ -426,6 +533,8 @@ class TaskQueue:
         for t in self.tasks:
             if t.task_id == task_id:
                 t.paused = False
+                # 恢复的任务可能立即可以 pick，主循环必须醒来。
+                self._bump()
                 logger.info(f"TaskQueue resume_task: {t.name}")
                 return True
         return False
@@ -434,9 +543,11 @@ class TaskQueue:
     # 主 tick
     # --------------------------------------------------------
 
+
     def tick(self):
         """
-        外部需要定时调用本方法（例如每秒一次）。
+        外部需要调用本方法推进调度（事件驱动下按 next_wakeup_time /
+        wake_callback 唤醒，固定间隔仅作兜底）。
 
         顺序：
           1. 检查 IN_PROGRESS 是否到期
@@ -460,18 +571,15 @@ class TaskQueue:
         self._activate_scheduled(now)
 
         # 4. 挑一个 PENDING 交互
-        user_id=None
         candidate = self._pick_next(now)
         if candidate is not None:
-            user_id= candidate.user_id
             self._do_interaction(candidate)
 
         # 5. 初始填充
         self._replenish()
 
         # 6. 失败策略：补建 / 停止
-        self._check_stalled_factories(now,user_id)
-
+        self._check_stalled_factories(now)
 
     # --------------------------------------------------------
     # 内部逻辑
@@ -502,15 +610,20 @@ class TaskQueue:
                 task.last_error = str(e)
 
             if ok:
-                task.status = TaskStatus.DONE
+                self._set_status(task, TaskStatus.DONE)
                 task.finished_at = now
                 # one_shot / cron：终态即触发下一次排程（次数在这里扣减）
                 self._reschedule_for_next_run(task, now)
                 logger.info(f"TaskQueue done: {task.name}")
             else:
-                task.status = TaskStatus.PENDING
+                self._set_status(task, TaskStatus.PENDING)
                 task.next_retry_time = now + 5
                 logger.info(f"TaskQueue recheck failed: {task.name}")
+
+    # --------------------------------------------------------
+    # 内部逻辑
+    # --------------------------------------------------------
+
 
     def _activate_scheduled(self, now):
         """
@@ -542,7 +655,7 @@ class TaskQueue:
                 f"TaskQueue activate: {task.name} "
                 f"(trigger={task.trigger_time:.0f})"
             )
-            task.status = TaskStatus.PENDING
+            self._set_status(task, TaskStatus.PENDING)
 
     def _pick_next(self, now):
         """
@@ -575,6 +688,44 @@ class TaskQueue:
             return task
         return None
 
+    def next_wakeup_time(self):
+        """
+        下一次需要 tick 的最早时间戳；None = 无明确时间点
+        （调用方用兜底间隔）。
+
+        与 UnifiedQueue._next_wake_time 语义对齐，差异点（本队列
+        单线程交互互斥）：
+          - RUNNING：当前交互结束前不该被唤醒打断 → 跳过。
+            tick 由交互返回后的 _bump 自然唤醒。
+          - IN_PROGRESS：estimated_finish_time 非 None 才是候选；
+            None（如等待外部事件）交给兜底间隔。
+          - SCHEDULED：trigger_time 是硬约束，候选。
+          - PENDING：max(next_retry_time, now)——next_retry_time
+            已过 = 立即可跑 → now（等价于"马上"，返回 now 而非 0，
+            让调用方 wait = next_ts - time.time() ≈ 0）。
+          - paused / DONE / FAILED：不产生唤醒点。
+        """
+        now = time.time()
+        candidates = []
+        for task in self.tasks:
+            if getattr(task, "paused", False):
+                continue
+            status = task.status
+            if status in (TaskStatus.DONE, TaskStatus.FAILED, TaskStatus.RUNNING):
+                continue
+            if status == TaskStatus.IN_PROGRESS:
+                finish = getattr(task, "estimated_finish_time", None)
+                if finish is not None:
+                    candidates.append(finish)
+            elif status == TaskStatus.SCHEDULED:
+                candidates.append(task.trigger_time)
+            elif status == TaskStatus.PENDING:
+                retry = getattr(task, "next_retry_time", 0.0) or 0.0
+                candidates.append(retry if retry > now else now)
+        if not candidates:
+            return None
+        return min(candidates)
+
     def _do_interaction(self, task):
         """
         执行一次交互：
@@ -600,7 +751,7 @@ class TaskQueue:
                 logger.error(f"TaskQueue before_interaction error: {task.name}", e)
                 ok = False
             if not ok:
-                task.status = TaskStatus.PENDING
+                self._set_status(task, TaskStatus.PENDING)
                 task.next_retry_time = time.time() + self.before_interaction_retry_delay
                 logger.info(
                     f"TaskQueue before_interaction declined: {task.name} "
@@ -609,7 +760,7 @@ class TaskQueue:
                 return
 
         self.current_interaction = task
-        task.status = TaskStatus.RUNNING
+        self._set_status(task, TaskStatus.RUNNING)
         logger.info(f"TaskQueue interaction: {task.name}")
 
         started_at = time.perf_counter()
@@ -627,7 +778,7 @@ class TaskQueue:
             logger.error(f"TaskQueue exception: {task.name}", e)
             self._record_execution(
                 task, time.perf_counter() - started_at)
-            task.status = TaskStatus.FAILED
+            self._set_status(task, TaskStatus.FAILED)
             task.last_error = str(e)
             self.current_interaction = None
             self._on_task_failed(task)
@@ -640,7 +791,7 @@ class TaskQueue:
 
         if result == InteractionResult.SUCCESS:
             # 统一进 IN_PROGRESS，wait=0 的任务下一 tick 会转 DONE
-            task.status = TaskStatus.IN_PROGRESS
+            self._set_status(task, TaskStatus.IN_PROGRESS)
             factory = self._find_factory(task)
             # 如果是一次性任务，则清空下一次任务触发时间,这两种由_reschedule_for_next_run控制
             # 10-22 这里对本次已经success的任务处理有点问题，
@@ -662,7 +813,7 @@ class TaskQueue:
             return
 
         if result == InteractionResult.RETRY:
-            task.status = TaskStatus.PENDING
+            self._set_status(task, TaskStatus.PENDING)
             task.next_retry_time = time.time() + max(1.0, wait_seconds)
             logger.info(
                 f"TaskQueue retry: {task.name} in {wait_seconds:.1f}s"
@@ -670,7 +821,7 @@ class TaskQueue:
             return
 
         # 默认终态失败；one_shot / cron 由 _reschedule_for_next_run 改写去向
-        task.status = TaskStatus.FAILED
+        self._set_status(task, TaskStatus.FAILED)
         self._on_task_failed(task)
         if not self._reschedule_for_next_run(task, time.time()):
             logger.info(
@@ -718,7 +869,7 @@ class TaskQueue:
         task.restart_count = getattr(task, "restart_count", 0) + 1
 
         if task.restart_count > self.max_restart_count:
-            task.status = TaskStatus.FAILED
+            self._set_status(task, TaskStatus.FAILED)
             self._on_task_failed(task)
             # one_shot / cron 在这里终态同样要决定下一次去向
             self._reschedule_for_next_run(task, time.time())
@@ -727,8 +878,7 @@ class TaskQueue:
                 f"已重排 {self.max_restart_count} 次仍失败，标记 FAILED: {exc}"
             )
             return
-
-        task.status = TaskStatus.PENDING
+        self._set_status(task, TaskStatus.PENDING)
         task.next_retry_time = time.time() + self.restart_delay
         logger.info(
             f"TaskQueue restart: {task.name} "
@@ -786,7 +936,7 @@ class TaskQueue:
     # 失败策略 / 自重排
     # --------------------------------------------------------
 
-    def _check_stalled_factories(self, now,user_id):
+    def _check_stalled_factories(self, now):
         """
         失败策略扫描：某工厂的全部任务都进入终态（DONE/FAILED），
         但提交数还没用完 count → 该工厂"卡死"了。
@@ -812,19 +962,31 @@ class TaskQueue:
           - one_shot / cron 工厂不走这里：它们的重排在
             _reschedule_for_next_run 里做，且终态即"次数已减"，
             不存在卡死形态。
+
+        多 user 语义（user_id 过滤 bug 修复）：
+          本方法不再按 tick 传参的 user_id 过滤工厂。多 user 轮转时
+          tick 可能一轮没 pick 到任何任务（user_id=None），旧实现
+          会把 user_id=0 的工厂全部跳过，卡死永远无法解除。
+          补建归属依赖 factory.user_id——TaskFactory.create() 在
+          建任务时已把工厂的 user_id 盖章到实例上，与 tick 参数无关。
+
+        复杂度：开头一次性建 by_factory 索引（O(N)），循环内每个
+        工厂按 key 取自有任务（O(own)），整体 O(N+F)，
+        替代旧实现"每工厂全量扫任务"的 O(F×N)。
         """
+        by_factory = {}
+        for t in self.tasks:
+            by_factory.setdefault(
+                getattr(t, "factory_key", None), []
+            ).append(t)
+
         for factory in self.factories:
-            if factory.user_id!=user_id:
-                continue
             if factory.exhausted or not factory.can_submit_more():
                 continue
             if factory.one_shot or factory.cron:
                 continue
 
-            own = [
-                t for t in self.tasks
-                if getattr(t, "factory_key", None) == factory.key
-            ]
+            own = by_factory.get(factory.key, [])
             # 还没有任何任务（例如全部被手动移除）不算卡死，
             # 交给初始填充 / follower 的正常路径处理。
             if not own:
@@ -881,7 +1043,7 @@ class TaskQueue:
             # can_submit_more() 用 finished_count < count 判断收敛。
             factory.finished_count += 1
             if remaining > 0:
-                task.status = TaskStatus.PENDING
+                self._set_status(task, TaskStatus.PENDING)
                 task.next_retry_time = finished_at + max(
                     0.0, getattr(task, "next_trigger_delay", 0.0)
                 )
@@ -917,7 +1079,7 @@ class TaskQueue:
                     f"次数用完 ({factory.count})，不再排下一次"
                 )
                 return True
-            task.status = TaskStatus.SCHEDULED
+            self._set_status(task, TaskStatus.SCHEDULED)
             task.trigger_time = next_time
             logger.info(
                 f"TaskQueue cron: {task.name} 下次触发 "
@@ -985,7 +1147,9 @@ class TaskQueue:
                     except (KeyError, ValueError) as e:
                         factory.exhausted = True
                         # 任务永远不会被激活，标 FAILED 让 all_done() 收敛
-                        task.status = TaskStatus.FAILED
+                        # 走 _set_status 保证状态写入口径统一（此时尚未
+                        # 入列，计数器无影响，多出的 bump 无害）。
+                        self._set_status(task, TaskStatus.FAILED)
                         task.last_error = f"invalid cron expr: {factory.cron!r}"
                         logger.error(
                             f"TaskQueue cron invalid: "
@@ -1028,12 +1192,13 @@ class TaskQueue:
         """
         某工厂当前 IN_PROGRESS 的任务数。
         IN_PROGRESS = 军队已派出，占用一个军队队列。
+
+        O(1) 字典读取：计数由 _set_status / _sync_in_progress 在每次
+        状态流转时增量维护，替代旧实现的全量任务扫描
+        （_activate_scheduled + _pick_next 每 tick 各扫一遍 → O(N²)）。
+        无 key（未走工厂的裸任务）返回 0，与旧语义一致。
         """
-        return sum(
-            1 for t in self.tasks
-            if getattr(t, "factory_key", None) == factory_key
-            and t.status == TaskStatus.IN_PROGRESS
-        )
+        return self._in_progress_count.get(factory_key, 0)
 
     # --------------------------------------------------------
     # 快照 / 终止
