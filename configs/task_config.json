@@ -21,93 +21,16 @@
               },
               "tasks": [
                 {
-                  "id": "league_reward_box",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "bank_save",
+                  "id": "league_mobilization",
                   "enabled": true,
                   "params": {
-                    "bankdays": "7"
-                  }
-                },
-                {
-                  "id": "golden_refine",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "league_tech_donate",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "pet_treasure_hunt",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "league_shop_buy",
-                  "enabled": true,
-                  "params": {
-                    "min_discount": [
-                      "3折"
+                    "buy_times": 0,
+                    "public_scroll_step": 0,
+                    "exclusive_goals": [
+                      "训练12万"
                     ]
-                  }
-                },
-                {
-                  "id": "arena_challenge",
-                  "enabled": true,
-                  "params": {
-                    "challenge_limit": 5
                   },
-                  "one_shot": true
-                },
-                {
-                  "id": "leader_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_buy_center_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "hero_enlist",
-                  "enabled": true,
-                  "params": {
-                    "enlist_mode": "0",
-                    "batch_normal_times": 0,
-                    "batch_legend_times": 0
-                  }
-                },
-                {
-                  "id": "hunt_elite_rebels",
-                  "enabled": true,
-                  "params": {},
-                  "count": 5
+                  "count": 10
                 },
                 {
                   "id": "train_soldier",
@@ -183,9 +106,93 @@
                   }
                 },
                 {
-                  "id": "league_mobilization",
-                  "enabled": true,
+                  "id": "league_reward_box",
+                  "enabled": false,
                   "params": {}
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "bank_save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "7"
+                  }
+                },
+                {
+                  "id": "golden_refine",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_warehouse_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "pet_treasure_hunt",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_shop_buy",
+                  "enabled": false,
+                  "params": {
+                    "min_discount": [
+                      "3折"
+                    ]
+                  }
+                },
+                {
+                  "id": "arena_challenge",
+                  "enabled": false,
+                  "params": {
+                    "challenge_limit": 5
+                  },
+                  "one_shot": true
+                },
+                {
+                  "id": "leader_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_buy_center_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "hero_enlist",
+                  "enabled": false,
+                  "params": {
+                    "enlist_mode": "0",
+                    "batch_normal_times": 0,
+                    "batch_legend_times": 0
+                  }
+                },
+                {
+                  "id": "hunt_elite_rebels",
+                  "enabled": false,
+                  "params": {},
+                  "count": 5
                 }
               ]
             },
@@ -199,98 +206,15 @@
               },
               "tasks": [
                 {
-                  "id": "bank_save",
+                  "id": "league_mobilization",
                   "enabled": true,
                   "params": {
-                    "bankdays": "7"
-                  }
-                },
-                {
-                  "id": "gather_island_water",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_mail_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "league_tech_donate",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "league_reward_box",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "golden_refine",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "punish_claim",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "pet_treasure_hunt",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_warehouse_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "claim_buy_center_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "leader_reward",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "watch_tower_event",
-                  "enabled": true,
-                  "params": {
-                    "beast_queue_limit": 0
-                  }
-                },
-                {
-                  "id": "arena_challenge",
-                  "enabled": true,
-                  "params": {
-                    "challenge_limit": 5
-                  }
-                },
-                {
-                  "id": "hunt_elite_rebels",
-                  "enabled": true,
-                  "params": {}
-                },
-                {
-                  "id": "hero_enlist",
-                  "enabled": true,
-                  "params": {
-                    "enlist_mode": "0",
-                    "batch_normal_times": 0,
-                    "batch_legend_times": 0
-                  }
-                },
-                {
-                  "id": "league_shop_buy",
-                  "enabled": true,
-                  "params": {
-                    "min_discount": [
-                      "3折"
-                    ]
-                  }
+                    "buy_times": 0,
+                    "public_scroll_step": 0,
+                    "public_refresh_goals": []
+                  },
+                  "next_trigger_delay": 10,
+                  "count": 10
                 },
                 {
                   "id": "golden_tech_research",
@@ -352,8 +276,97 @@
                   "params": {}
                 },
                 {
-                  "id": "league_mobilization",
-                  "enabled": true,
+                  "id": "bank_save",
+                  "enabled": false,
+                  "params": {
+                    "bankdays": "7"
+                  }
+                },
+                {
+                  "id": "claim_mail_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_tech_donate",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "league_reward_box",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "golden_refine",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "punish_claim",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "pet_treasure_hunt",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_warehouse_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "claim_buy_center_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "leader_reward",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "watch_tower_event",
+                  "enabled": false,
+                  "params": {
+                    "beast_queue_limit": 0
+                  }
+                },
+                {
+                  "id": "arena_challenge",
+                  "enabled": false,
+                  "params": {
+                    "challenge_limit": 5
+                  }
+                },
+                {
+                  "id": "hunt_elite_rebels",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "hero_enlist",
+                  "enabled": false,
+                  "params": {
+                    "enlist_mode": "0",
+                    "batch_normal_times": 0,
+                    "batch_legend_times": 0
+                  }
+                },
+                {
+                  "id": "league_shop_buy",
+                  "enabled": false,
+                  "params": {
+                    "min_discount": [
+                      "3折"
+                    ]
+                  }
+                },
+                {
+                  "id": "gather_island_water",
+                  "enabled": false,
                   "params": {}
                 }
               ]

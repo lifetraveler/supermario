@@ -1137,3 +1137,41 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-29] 联盟总动员 — 修订一轮（接取节奏 / 专属预检 / 优先级与门控）
+
+### 原始需求
+用户实测反馈修订：
+1. 可接次数是"可接任务数"（每次只能接 1 个），不是一轮能接完的总量——去掉轮末重读次数的主循环，一轮流程 = 次数判断 → 专属 → 公共（按门控）→ 结束回传。
+2. 专属任务1/2 点击前先 OCR 卡面：strict 解析出刷新倒计时 = 正在刷新，跳过该卡槽后续操作，倒计时记入下次触发候选。
+3. 公共任务刷新目标 参数未勾选任何值 → 不做公共任务刷新（含清扫）。
+4. 公共任务目标 未配置 → 不做公共任务接受。
+5. 优先级：专属优先；两个专属卡槽预检都在刷新且 刷新完成时刻已到明天（now + 倒计时跨过当日 24 点）才放行公共任务接受；公共任务的刷新操作只受 公共任务刷新 开关控制。
+
+### 变更点
+- `Mobilization.read_refresh_time(text, strict=False)`：strict 模式只认 中文单位（含"天"）/冒号格式，裸数字不视作倒计时——修复任务描述"训练120000点"里的 120000 被误判成 120000s 倒计时的隐患；非 strict 保留裸数字兜底（刷新后 OCR 用）。
+- `Mobilization.check_slot_refreshing(slot_element)`：点击前预检，OCR 卡面 strict 解析，返回倒计时秒数或 None。
+- `Mobilization.run_exclusive_slot`：接入预检，新增 action='refreshing'（卡槽刷新中，直接返回倒计时）。
+- `LeagueMobilizationTask._run_exclusive_slots`：返回 (state, ok)，state='busy'（两卡槽均刷新中）/ 'free'；倒计时取更近者写入 next_wait_seconds。
+- `LeagueMobilizationTask._public_ready`：两卡槽预检均出倒计时且均跨天 → True；任一卡槽可今天内刷完 → False（专属优先）。
+- `LeagueMobilizationTask._run_public_tasks`：门控——公共目标空 → 跳过接受；刷新关 → 不刷新；刷新开但刷新目标空 → 不清扫。
+- `LeagueMobilizationTask.run_interaction`：删除轮末重读次数循环（用户已先行注释），串入 专属 busy/跨天 → 公共 放行链。
+
+### 修复点
+- read_refresh_time 初次编辑残留重复 unit_pairs 块，已清理。
+
+### 涉及文件
+- src/sg/element/overall/activity/mobilization.py
+- src/sg/tasks/league/LeagueMobilizationTask.py
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 行为验证（mock 驱动，9 场景全过）：strict 解析（120000/150 不误判、8小时30分/01:23:45/12:34/1天 正确）；跨天判定（23:00+2h 跨天 / 23:00+30m 不跨 / 09:00+16h 跨天）；专属编排（双 refreshing→busy 且取近值 3600、accepted+refreshed→free、失败传播、refreshing+accepted→free 且倒计时记录）；公共门控矩阵（刷新关→不清扫、刷新开+目标勾选→清扫、刷新开+目标空→不清扫、公共目标空→全跳过）。
+- 独立/队列模式：待真机。
+
+### 遗留 / 风险
+- "已到了明天"判定基于本机时钟 + OCR 倒计时；若游戏刷新时刻与卡面倒计时口径不一致（如领取后有缓冲），边界 ±分钟级误差可接受。
+- 专属目标未配置时 state='free' 且公共任务直接放行（无专属可接 = 不占用专属名额）——如需"未配置专属也要求卡槽空闲才接公共"需再确认。
+
+---
+

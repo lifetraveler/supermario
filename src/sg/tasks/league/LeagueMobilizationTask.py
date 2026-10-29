@@ -4,24 +4,23 @@
 流程：
   1. 确保前台，清理弹窗，回主界面
   2. 进入联盟总动员界面（常规活动入口 → 页签滑动灰度查找）
-  3. 主循环（每轮先做状态判断）：
-     a) OCR 剩余可接次数 x；x + 剩余购买次数 y = 0 → FAILED（无多余次数）
-        y > 0 且需要时走购买流程（第一次免费 / 消耗钻石）
-     b) 专属任务 1 / 2 依次：点卡槽 → OCR 描述匹配专属目标 →
-        命中接受；未命中刷新并记录刷新倒计时（取更近者回传）
-     c) 公共任务：按配置在滚动窗口内特征/奖励标志检索，
-        点开校验描述 → 接受 / 刷新（受开关控制）/ 关闭
-
-调度参数：
-  - 不占军队队列（requires_march_queue=False，纯 UI 操作）
-  - next_trigger_delay=0：下次触发时间由 SUCCESS 返回的 wait_seconds
-    动态决定（刷新倒计时取更近者；无刷新回退兜底）
-  - 不可并行：活动界面同一时刻只能打开一个（count=1，无 max_active）
+  3. 次数状态判断（一次只接一个，无轮末重读循环）：
+     OCR 剩余可接次数 x；x + 剩余购买次数 y = 0 → FAILED（无多余次数）
+     y > 0 且 x = 0 时走购买流程（第一次免费 / 消耗钻石提交）
+  4. 专属任务（优先）：每个卡槽先 OCR 预检——解析出刷新倒计时 =
+     正在刷新，跳过点击并记入下次触发候选；可点击则进描述窗口匹配
+     专属目标 → 接受 / 刷新
+  5. 公共任务（门控）：
+     - 专属目标未配置或仍有卡槽可接 → 本轮不跑公共任务
+     - 两个专属卡槽都在刷新且刷新完成时刻已跨天 → 放行公共任务
+     - 公共任务目标未配置 → 不接受；公共任务刷新关闭 → 不刷新；
+       刷新开启但刷新目标未勾选 → 不做逐行清扫
 
 需求文档：docs/PROJECT_REQUIREMENTS.md（2026-10-29 联盟总动员一节）。
 """
 
 import types
+from datetime import datetime, timedelta
 
 from src.sg.tasks.SGBaseTask import SGBaseTask
 from src.scheduler.task_status import InteractionResult
@@ -141,32 +140,56 @@ class LeagueMobilizationTask(SGBaseTask):
 
         return True
 
-    def _run_exclusive_slots(self) -> bool:
-        """依次处理两个专属卡槽，记录更近的刷新倒计时。"""
+    def _run_exclusive_slots(self):
+        """
+        依次处理两个专属卡槽，记录更近的刷新倒计时。
+
+        返回 ('busy'|'free', bool)：
+          'busy' — 两个卡槽都在刷新中（专属暂不可接）
+          'free' — 至少有一个卡槽被接受/刚刷新（专属可继续接）
+        刷新倒计时写入 next_wait_seconds（取更近者）。
+        """
         goals = [g for g in (self.exclusive_goals or [])]
+        if not goals:
+            self.log_info("未配置专属任务目标，跳过专属卡槽")
+            return ("free", True)
+
+        all_refreshing = True
         for slot in (LEAGUE_MOB_EXCLUSIVE_SLOT_1, LEAGUE_MOB_EXCLUSIVE_SLOT_2):
-            if not goals:
-                self.log_info("未配置专属任务目标，跳过专属卡槽")
-                return True
             action, seconds = self.mob.run_exclusive_slot(slot, goals)
             if action == "failed":
                 self.last_error = f"专属卡槽处理失败: {slot.name}"
                 self.log_error(self.last_error)
-                return False
-            if action == "refreshed" and seconds is not None:
-                current = self.next_wait_seconds
-                if current is None or seconds < current:
-                    self.next_wait_seconds = seconds
-        return True
+                return ("free", False)
+            if action in ("refreshing", "refreshed"):
+                if seconds is not None:
+                    current = self.next_wait_seconds
+                    if current is None or seconds < current:
+                        self.next_wait_seconds = seconds
+            if action != "refreshing":
+                all_refreshing = False
+        return ("busy" if all_refreshing else "free", True)
 
     def _run_public_tasks(self) -> bool:
         """
         公共任务主流程：检索 → 校验 → 接受/刷新/关闭。
+
+        门控（参数）：
+          - 公共任务目标 未配置 → 跳过接受阶段
+          - 公共任务刷新 关闭   → 不做任何刷新
+          - 刷新开启且 公共任务刷新目标 未勾选任何值 → 仍不做清扫
+            （清扫的本质是刷新未接卡片；无保留目标时刷新无差别）
+
         刷新开启时追加阶段 B：回滚到上沿后按基准点行高逐行清扫，
         未接卡片按 公共任务刷新目标 决定 刷新 / 保留。
         """
+        goals = [g for g in (self.public_goals or [])]
+        if not goals:
+            self.log_info("未配置公共任务目标，跳过公共任务接受")
+            return True
+
         result = self.mob.run_public_tasks(
-            goals=[g for g in (self.public_goals or [])],
+            goals=goals,
             can_refresh=bool(self.public_refresh),
             scroll_step=self.public_scroll_step,
         )
@@ -176,9 +199,10 @@ class LeagueMobilizationTask(SGBaseTask):
             self.log_error(self.last_error)
             return False
 
-        if self.public_refresh:
+        refresh_goals = [g for g in (self.public_refresh_goals or [])]
+        if self.public_refresh and refresh_goals:
             sweep = self.mob.run_refresh_sweep(
-                refresh_goals=[g for g in (self.public_refresh_goals or [])],
+                refresh_goals=refresh_goals,
                 scroll_step=self.public_scroll_step,
             )
             self.log_info(f"刷新清扫结果: {sweep}")
@@ -186,6 +210,28 @@ class LeagueMobilizationTask(SGBaseTask):
                 self.last_error = "公共任务刷新清扫失败"
                 self.log_error(self.last_error)
                 return False
+        return True
+
+    def _public_ready(self) -> bool:
+        """
+        专属 → 公共 的放行判定。
+
+        两个专属卡槽的预检 OCR 均解析出刷新倒计时，且换算后的
+        刷新完成时刻已到明天（now + seconds 跨过当日 24 点），
+        视为"专属今天接不上了"，放行公共任务；否则专属优先，
+        公共任务本轮不跑。
+        """
+        now = datetime.now()
+        midnight = (now + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        # 任一卡槽能在今天之内刷完 → 专属仍可接
+        for slot in (LEAGUE_MOB_EXCLUSIVE_SLOT_1, LEAGUE_MOB_EXCLUSIVE_SLOT_2):
+            seconds = self.mob.check_slot_refreshing(slot)
+            if seconds is None:
+                return False
+            if now + timedelta(seconds=seconds) < midnight:
+                return False
+        self.log_info("两个专属卡槽刷新均跨天，转公共任务")
         return True
 
 
@@ -220,28 +266,22 @@ class LeagueMobilizationTask(SGBaseTask):
         self.next_wait_seconds = None
         self.buy_left = int(self.buy_times or 0)
 
-        # ---- 主循环：每轮先做状态判断 ----
-        while True:
-            if not self._step(self._ensure_times, "次数状态判断"):
-                # x+y=0 的"无多余次数"与 OCR 失败都在这里返回 FAILED
-                return (InteractionResult.FAILED, 0)
+        # ---- 次数状态判断（一次只接一个，无轮末重读循环）----
+        if not self._step(self._ensure_times, "次数状态判断"):
+            # x+y=0 的"无多余次数"与 OCR 失败都在这里返回 FAILED
+            return (InteractionResult.FAILED, 0)
 
-            # ---- 专属任务 ----
-            if not self._step(self._run_exclusive_slots, "专属任务"):
-                return (InteractionResult.FAILED, 0)
+        # ---- 专属任务（优先）----
+        state, ok = self._run_exclusive_slots()
+        if not ok:
+            return (InteractionResult.FAILED, 0)
 
-            # ---- 公共任务 ----
+        # ---- 公共任务：仅当两个专属卡槽刷新均跨天才放行 ----
+        if state == "busy" or self._public_ready():
             if not self._step(self._run_public_tasks, "公共任务"):
                 return (InteractionResult.FAILED, 0)
-
-            # ---- 本轮结束：重新读次数决定是否再来一轮 ----
-            x = self.mob.read_remain_times()
-            if x < 0:
-                self.log_info("轮末次数 OCR 失败，结束本次任务")
-                break
-            if x <= 0:
-                self.log_info("可接次数已用完，结束本次任务")
-                break
+        else:
+            self.log_info("专属任务仍有可接卡槽，本轮不处理公共任务")
 
         wait_seconds = int(
             self.next_wait_seconds or self.default_next_wait_seconds

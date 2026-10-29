@@ -19,7 +19,15 @@
     },
     "league_shop_buy": {
       "avg": 13.848875399999088,
-      "samples": 1,
+      "samples": 1
+    },
+    "gather_island_water": {
+      "avg": 57.81111670000064,
+      "samples": 1
+    },
+    "league_mobilization": {
+      "avg": 72.94248210000114,
+      "samples": 2,
       "max_keep": 10
     }
   }

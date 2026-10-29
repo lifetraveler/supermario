@@ -387,7 +387,7 @@ class BaseResourceSearcher:
         )
         return fallback
 
-    def _scroll(self, direction, step=None, edge_elements=None):
+    def _scroll(self, direction, step=None, edge_elements=None,scroll_area=None):
         """
         沿指定方向滑动列表：手指从屏幕中间向该方向滑一小段。
 

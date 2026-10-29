@@ -39,6 +39,9 @@ from src.sg.scene.elements import (
     LEAGUE_MOB_PUBLIC_OFFSET_AREA,
     LEAGUE_MOB_PUBLIC_REWARD_FLAG,
     LEAGUE_MOB_SCROLL_TOP_EDGE,
+    GLOBAL_SSS_ACTIVITY_HEAD,
+    LEAGUE_MOB_REFRESH_CONFIRM_SCENE,
+    LEAGUE_MOB_REFRESH_CONFIRM,
 )
 
 # 专属卡槽（顺序即处理顺序）
@@ -77,18 +80,18 @@ class Mobilization:
         self.task = task
 
         # ---- 参数 ----
-        # 页签滑动查找次数上限
-        self.tag_scroll_max = 10
-        # 页签每次滑动的距离比例（横向）
-        self.tag_scroll_step = 0.2
-        # 滑动后等待动画时间
-        self.scroll_settle_time = 1.0
         # 剩余次数 OCR 失败时的重试次数
         self.times_ocr_retries = 3
         # 公共任务阶段 A 的最大滑动轮数
         self.public_scroll_max = 10
         # 回滚阶段的最大滑动次数
         self.rollback_scroll_max = 15
+        
+        self.scroll_max = 6
+        # 每次滑动的距离比例（1/4 屏）
+        self.scroll_step = 0.25
+        # 滑动后等待动画时间
+        self.scroll_settle_time = 1.0
 
         # ---- 运行时状态 ----
         # 最近一次公共任务滑动的像素距离（日志/调试用）
@@ -112,7 +115,7 @@ class Mobilization:
             return False
         self.task._sleep(1.0)
 
-        for attempt in range(self.tag_scroll_max + 1):
+        for attempt in range(self.scroll_max + 1):
             box = self.task._find(
                 LEAGUE_MOB_ENTRY_TAG,
                 use_gray_scale=True,
@@ -132,17 +135,80 @@ class Mobilization:
             self.task.log_info(
                 f"未找到联盟总动员标签，向左滑动 ({attempt + 1})"
             )
-            self.task.swipe_relative(
-                0.65, 0.5, 0.65 - self.tag_scroll_step, 0.5,
-                duration=0.3, settle_time=self.scroll_settle_time,
+            self._swipe_by_area(direction="left")
+            self.task._sleep(0.8)
+            
+        for attempt in range(self.scroll_max + 1):
+            box = self.task._find(
+                LEAGUE_MOB_ENTRY_TAG,
+                use_gray_scale=True,
+                box=self.task.box_of_screen(0, 0, 1, 1),
             )
+            if box is not None:
+                if attempt > 0:
+                    self.task.log_info(
+                        f"滑动 {attempt} 次后找到联盟总动员标签"
+                    )
+                if not self.task.click(box):
+                    return False
+                self.task._sleep(1.0)
+                self.task.log_info("已进入联盟总动员界面")
+                return True
 
+            self.task.log_info(
+                f"未找到联盟总动员标签，向右滑动 ({attempt + 1})"
+            )
+            self._swipe_by_area(direction="right")
+            self.task._sleep(0.8)
+        
         self.task.log_error("滑动检索耗尽仍未找到联盟总动员标签")
         return False
 
     # ========================================================
     # 步骤 1：剩余可接次数
     # ========================================================
+
+    def _swipe_by_area(self,direction="left"):
+        """
+        以滑动区域（GLOBAL_SSS_ACTIVITY_HEAD bbox）为基准向左滑 1/4 屏。
+
+        水平滑动的 y 线取区域中心 y（换算为屏幕相对 0~1，不用屏幕
+        中间 0.5——活动页滑动区通常偏上，固定 0.5 会滑到错误位置）；
+        x 跨度 = 区域宽度 × scroll_step，同样换算为屏幕相对值。
+        区域 bbox 不可用时退回屏幕中心相对坐标（y=0.5）。
+        """
+        area_box = self.task._safe_box(GLOBAL_SSS_ACTIVITY_HEAD)
+        if area_box is None:
+            self.task.log_info("滑动区域 bbox 不可用，退回屏幕中心滑动")
+            self.task.swipe_relative(
+                0.625, 0.5, 0.375, 0.5,
+                duration=0.3, settle_time=self.scroll_settle_time,
+            )
+            return
+
+        screen_w = self.task.width
+        screen_h = self.task.height
+        center_x, center_y = area_box.center()
+        # 区域中心与跨度：像素 → 屏幕相对 0~1（swipe_relative 语义）
+        rel_cx = (center_x+(area_box.width/4)) / screen_w
+        rel_cy = center_y / screen_h
+        rel_span = (area_box.width * self.scroll_step) / screen_w
+        from_x = rel_cx + rel_span / 2
+        to_x = rel_cx - rel_span / 2
+        self.task.log_info(
+            f"按区域滑动: y={rel_cy:.3f}, "
+            f"x {from_x:.3f} -> {to_x:.3f} (跨度 {rel_span:.3f})"
+        )
+        if direction=="left":
+            self.task.swipe_relative(
+            from_x, rel_cy, to_x, rel_cy,
+            duration=0.3, settle_time=self.scroll_settle_time,
+            )
+        else:
+            self.task.swipe_relative(
+            to_x, rel_cy, from_x, rel_cy,
+            duration=0.3, settle_time=self.scroll_settle_time,
+            )
 
     def read_remain_times(self) -> int:
         """
@@ -220,12 +286,13 @@ class Mobilization:
     # 刷新时间解析
     # ========================================================
 
-    def read_refresh_time(self, text):
+    def read_refresh_time(self, text, strict=False):
         """
-        把刷新倒计时 OCR 文本解析成秒。
+        刷新倒计时文本 → 秒。
 
-        兼容：中文单位词（"8小时30分"）、冒号（"01:23:45" / "12:34"）、
-        裸数字（按 秒/分:秒/时:分:秒 推断）。失败返回 None。
+        strict=True（专属卡槽预检用）：只认 中文单位/冒号 两种格式，
+        裸数字不视作倒计时——任务描述里的普通数字（"训练120000点实力"）
+        不会被误判成正在刷新。
         """
         if not text:
             return None
@@ -233,12 +300,15 @@ class Mobilization:
         if not text:
             return None
 
-        unit_pairs = re.findall(r"(\d+)\s*(小时|时|分|秒)", text)
+        # 1) 中文单位："8小时30分" / "1时2分3秒" / "1天"
+        unit_pairs = re.findall(r"(\d+)\s*(天|小时|时|分|秒)", text)
         if unit_pairs:
             total = 0
             for num, unit in unit_pairs:
                 n = int(num)
-                if unit in ("小时", "时"):
+                if unit == "天":
+                    total += n * 86400
+                elif unit in ("小时", "时"):
                     total += n * 3600
                 elif unit == "分":
                     total += n * 60
@@ -246,26 +316,27 @@ class Mobilization:
                     total += n
             return total
 
-        if ":" in text:
-            parts = [p for p in text.split(":") if p.strip().isdigit()]
-            numbers = [int(p) for p in parts]
-            if len(numbers) >= 3:
-                h, m, s = numbers[-3], numbers[-2], numbers[-1]
-                return h * 3600 + m * 60 + s
-            if len(numbers) == 2:
-                m, s = numbers
-                return m * 60 + s
-            if len(numbers) == 1:
-                return numbers[0]
-            return None
+        # 2) 冒号格式：直接匹配连续数字 + 冒号，忽略前后任何噪声字符
+        m = re.search(r"(\d+)\s*:\s*(\d+)\s*:\s*(\d+)", text)   # h:m:s
+        if m:
+            h, mi, s = map(int, m.groups())
+            return h * 3600 + mi * 60 + s
 
+        m = re.search(r"(\d+)\s*:\s*(\d+)", text)                # m:s
+        if m:
+            mi, s = map(int, m.groups())
+            return mi * 60 + s
+
+        # 3) 裸数字兜底：strict 模式不认（任务描述含普通数字，会误判）
+        if strict:
+            return None
         numbers = [int(n) for n in re.findall(r"\d+", text)]
         if len(numbers) >= 3:
-            h, m, s = numbers[-3], numbers[-2], numbers[-1]
-            return h * 3600 + m * 60 + s
+            h, mi, s = numbers[-3], numbers[-2], numbers[-1]
+            return h * 3600 + mi * 60 + s
         if len(numbers) == 2:
-            m, s = numbers
-            return m * 60 + s
+            mi, s = numbers
+            return mi * 60 + s
         if len(numbers) == 1:
             return numbers[0]
         return None
@@ -301,19 +372,40 @@ class Mobilization:
     # 专属任务卡槽
     # ========================================================
 
+    def check_slot_refreshing(self, slot_element):
+        """
+        点击前预检专属卡槽：直接 OCR 卡面文字。
+
+        strict 解析出倒计时（中文单位/冒号格式）= 该卡槽正在刷新，
+        返回秒数（调用方跳过该卡槽并记为下次触发候选）；
+        解析不出 = 可点击处理，返回 None。
+        """
+        text = self._ocr_desc(slot_element)
+        self.task.log_info(f"专属卡槽预检 OCR: {text!r}")
+        seconds = self.read_refresh_time(text, strict=True)
+        if seconds is not None:
+            self.task.log_info(f"专属卡槽正在刷新，剩余 {seconds}s")
+        return seconds
+
     def run_exclusive_slot(self, slot_element, goals):
         """
         处理一个专属任务卡槽。
 
-        流程：点击卡槽 → 弹出描述窗口 → OCR 描述匹配配置目标：
+        流程：卡面预检（刷新中 → 跳过）→ 点击卡槽 → 弹出描述窗口 →
+        OCR 描述匹配配置目标：
           - 命中    → 点接受按钮 → 'accepted'
-          - 未命中  → 点刷新按钮 → 确认 → OCR 该卡槽刷新倒计时
+          - 未命中  → 点刷新按钮 → 确认弹窗 → OCR 该卡槽刷新倒计时
 
         返回 (action, refresh_seconds)：
-          action = 'accepted' | 'refreshed' | 'failed'
-          refresh_seconds：走刷新分支时为 OCR 倒计时秒数（失败 None）
+          action = 'accepted' | 'refreshed' | 'refreshing' | 'failed'
+          refresh_seconds：刷新中/刚刷新时为倒计时秒数（解析失败 None）
         """
-        if not self.task._wait_and_click(slot_element, timeout=2.0):
+        # ---- 预检：正在刷新的卡槽不点击 ----
+        precheck = self.check_slot_refreshing(slot_element)
+        if precheck is not None:
+            return ("refreshing", precheck)
+
+        if not self.task._wait_and_click_direct(slot_element, timeout=2.0):
             self.task.log_error(f"点击卡槽失败: {slot_element.name}")
             return ("failed", None)
         self.task._sleep(0.5)
@@ -338,9 +430,17 @@ class Mobilization:
             self.task.log_error("点刷新按钮失败")
             return ("failed", None)
         self.task._sleep(1.0)
-
+        
+        if not self.task._wait_element(LEAGUE_MOB_REFRESH_CONFIRM_SCENE,timeout=1,with_recovery=False):
+            self.task.log_error("未进入刷新确定界面")
+            return ("failed", None)
+        if not self.task._wait_and_click(
+            LEAGUE_MOB_REFRESH_CONFIRM, timeout=2.0
+        ):
+            self.task.log_error("点刷新按钮确定失败")
+            return ("failed", None)
         # 刷新后卡槽描述区域显示倒计时
-        countdown = self._ocr_desc(LEAGUE_MOB_DESC_AREA)
+        countdown = self._ocr_desc(slot_element)
         seconds = self.read_refresh_time(countdown)
         self.task.log_info(
             f"专属任务已刷新，倒计时 OCR: {countdown!r} → {seconds}s"
