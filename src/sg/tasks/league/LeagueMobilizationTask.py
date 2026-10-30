@@ -64,12 +64,13 @@ class LeagueMobilizationTask(SGBaseTask):
         # ====================================================
         # 队列注入字段（赋默认值，不写死配置）
         # ====================================================
-        # 专属任务目标（多选，值 = MOBILITY_GOALS 键）。
-        self.exclusive_goals = ["训练12万"]
-        # 公共任务刷新目标（多选，特征匹配用）。
-        self.public_refresh_goals = ["训练12万"]
-        # 公共任务目标（多选，特征匹配 + 描述校验）。
-        self.public_goals = ["训练12万"]
+        # 目标参数（多选）：配置值为 name:desc 编码——勾选展示 name，
+        # desc 为 OCR 描述包含匹配的判断值（由 Mobilization 解析）。
+        self.exclusive_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
+        # 公共任务刷新目标（清扫阶段值得保留的目标）。
+        self.public_refresh_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
+        # 公共任务目标（描述校验用）。
+        self.public_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
         # 购买当日次数（剩余额度，每次购买后递减）。
         self.buy_times = 1
         # 公共任务刷新开关。

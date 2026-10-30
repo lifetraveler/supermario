@@ -27,10 +27,10 @@
                     "buy_times": 0,
                     "public_scroll_step": 0,
                     "exclusive_goals": [
-                      "训练12万"
+                      "训练12万:通过训练/晋升士兵提升120000点实力"
                     ]
                   },
-                  "count": 10
+                  "count": 100
                 },
                 {
                   "id": "train_soldier",
@@ -211,10 +211,11 @@
                   "params": {
                     "buy_times": 0,
                     "public_scroll_step": 0,
-                    "public_refresh_goals": []
+                    "public_refresh_goals": [],
+                    "public_goals": []
                   },
                   "next_trigger_delay": 10,
-                  "count": 10
+                  "count": 0
                 },
                 {
                   "id": "golden_tech_research",

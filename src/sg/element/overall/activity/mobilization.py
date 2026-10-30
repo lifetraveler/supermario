@@ -48,18 +48,42 @@ from src.sg.scene.elements import (
 EXCLUSIVE_SLOTS = (LEAGUE_MOB_EXCLUSIVE_SLOT_1, LEAGUE_MOB_EXCLUSIVE_SLOT_2)
 
 # ============================================================
-# 目标定义：参数选项 → 描述窗口 OCR 包含匹配的关键词
+# 目标参数解析：配置值为 "name:desc"（勾选展示 name，desc 为判断值）
 # ============================================================
-# OCR 文案为描述窗口去除换行/空白后的包含匹配关键词。
-# 公共任务卡片图标特征（任务目标-训练/黄金/巨兽）在 GOAL_ELEMENTS 单独
-# 维护，供阶段 B 不点开卡片即可预判。
-MOBILITY_GOALS = {
-    "训练12万": {"text": "训练"},
-    "黄金150": {"text": "黄金"},
-    "巨兽5": {"text": "巨兽"},
-    "巨兽10": {"text": "巨兽"},
-    "巨兽15": {"text": "巨兽"},
-}
+# 参数（专属任务目标 / 公共任务目标 / 公共任务刷新目标）均为
+# name:desc 编码列表。split 复合描述里的 1/2/5 等数字不受半角冒号
+# 影响（desc 内不含冒号）；仅按首个分隔符切分。
+
+def parse_goal_value(value):
+    """
+    单个目标配置值 → (name, desc)。
+
+    兼容三种形态：
+      "训练12万:通过训练..." → ('训练12万', '通过训练...')
+      "训练12万"（旧格式/无分隔符） → ('训练12万', '训练12万')
+    desc 为空时回退 name 本身（旧配置平滑兼容）。
+    """
+    s = str(value or "")
+    name, _, desc = s.partition(":")
+    name = name.strip()
+    desc = desc.strip() or name
+    return (name, desc)
+
+
+def goal_names(values):
+    """目标配置值列表 → name 列表（保持顺序，去重）。"""
+    names, seen = [], set()
+    for v in (values or []):
+        name, _ = parse_goal_value(v)
+        if name and name not in seen:
+            names.append(name)
+            seen.add(name)
+    return names
+
+
+def goal_desc(value):
+    """单个目标配置值 → desc（OCR 包含匹配判断值）。"""
+    return parse_goal_value(value)[1]
 
 
 class Mobilization:
@@ -361,11 +385,37 @@ class Mobilization:
         text = "".join((r.name or "") for r in results)
         return re.sub(r"\s+", "", text)
 
+    # 旧格式（纯 name 无 desc）的匹配关键词回退表——仅对不含冒号的
+    # 存量配置值生效；新配置一律 name:desc，不走这里。
+    LEGACY_KEYWORDS = {
+        "训练12万": "训练",
+        "黄金150": "黄金",
+        "巨兽5": "巨兽",
+        "巨兽10": "巨兽",
+        "巨兽15": "巨兽",
+    }
+
     def _match_goal_by_text(self, text, goals):
-        """描述文本按配置顺序匹配目标关键词；命中返回目标名，否则 None。"""
-        for goal in goals:
-            if goal in MOBILITY_GOALS and MOBILITY_GOALS[goal]["text"] in text:
-                return goal
+        """
+        OCR 描述文本按配置顺序匹配目标。
+
+        goals 为 name:desc 编码配置值列表；判断值取 desc（包含匹配），
+        命中返回 (name, 原配置值)，未命中返回 None。
+        日志/接受文案用 name。
+
+        降级兼容：不含冒号的旧格式值按 LEGACY_KEYWORDS 短词匹配。
+        """
+        compact = re.sub(r"\s+", "", text or "")
+        for raw in (goals or []):
+            raw = str(raw or "")
+            if ":" in raw:
+                name, desc = parse_goal_value(raw)
+            else:
+                name = raw.strip()
+                desc = self.LEGACY_KEYWORDS.get(name, name)
+            if desc and re.sub(r"\s+", "", desc) in compact:
+                self.task.log_info(f"目标命中: {name}（判断值 {desc!r}）")
+                return (name, raw)
         return None
 
     # ========================================================
@@ -421,7 +471,7 @@ class Mobilization:
                 self.task.log_error("点接受按钮失败")
                 return ("failed", None)
             self.task._sleep(0.8)
-            self.task.log_info(f"专属任务已接受（目标 {goal}）")
+            self.task.log_info(f"专属任务已接受（目标 {goal[0]}）")
             return ("accepted", None)
 
         if not self.task._wait_and_click(
@@ -579,7 +629,7 @@ class Mobilization:
                 LEAGUE_MOB_PUBLIC_ACCEPT, timeout=2.0
             ):
                 self.task._sleep(0.8)
-                self.task.log_info(f"公共任务已接受（目标 {goal}）")
+                self.task.log_info(f"公共任务已接受（目标 {goal[0]}）")
                 return "accepted"
             self.task.log_error("公共任务点接受失败")
             return "failed"

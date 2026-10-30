@@ -1175,3 +1175,33 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-31] 联盟总动员 — 任务目标参数 name:desc 化
+
+### 原始需求
+三个目标参数（专属任务目标 / 公共任务目标 / 公共任务刷新目标）的 options 此前只有 "训练12万/黄金150/巨兽5..." 简单描述，没有每个任务的明确判断文案。要求 option 为 name:desc 结构：下拉/勾选展示 name，desc 作为 OCR 判断值（如 训练12万：通过训练/晋升士兵提升120000点实力）。_match_goal_by_text 用配置值解析出的 desc 做包含匹配。
+
+### 变更点
+- 方案 A（options 自编码），未加"任务目标维护"独立参数：options 直接写成 name:desc 串——勾选值自包含判断值，运行时零反查、编辑器零改动（multi_drop_down 复选框 label 全文展示 name:desc）。
+- task_type.json：三参数 options 换成 5 条 name:desc（训练12万/黄金150/巨兽5/巨兽10/巨兽15 各带完整 OCR 文案），default 同步为新格式。
+- task_config.json 两个 user 链的存量值升级（"训练12万" → "训练12万:通过训练/晋升士兵提升120000点实力"）。
+- mobilization.py：新增模块级 parse_goal_value / goal_names / goal_desc；_match_goal_by_text 重写——desc 包含匹配（空白归一），返回 (name, 原配置值)；两个调用点日志改用 goal[0]。
+- 降级兼容：不含冒号的旧格式值按 LEGACY_KEYWORDS 短词回退（训练12万→"训练"、黄金150→"黄金"、巨兽N→"巨兽"），未知名回退 name 本身。
+
+### 涉及文件
+- configs/task_type.json（options/default）
+- configs/task_config.json（2 处实例存量值）
+- src/sg/element/overall/activity/mobilization.py（解析 + 匹配重写）
+- src/sg/tasks/league/LeagueMobilizationTask.py（默认值/注释同步）
+
+### 测试
+- 行为验证 12 例全过：name:desc 解析、旧格式回退、desc 空白归一匹配（含换行 OCR 文本）、巨兽 N 次区分（10 命中巨兽10、8 不命中）、优先级顺序、空列表。
+- loader 冒烟：load() 通过、26 任务 id↔type↔MAP 一致、两 user 链新值注入正确。
+- TaskConfigEditorTab.py 无需改动（multi_drop_down str(opt) 展示即 name:desc 全文）。
+
+### 遗留 / 风险
+- 选项编辑仍走定义段的"选项,逗号分隔"输入框（逗号分隔 name:desc 串）；desc 内含逗号会被拆断——当前 5 条 desc 无逗号，后续新增目标时 desc 避免用逗号（或改在 JSON 里直接编辑）。
+- desc 判断为包含匹配：若游戏改文案（如"提升120,000点"加千分位），需同步更新 options 的 desc。
+
+---
+
