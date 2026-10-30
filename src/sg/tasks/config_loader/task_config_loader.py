@@ -33,7 +33,7 @@ DEFAULT_KEYS = (
 # 实例条目允许覆盖的定义字段
 OVERRIDABLE_KEYS = DEFAULT_KEYS
 
-PARAM_WIDGETS = {"switch", "number", "text", "drop_down", "multi_drop_down"}
+PARAM_WIDGETS = {"switch", "number", "text", "textarea", "drop_down", "multi_drop_down"}
 
 
 class TaskConfigError(Exception):

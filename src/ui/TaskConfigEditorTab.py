@@ -1063,6 +1063,61 @@ class TaskConfigEditorTab(CustomTab):
         return " · ".join(bits) + ("　｜　" + " · ".join(ps) if ps else "")
 
 
+    # ---- 目标注册表（goal_registry textarea → key/value）----
+
+    @staticmethod
+    def _parse_goal_registry(text):
+        """
+        任务目标维护 textarea 文本 → {key: value}（保持出现顺序）。
+
+        每行一条「key: value」（全角/半角冒号均可）；无冒号的行取整行
+        为 key、value 置空。空行与 # 开头注释行忽略。
+        """
+        reg = {}
+        for line in (text or "").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if ":" in line:
+                key, _, val = line.partition(":")
+            elif "：" in line:
+                key, _, val = line.partition("：")
+            else:
+                key, val = line, ""
+            key = key.strip()
+            if key:
+                reg[key] = val.strip()
+        return reg
+
+    def _effective_options(self, task, pd):
+        """
+        drop_down / multi_drop_down 的实际选项列表。
+
+        三个目标参数（exclusive_goals / public_goals / public_refresh_goals）
+        的 options 动态取本任务 goal_registry 参数值的 key 集合：
+        维护 textarea 即改选项；registry 为空时回退定义段静态 options。
+        其余参数用定义段 options。
+        """
+        attr = pd.get("attr")
+        static = list((pd.get("widget") or {}).get("options") or [])
+        if attr not in ("exclusive_goals", "public_goals", "public_refresh_goals"):
+            return static
+        reg_text = (task.get("params") or {}).get("goal_registry")
+        if reg_text is None:
+            reg_text = self._goal_registry_default(task)
+        if not reg_text:
+            return static
+        keys = list(self._parse_goal_registry(reg_text).keys())
+        return keys or static
+
+    def _goal_registry_default(self, task):
+        """取本任务定义段里 goal_registry 参数的 default（textarea 兜底）。"""
+        tt = self._task_def(task) or {}
+        for pd in tt.get("params") or []:
+            if pd.get("attr") == "goal_registry":
+                return pd.get("default") or ""
+        return ""
+
     def _param_cell(self, task, pd):
         """参数渲染为独立圆角单元格：名称行(含差异圆点) + 控件 + 描述。
 
@@ -1103,8 +1158,16 @@ class TaskConfigEditorTab(CustomTab):
                 commit(v)
             ctl.textChanged.connect(num_changed)
             set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
+        elif wtype == "textarea":
+            ctl = PlainTextEdit()
+            ctl.setPlainText("" if value is None else str(value))
+            ctl.setMinimumHeight(110)
+            ctl.textChanged.connect(lambda t=ctl: commit(t.toPlainText()))
+            set_fn = lambda v, e=ctl: (
+                e.blockSignals(True), e.setPlainText("" if v is None else str(v)),
+                e.blockSignals(False))
         elif wtype in ("drop_down", "multi_drop_down"):
-            opts = list((pd.get("widget") or {}).get("options") or [])
+            opts = self._effective_options(task, pd)
             if wtype == "multi_drop_down":
                 wrap = QWidget()
                 wl = QHBoxLayout(wrap)

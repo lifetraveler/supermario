@@ -1205,3 +1205,42 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-31] 联盟总动员 — 任务目标维护参数（键值注册表）
+
+### 原始需求
+在 name:desc 内联方案基础上再加一个专门维护键值对关系的参数，避免每个目标参数重复维护 desc。参数名「任务目标维护」，textarea 区域，回车换行区分键值对（每行 key: value）。三个目标参数（专属任务目标/公共任务目标/公共任务刷新目标）的 option 均为该参数的 key 集合；程序里匹配时用各目标参数配置的 key 到该参数反查 value 作为判断值。
+
+### 变更点
+- task_type.json：新增 goal_registry（任务目标维护，widget=textarea，default=5 行键值）；三个目标参数 options 改为纯 key 列表（5 key）、default 恢复 ["训练12万"]。
+- task_config.json：两 user 链实例值同步——目标列表去 desc 只留 key，params 补 goal_registry 默认注册表。
+- task_config_loader.py：PARAM_WIDGETS 白名单加 "textarea"。
+- TaskConfigEditorTab.py：
+  - _param_cell 新增 textarea 分支（PlainTextEdit，textChanged 提交原文， minHeight 110）；
+  - 新增 _parse_goal_registry（每行 key: value，全/半角冒号，# 注释与空行忽略，保持顺序）；
+  - 新增 _effective_options：三个目标参数的 options 动态取本任务 goal_registry 的 key 集合（实例未填回退定义段 default，清空回退定义段静态 options），其余参数不变；
+  - _goal_registry_default 走既有 _task_def 反查定义段。
+- mobilization.py：Mobilization 新增 goal_registry 状态 + parse_goal_registry/goal_value_for；_match_goal_by_text 改为 key → 注册表 value → LEGACY_KEYWORDS → key 本身 的回退链；name:desc 内联解析助手（parse_goal_value/goal_names/goal_desc）删除（不再有调用方）。
+- LeagueMobilizationTask.py：新增 self.goal_registry 字段（默认 5 行注册表），专属/公共流程入口各注入一次 self.mob.goal_registry。
+
+### 修复点
+- matcher 重写编辑中残留重复 LEGACY_KEYWORDS 块与旧实现尾巴导致语法损坏，重读清理后恢复。
+
+### 涉及文件
+- configs/task_type.json / configs/task_config.json
+- src/sg/tasks/config_loader/task_config_loader.py（白名单 +textarea）
+- src/ui/TaskConfigEditorTab.py（textarea 渲染 + 动态 options）
+- src/sg/element/overall/activity/mobilization.py（注册表解析与反查匹配）
+- src/sg/tasks/league/LeagueMobilizationTask.py（注入）
+
+### 测试
+- 注册表匹配行为 9 例：value 匹配（含换行 OCR）、巨兽 N 区分、全角冒号、缺项 LEGACY 回退、空 value 回退、未知名回退 key、空列表；parse_goal_registry 细节（注释/空行/无冒号/首尾空格）。
+- 编辑器逻辑 5 例：目标参数 options 动态取 registry key、非目标参数用静态、实例缺省回退定义段 default、清空回退静态。
+- loader 冒烟：textarea 白名单通过、26 任务加载 OK、两 user 链 goal_registry + key 目标注入正确、4 文件 py_compile 通过。
+
+### 遗留 / 风险
+- 编辑目标注册表后，已展开卡片的三个目标参数复选框选项不会即时刷新（重新展开卡片生效）；如需即时联动需在 textarea textChanged 里刷新兄弟控件（当前按低频编辑处理）。
+- key 重复时后行覆盖前行（dict 语义）；value 建议避免冒号（首个冒号即分隔，后续冒号归入 value，实际上不影响）。
+
+---
+

@@ -64,13 +64,21 @@ class LeagueMobilizationTask(SGBaseTask):
         # ====================================================
         # 队列注入字段（赋默认值，不写死配置）
         # ====================================================
-        # 目标参数（多选）：配置值为 name:desc 编码——勾选展示 name，
-        # desc 为 OCR 描述包含匹配的判断值（由 Mobilization 解析）。
-        self.exclusive_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
+        # 任务目标维护（键值注册表，textarea）：每行「key: value」，
+        # key 供三个目标参数勾选，value 为 OCR 描述包含匹配的判断值。
+        self.goal_registry = (
+            "训练12万: 通过训练/晋升士兵提升120000点实力\n"
+            "黄金150: 消耗150块黄金进行建筑升级\n"
+            "巨兽5: 击败巨兽5次\n"
+            "巨兽10: 击败巨兽10次\n"
+            "巨兽15: 击败巨兽15次"
+        )
+        # 目标参数（多选）：值 = goal_registry 的 key；匹配时按 key 反查 value。
+        self.exclusive_goals = ["训练12万"]
         # 公共任务刷新目标（清扫阶段值得保留的目标）。
-        self.public_refresh_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
+        self.public_refresh_goals = ["训练12万"]
         # 公共任务目标（描述校验用）。
-        self.public_goals = ["训练12万:通过训练/晋升士兵提升120000点实力"]
+        self.public_goals = ["训练12万"]
         # 购买当日次数（剩余额度，每次购买后递减）。
         self.buy_times = 1
         # 公共任务刷新开关。
@@ -154,6 +162,8 @@ class LeagueMobilizationTask(SGBaseTask):
         if not goals:
             self.log_info("未配置专属任务目标，跳过专属卡槽")
             return ("free", True)
+        # 注册表传给领域对象：匹配时按 key 反查 value
+        self.mob.goal_registry = self.goal_registry
 
         all_refreshing = True
         for slot in (LEAGUE_MOB_EXCLUSIVE_SLOT_1, LEAGUE_MOB_EXCLUSIVE_SLOT_2):
@@ -188,6 +198,7 @@ class LeagueMobilizationTask(SGBaseTask):
         if not goals:
             self.log_info("未配置公共任务目标，跳过公共任务接受")
             return True
+        self.mob.goal_registry = self.goal_registry
 
         result = self.mob.run_public_tasks(
             goals=goals,

@@ -120,6 +120,9 @@ class Mobilization:
         # ---- 运行时状态 ----
         # 最近一次公共任务滑动的像素距离（日志/调试用）
         self.last_public_scroll_px = 0
+        # 任务目标注册表（Task 每轮注入）：textarea 原文，
+        # 每行「key: value」；匹配时按目标 key 反查 value 作判断值。
+        self.goal_registry = ""
 
     # ========================================================
     # 步骤 0：进入联盟总动员界面
@@ -385,8 +388,9 @@ class Mobilization:
         text = "".join((r.name or "") for r in results)
         return re.sub(r"\s+", "", text)
 
-    # 旧格式（纯 name 无 desc）的匹配关键词回退表——仅对不含冒号的
-    # 存量配置值生效；新配置一律 name:desc，不走这里。
+
+    # 注册表缺项时的匹配关键词回退表——key 在 goal_registry 里查不到
+    # value 时使用；注册表能查到的一律以注册表 value 为准。
     LEGACY_KEYWORDS = {
         "训练12万": "训练",
         "黄金150": "黄金",
@@ -395,27 +399,57 @@ class Mobilization:
         "巨兽15": "巨兽",
     }
 
+    @staticmethod
+    def parse_goal_registry(text):
+        """
+        任务目标维护 textarea 文本 → {key: value}（保持出现顺序）。
+
+        每行一条「key: value」（全角/半角冒号均可）；无冒号行取整行
+        为 key、value 置空。空行与 # 注释行忽略。
+        """
+        reg = {}
+        for line in (text or "").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if ":" in line:
+                key, _, val = line.partition(":")
+            elif "：" in line:
+                key, _, val = line.partition("：")
+            else:
+                key, val = line, ""
+            key = key.strip()
+            if key:
+                reg[key] = val.strip()
+        return reg
+
+    def goal_value_for(self, key):
+        """
+        目标 key → OCR 判断值。
+
+        优先级：goal_registry 注册表 value → LEGACY_KEYWORDS 短词
+        → key 本身。注册表 value 为空行（key: 无值）时同样回退。
+        """
+        reg = self.parse_goal_registry(self.goal_registry)
+        if key in reg and reg[key]:
+            return reg[key]
+        return self.LEGACY_KEYWORDS.get(key, key)
+
     def _match_goal_by_text(self, text, goals):
         """
         OCR 描述文本按配置顺序匹配目标。
 
-        goals 为 name:desc 编码配置值列表；判断值取 desc（包含匹配），
-        命中返回 (name, 原配置值)，未命中返回 None。
-        日志/接受文案用 name。
-
-        降级兼容：不含冒号的旧格式值按 LEGACY_KEYWORDS 短词匹配。
+        goals 为目标 key 列表；判断值由 goal_value_for(key) 从
+        任务目标维护 注册表反查（包含匹配，空白归一）。
+        命中返回 (key, value)，未命中返回 None。
         """
         compact = re.sub(r"\s+", "", text or "")
-        for raw in (goals or []):
-            raw = str(raw or "")
-            if ":" in raw:
-                name, desc = parse_goal_value(raw)
-            else:
-                name = raw.strip()
-                desc = self.LEGACY_KEYWORDS.get(name, name)
-            if desc and re.sub(r"\s+", "", desc) in compact:
-                self.task.log_info(f"目标命中: {name}（判断值 {desc!r}）")
-                return (name, raw)
+        for key in (goals or []):
+            key = str(key or "").strip()
+            value = self.goal_value_for(key)
+            if value and re.sub(r"\s+", "", value) in compact:
+                self.task.log_info(f"目标命中: {key}（判断值 {value!r}）")
+                return (key, value)
         return None
 
     # ========================================================
