@@ -1022,6 +1022,11 @@ class TaskConfigEditorTab(CustomTab):
             pgrid.setColumnStretch(2, 1)
             bl.addLayout(pgrid)
             self._style_param_boxes(body)
+            # 目标参数（multi_drop_down）的选项重建钩子集合：
+            # goal_registry textarea 编辑后逐个调用，同步新增 key 到选项。
+            body._goal_boxes = [
+                w._goal_rebuild for w in body.findChildren(QFrame)
+                if hasattr(w, "_goal_rebuild")]
 
         foot = QHBoxLayout()
         foot.addStretch(1)
@@ -1134,6 +1139,7 @@ class TaskConfigEditorTab(CustomTab):
             self._mark_dirty()
 
         set_fn = None
+        goal_rebuild = None  # multi_drop_down 目标参数的选项重建钩子（goal_registry 同步用）
         if wtype == "switch" or (wtype is None and isinstance(default, bool)):
             ctl = SwitchButton()
             ctl.setChecked(bool(value))
@@ -1162,7 +1168,21 @@ class TaskConfigEditorTab(CustomTab):
             ctl = PlainTextEdit()
             ctl.setPlainText("" if value is None else str(value))
             ctl.setMinimumHeight(110)
-            ctl.textChanged.connect(lambda t=ctl: commit(t.toPlainText()))
+
+            def _ta_changed(t=ctl):
+                # 先提交原文，再同步本卡片的目标参数复选框选项
+                commit(t.toPlainText())
+                body = t.parentWidget()
+                while body is not None and not hasattr(body, "_goal_boxes"):
+                    body = body.parentWidget()
+                if body is not None:
+                    for gb in body._goal_boxes:
+                        try:
+                            gb()
+                        except RuntimeError:
+                            pass  # 控件已销毁
+
+            ctl.textChanged.connect(_ta_changed)
             set_fn = lambda v, e=ctl: (
                 e.blockSignals(True), e.setPlainText("" if v is None else str(v)),
                 e.blockSignals(False))
@@ -1172,24 +1192,42 @@ class TaskConfigEditorTab(CustomTab):
                 wrap = QWidget()
                 wl = QHBoxLayout(wrap)
                 wl.setContentsMargins(0, 0, 0, 0)
-                cur = [str(x) for x in (value or [])]
-                boxes = []
-                for opt in opts:
-                    ckb = CheckBox(str(opt))
-                    ckb.setChecked(str(opt) in cur)
-                    ckb.stateChanged.connect(
-                        lambda _s, o=opt, c=ckb: self._multi_toggle(task, attr, o, c.isChecked()))
-                    wl.addWidget(ckb)
-                    boxes.append((ckb, str(opt)))
-                wl.addStretch(1)
+
+                def _fill_checks(layout, task=task, attr=attr, pd=pd):
+                    """按当前 options 重建复选框行（保留已勾选值）。"""
+                    opts = self._effective_options(task, pd)
+                    params = task.get("params") or {}
+                    cur_raw = params.get(attr)
+                    if cur_raw is None:
+                        cur_raw = pd.get("default") or []
+                    cur = [str(x) for x in (cur_raw or [])]
+                    # 清空旧控件：先脱离父级（立即生效）再 deleteLater，
+                    # 否则同帧重建会出现新旧两份 checkbox。
+                    while layout.count():
+                        it = layout.takeAt(0)
+                        w = it.widget()
+                        if w is not None:
+                            w.setParent(None)
+                            w.deleteLater()
+                    boxes = []
+                    for opt in opts:
+                        ckb = CheckBox(str(opt))
+                        ckb.setChecked(str(opt) in cur)
+                        ckb.stateChanged.connect(
+                            lambda _s, o=opt, c=ckb: self._multi_toggle(task, attr, o, c.isChecked()))
+                        layout.addWidget(ckb)
+                        boxes.append((ckb, str(opt)))
+                    layout.addStretch(1)
+                    wrap._boxes = boxes
+
+                _fill_checks(wl)
                 ctl = wrap
 
-                def set_fn(v, boxes=boxes):
-                    cur = [str(x) for x in (v or [])]
-                    for ckb, opt in boxes:
-                        ckb.blockSignals(True)
-                        ckb.setChecked(opt in cur)
-                        ckb.blockSignals(False)
+                def _rebuild():
+                    _fill_checks(wl)
+                    wrap.updateGeometry()
+
+                goal_rebuild = _rebuild
             elif opts:
                 ctl = ComboBox()
                 items = [str(o) for o in opts]
@@ -1229,6 +1267,8 @@ class TaskConfigEditorTab(CustomTab):
         if set_fn is not None:
             box._ctl_set = set_fn
         box._attr = attr
+        if goal_rebuild is not None:
+            box._goal_rebuild = goal_rebuild
         if desc:
             dlab = BodyLabel(desc)
             dlab.setWordWrap(True)

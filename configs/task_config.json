@@ -29,7 +29,9 @@
                     "exclusive_goals": [
                       "训练12万"
                     ],
-                    "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次"
+                    "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次",
+                    "public_refresh_goals": [],
+                    "public_goals": []
                   },
                   "count": 100
                 },
@@ -98,6 +100,12 @@
                   "params": {
                     "dispatch_wait_hours": 0
                   }
+                },
+                {
+                  "id": "hunt_elite_rebels",
+                  "enabled": false,
+                  "params": {},
+                  "count": 5
                 },
                 {
                   "id": "watch_tower_event",
@@ -188,12 +196,6 @@
                     "batch_normal_times": 0,
                     "batch_legend_times": 0
                   }
-                },
-                {
-                  "id": "hunt_elite_rebels",
-                  "enabled": false,
-                  "params": {},
-                  "count": 5
                 }
               ]
             },
@@ -212,71 +214,15 @@
                   "params": {
                     "buy_times": 0,
                     "public_scroll_step": 0,
+                    "exclusive_goals": [
+                      "训练12万"
+                    ],
+                    "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次",
                     "public_refresh_goals": [],
-                    "public_goals": [],
-                    "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次"
+                    "public_goals": []
                   },
                   "next_trigger_delay": 10,
                   "count": 0
-                },
-                {
-                  "id": "golden_tech_research",
-                  "enabled": false,
-                  "params": {
-                    "troop_priority": "0",
-                    "sub_tech_names": "0",
-                    "default_retry_wait": 0
-                  }
-                },
-                {
-                  "id": "claim_stamina",
-                  "enabled": false,
-                  "params": {
-                    "claim_cooldown": 0
-                  }
-                },
-                {
-                  "id": "cesare_fight",
-                  "enabled": false,
-                  "params": {
-                    "stamina_wait_seconds": 0
-                  }
-                },
-                {
-                  "id": "gather_resource",
-                  "enabled": false,
-                  "params": {
-                    "team_group_name": "0"
-                  }
-                },
-                {
-                  "id": "hunt_beast",
-                  "enabled": false,
-                  "params": {}
-                },
-                {
-                  "id": "hunt_scare_wolf",
-                  "enabled": false,
-                  "params": {}
-                },
-                {
-                  "id": "hunt_monster",
-                  "enabled": false,
-                  "params": {
-                    "monster_level": "0"
-                  }
-                },
-                {
-                  "id": "wave_ride",
-                  "enabled": false,
-                  "params": {
-                    "dispatch_wait_hours": 0
-                  }
-                },
-                {
-                  "id": "train_soldier",
-                  "enabled": false,
-                  "params": {}
                 },
                 {
                   "id": "bank_save",
@@ -345,11 +291,6 @@
                   }
                 },
                 {
-                  "id": "hunt_elite_rebels",
-                  "enabled": false,
-                  "params": {}
-                },
-                {
                   "id": "hero_enlist",
                   "enabled": false,
                   "params": {
@@ -369,6 +310,70 @@
                 },
                 {
                   "id": "gather_island_water",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "golden_tech_research",
+                  "enabled": false,
+                  "params": {
+                    "troop_priority": "0",
+                    "sub_tech_names": "0",
+                    "default_retry_wait": 0
+                  }
+                },
+                {
+                  "id": "claim_stamina",
+                  "enabled": false,
+                  "params": {
+                    "claim_cooldown": 0
+                  }
+                },
+                {
+                  "id": "cesare_fight",
+                  "enabled": false,
+                  "params": {
+                    "stamina_wait_seconds": 0
+                  }
+                },
+                {
+                  "id": "gather_resource",
+                  "enabled": false,
+                  "params": {
+                    "team_group_name": "0"
+                  }
+                },
+                {
+                  "id": "hunt_beast",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "hunt_scare_wolf",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "hunt_monster",
+                  "enabled": false,
+                  "params": {
+                    "monster_level": "0"
+                  }
+                },
+                {
+                  "id": "wave_ride",
+                  "enabled": false,
+                  "params": {
+                    "dispatch_wait_hours": 0
+                  }
+                },
+                {
+                  "id": "train_soldier",
+                  "enabled": false,
+                  "params": {}
+                },
+                {
+                  "id": "hunt_elite_rebels",
                   "enabled": false,
                   "params": {}
                 }

@@ -10,25 +10,73 @@
       "samples": 1
     },
     "arena_challenge": {
-      "avg": 33.41978929999823,
-      "samples": 1
+      "avg": 30.619181249996473,
+      "samples": 2
     },
     "golden_tech_research": {
       "avg": 36.35196290000022,
       "samples": 1
     },
     "league_shop_buy": {
-      "avg": 13.848875399999088,
-      "samples": 1
+      "avg": 28.390405800000735,
+      "samples": 2
     },
     "gather_island_water": {
-      "avg": 57.81111670000064,
-      "samples": 1
+      "avg": 62.29916590000357,
+      "samples": 2
     },
     "league_mobilization": {
-      "avg": 18.34112587299969,
+      "avg": 44.514810089998065,
       "samples": 10,
       "max_keep": 10
+    },
+    "watch_tower_event": {
+      "avg": 128.49116339999455,
+      "samples": 4
+    },
+    "league_reward_box": {
+      "avg": 24.344831049998902,
+      "samples": 2
+    },
+    "claim_mail_reward": {
+      "avg": 53.25067429999763,
+      "samples": 2
+    },
+    "punish_claim": {
+      "avg": 22.00742155000262,
+      "samples": 2
+    },
+    "bank_save": {
+      "avg": 25.191273650001676,
+      "samples": 2
+    },
+    "golden_refine": {
+      "avg": 60.39247524999519,
+      "samples": 2
+    },
+    "claim_warehouse_reward": {
+      "avg": 26.090105439999025,
+      "samples": 10
+    },
+    "league_tech_donate": {
+      "avg": 29.537526574998992,
+      "samples": 8
+    },
+    "pet_treasure_hunt": {
+      "avg": 67.85616080000182,
+      "samples": 2
+    },
+    "leader_reward": {
+      "avg": 20.48319205000007,
+      "samples": 2
+    },
+    "claim_buy_center_reward": {
+      "avg": 23.426855849997082,
+      "samples": 2
+    },
+    "hero_enlist": {
+      "avg": 24.03317212500042,
+      "samples": 8
     }
   }
 }

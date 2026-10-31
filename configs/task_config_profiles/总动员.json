@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "package": "com.got.china",
+  "tasks": [
+    {
+      "id": "league_mobilization",
+      "params": {
+        "buy_times": 0,
+        "public_scroll_step": 0,
+        "exclusive_goals": [
+          "训练12万"
+        ],
+        "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次",
+        "public_refresh_goals": [],
+        "public_goals": []
+      }
+    }
+  ]
+}

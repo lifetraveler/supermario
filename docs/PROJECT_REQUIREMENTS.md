@@ -1244,3 +1244,29 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-31] 联盟总动员 — 任务目标维护编辑即时同步选项
+
+### 原始需求
+「任务目标维护」（goal_registry textarea）新增/删除 key 后，同卡片的三个目标参数（专属任务目标/公共任务目标/公共任务刷新目标）的复选框选项没有更新，需要刷新同步功能。
+
+### 变更点
+- TaskConfigEditorTab._param_cell：
+  - multi_drop_down 分支抽出 _fill_checks(layout) 助手——按 _effective_options 重建复选框行（保留实例已勾选值，缺省回退定义段 default），挂 goal_rebuild 重建钩子到参数 box（_goal_rebuild）；
+  - textarea 分支 textChanged → _ta_changed：先 commit 注册表原文，再向上找挂 _goal_boxes 的卡片 body，逐个调用重建钩子（RuntimeError 容忍已销毁控件）；
+  - 连接顺序保证 commit 先于同步（同一 textChanged 信号内顺序执行）。
+- TaskConfigEditorTab._task_body：参数网格渲染后收集 body._goal_boxes = [box._goal_rebuild ...]。
+- 修复重建叠加：_fill_checks 清空旧 checkbox 时先 setParent(None) 再 deleteLater（仅 deleteLater 是延迟删除，同帧重建会出现新旧两份）。
+
+### 涉及文件
+- src/ui/TaskConfigEditorTab.py（仅编辑器，运行时/配置无改动）
+
+### 测试
+- 离屏 GUI 全链路 7 例：初始渲染、加 key 同步出现、删 key 同步消失、清空回退定义段静态 options、多轮编辑无累积、checkbox click 勾选/取消提交全路径（default 初始勾选→click 取消→click 勾选）、textarea commit 落盘 + dirty 置位。
+- py_compile 通过。
+
+### 遗留 / 风险
+- 重建保留勾选值按"实例 params 里的 key 字符串"匹配；注册表里改 key 名（如 训练12万→训练13万）视为删旧加新，原勾选丢失需重新勾选（符合直觉）。
+
+---
+
