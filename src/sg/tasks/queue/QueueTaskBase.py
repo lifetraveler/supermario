@@ -1,6 +1,8 @@
 import threading
 import time
 
+from ok import communicate
+
 from src.sg.tasks.SGBaseTask import SGBaseTask
 from src.scheduler.task_queue import TaskQueue
 
@@ -100,6 +102,12 @@ class QueueTaskBase(SGBaseTask):
         self._last_info_version = -1
         self._max_idle_sleep = 30.0
         self._min_sleep = 0.05
+        # 任务级停止唤醒：GUI 取消勾选 / webui stop-task 走 task.disable()，
+        # 它只发 communicate.task 事件、不设 exit_event，也不通知
+        # _wake_cond。老实现靠框架 sleep 内的 check_enabled 抛
+        # TaskDisabledException 秒停；事件驱动主循环不走框架 sleep，
+        # 缺了这个订阅 disable 后会空转到下一个交互点才停。
+        self._on_task_event = self._handle_framework_task_event
 
     def _wait_wake(self, timeout):
         """
@@ -122,6 +130,27 @@ class QueueTaskBase(SGBaseTask):
         with self._wake_cond:
             self._wake_flag = True
             self._wake_cond.notify_all()
+
+    def _handle_framework_task_event(self, *_args, **_kwargs):
+        """
+        communicate.task 事件的唤醒入口（disable/unpause/pause 都会 emit）。
+        线程语义：Qt 环境下 dispatch 会把跨线程回调转到主线程队列，
+        最坏延迟一拍 UI 事件循环；web/无 dispatcher 环境同步调用即时醒。
+        事件风暴（GUI 列表全量刷新）时 _wake_flag 语义天然合并，无开销。
+        """
+        self._notify_wake()
+
+    def _subscribe_framework_events(self):
+        """
+        挂 communicate.task 订阅（disable 秒停的唤醒源）。
+        在 _run_queue_cycle 构造队列后调用；重复订阅由 connect 内部
+        去重（同 callback 只挂一次），run() 多圈安全。
+        """
+        try:
+            communicate.task.connect(self._on_task_event)
+        except Exception as e:
+            # 事件总线异常不该阻断调度（理论不可达）。
+            self.log_info(f"订阅 task 事件失败（忽略）: {e}")
 
     def _queue_global_params(self):
         """
@@ -283,11 +312,13 @@ class QueueTaskBase(SGBaseTask):
         #     notify_all 本 Condition → _wait_wake 立刻返回 → 主循环
         #     exit_is_set() 退出。getattr+hasattr 防御：测试环境 executor
         #     可能是无 exit_event 的 mock。
+        #   - communicate.task 订阅：任务级停止（disable）的即时唤醒源。
         # ---------------------------------------------------------------------
         self.queue.wake_callback = self._notify_wake
         exit_ev = getattr(self.executor, "exit_event", None)
         if exit_ev is not None and hasattr(exit_ev, "bind_condition"):
             exit_ev.bind_condition(self._wake_cond)
+        self._subscribe_framework_events()
 
         # ---------------------------------------------------------------------
         # 1.5 配置重载钩子：每圈都给子类机会刷新配置源。
@@ -330,6 +361,13 @@ class QueueTaskBase(SGBaseTask):
             if self.exit_is_set():
                 self.log_info("用户请求停止")
                 break
+            # 框架停止语义：任务被 disable（GUI 取消勾选 / stop-task）时
+            # 抛 TaskDisabledException 终止本圈。老实现靠 sleep 内嵌检查
+            # 覆盖；事件驱动主循环必须显式调，恢复与老版一致的秒停。
+            # 非 executor 线程（测试/脚本直跑）时 check_enabled 的
+            # check_pause 分支会自旋 sleep(1)，所以关掉 pause 检查——
+            # pause 状态由本循环自己的 paused 分支处理。
+            self.executor.check_enabled(check_pause=False)
             if self.paused:
                 # paused 兜底唤醒 = Max Idle Sleep：用户 unpause 走
                 # executor.start() → _wake_executor，不经本类的

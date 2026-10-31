@@ -29,6 +29,7 @@
 
 ## 测试
 
+
 - 新增 `tests/TestTaskQueueWakeup.py`（22 tests）：next_wakeup_time 全分支 / wake_callback 触发计数 / 增量计数 vs 暴力比对（固定种子 100×200）/ stalled user_id 修复 / version 门控。
 - 新增 `tests/TestQueueTaskBaseCycle.py`（14 tests）：唤醒基元 / 等待时长计算 / 全流程收敛 / exit_event.set() <100ms 退出 / version 门控。
 - 基准 `tests/BenchTaskQueue.py`（python tests/BenchTaskQueue.py 可直跑）。
@@ -62,3 +63,31 @@ N          旧            新 O(1)       加速
 4. `"Tick Interval"` 配置不再影响节奏（保留兼容）；`"Max Idle Sleep"`/`"Min Sleep"` 可调兜底。
 
 架构变更记录已同步追加至 `.agents/skills/automation-framework-arch/SKILL.md` 第八节。
+
+## 追加修复（disable 秒停回归，2026-11-01）
+
+**问题**：事件驱动改造后，任务级停止（GUI 取消勾选 / webui stop-task →
+`task.disable()`）失去秒停能力——disable 只发 `communicate.task` 事件、
+不设 exit_event、也不通知 `_wake_cond`；老实现靠框架 `sleep` 内嵌的
+`check_enabled` 抛 `TaskDisabledException` 覆盖，新主循环不走框架 sleep，
+disable 后队列会空转到下一个交互点。
+
+**修复**（`QueueTaskBase`）：
+1. 订阅 `communicate.task` 事件（`disable/unpause/pause` 都会 emit）→
+   `_notify_wake` 立即唤醒挂起中的主循环；`connect` 内部按 callback 去重，
+   `run()` 多圈安全。
+2. 主循环每圈开头显式调 `executor.check_enabled(check_pause=False)`，
+   恢复框架停止语义（pause 检查关闭：非 executor 线程自跑时会自旋
+   `sleep(1)`，pause 状态由主循环自己的 paused 分支处理）。
+
+**补测**：`test_disable_stops_within_100ms`——按框架源码
+（`TaskExecutor.py:291-297`）给 mock executor 补真 `check_enabled`
+语义（`current_task is task 且 not _enabled → TaskDisabledException`），
+断言 disable 后 <1s 退出。
+
+**醒着的三个停止路径现在全部即时**：
+| 路径 | 触发 | 唤醒机制 |
+|---|---|---|
+| app 停止 / 关闭 | `ExitEvent.set()` | bind_condition notify_all → <100ms |
+| 任务级停止 | `task.disable()` | communicate.task 订阅 → check_enabled 抛异常 |
+| 正常到期 | next_wakeup_time | 定时自然醒 |

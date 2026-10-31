@@ -191,9 +191,9 @@ class TestWaitDuration(unittest.TestCase):
         waits = self._run_one_tick([time.time() + 9999.0, None])
         self.assertEqual(waits[0], 30.0)
 
-
 class TestFullCycle(unittest.TestCase):
     """真实 TaskQueue + FakeTask 全流程。"""
+
 
     def test_full_cycle_done(self):
         t = _make_task()
@@ -265,6 +265,72 @@ class TestFullCycle(unittest.TestCase):
             elapsed, 1.0, f"退出耗时 {elapsed:.3f}s，bind_condition 未生效")
         self.assertIsNone(result_holder.get("error"))
         self.assertEqual(result_holder.get("result"), "stop")
+
+    def test_disable_stops_within_100ms(self):
+        # 任务级停止：GUI 取消勾选 / webui stop-task → task.disable()。
+        # disable 不设 exit_event，只发 communicate.task 事件 +
+        # _enabled=False。主循环靠 ①事件订阅唤醒 ②check_enabled 抛
+        # TaskDisabledException 两条路秒停。老实现由框架 sleep 内嵌
+        # check_enabled 覆盖；事件驱动主循环若丢了这个语义，本测试
+        # 会挂在 5s 的 next_retry_time 等待上，2s join 超时暴露。
+        t = _make_task()
+        # 真 executor 的停止语义（TaskExecutor.check_enabled）：
+        # current_task is task 且 task._enabled=False → 抛
+        # TaskDisabledException。mock executor 不带这行为，按框架
+        # 源码补齐（TaskExecutor.py:291-297）。
+        from ok.task.exceptions import TaskDisabledException
+
+        def framework_check_enabled(check_pause=True):
+            if t.executor.current_task is t and not t._enabled:
+                raise TaskDisabledException()
+
+        t.executor.check_enabled = framework_check_enabled
+        seq = {"i": 0}
+
+        def take():
+            i = seq["i"]
+            seq["i"] += 1
+            return (InteractionResult.SUCCESS, 0)
+
+        factory = TaskFactory(
+            task_class=lambda *a, **k: FakeTask(take),
+            count=1, name_prefix="DisableStop",
+        )
+        t._factory = factory
+        orig_check = FakeTask.check_completed
+
+        def never_done(self):
+            self.checks += 1
+            return False  # 恒不完成 → PENDING 重试，wait≈5s
+
+        FakeTask.check_completed = never_done
+        result_holder = {}
+
+        def run():
+            try:
+                result_holder["result"] = t._run_queue_cycle()
+            except Exception as e:
+                result_holder["error"] = e
+
+        try:
+            th = threading.Thread(target=run, daemon=True)
+            th.start()
+            time.sleep(0.2)  # 进入 _wait_wake（wait≈5s）
+            # 真 executor 在 execute() 里设 current_task=task；
+            # 本测试绕过 executor 直跑，按真环境补设。
+            t.executor.current_task = t
+            start = time.time()
+            t.disable()      # 任务级停止：emit task 事件 + _enabled=False
+            th.join(timeout=2.0)
+            elapsed = time.time() - start
+        finally:
+            FakeTask.check_completed = orig_check
+        self.assertFalse(th.is_alive(), "disable 后主循环未在 2s 内退出")
+        self.assertLess(
+            elapsed, 1.0, f"disable 退出耗时 {elapsed:.3f}s，秒停语义失效")
+        self.assertIsInstance(
+            result_holder.get("error"), Exception,
+            "check_enabled 应抛 TaskDisabledException 终止本圈")
 
 
 
