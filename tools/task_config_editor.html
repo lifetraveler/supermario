@@ -239,6 +239,8 @@ const state = {
   expanded:new Set(),      // 任务卡: `${m}/${a}/${u}/${type}`
   expandedTypes:new Set(), // 类型卡/机器卡: 'T:'+type / 'm'+index
   filter:'',
+  typeFilter:'',           // 类型定义页检索词
+  machineFilter:'',        // 设备链页检索词
   curTypePkg:null,         // 类型定义页当前编辑的 package 分组
 };
 const fsSupported = ('showOpenFilePicker' in window);
@@ -777,39 +779,64 @@ function moveTask(task, dir){
   [arr[i], arr[j]] = [arr[j], arr[i]];
   markDirty(); renderTaskList();
 }
-function batchEnableDialog(){
+function maintainDialog(){
+  // 任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建），支持全选/反选/检索
   const chain = chainObj(); if (!chain) return;
-  const tasks = (chain.u.tasks || []).filter(t => t && typeof t === 'object');
-  if (!tasks.length){ toast('当前用户还没有任务，先「＋ 添加任务」'); return; }
+  const types = pkgTypes(curPkg());
+  if (!types.length){ toast('当前软件（package）没有任务类型定义'); return; }
+  const have = new Map((chain.u.tasks || [])
+    .filter(t => t && typeof t === 'object').map(t => [t.id || t.type, t]));
   const dlg = $('dlg'); dlg.textContent = '';
-  dlg.append(el('h3', null, '批量启用任务（当前用户）'));
+  dlg.append(el('h3', null, '任务维护（勾选=启用，缺失类型自动补建）'));
+  const search = document.createElement('input');
+  search.className = 'tin';
+  search.placeholder = '检索任务名 / id / 描述…';
+  search.style.width = '100%';
+  search.style.marginBottom = '8px';
+  dlg.append(search);
   const box = el('div', 'picklist');
-  const rows = tasks.map(t => {
-    const tt = taskDefOf(t);
-    const label = (tt && (tt.name_prefix || tt.type)) || t.id || t.type || '?';
+  const rows = types.map(tt => {
+    const key = tt.id || tt.type;
+    const label = tt.name_prefix || tt.type;
     const row = el('label', 'pick');
+    row.dataset.hay = `${label} ${key} ${tt.description || ''}`.toLowerCase();
     const r = document.createElement('input');
     r.type = 'checkbox';
-    r.checked = !!t.enabled;
-    r.dataset.tid = t.id || t.type || '';
+    r.checked = have.has(key) && !!have.get(key).enabled;
     row.append(r);
     row.append(el('span', 'pk-name', label));
+    if (tt.description) row.append(el('span', 'pk-desc', tt.description));
     box.append(row);
-    return { task: t, input: r };
+    return { key, r, row };
   });
   dlg.append(box);
   const frow = el('div', 'dbtns');
+  const eachVisible = fn => rows.forEach(x => { if (!x.row.hidden) fn(x); });
   frow.append(
-    btn('全选', '', () => rows.forEach(x => x.input.checked = true)),
-    btn('全不选', '', () => rows.forEach(x => x.input.checked = false)),
+    btn('全选', '', () => eachVisible(x => x.r.checked = true)),
+    btn('全不选', '', () => eachVisible(x => x.r.checked = false)),
+    btn('反选', '', () => eachVisible(x => x.r.checked = !x.r.checked)),
     btn('取消', '', () => dlg.close()),
     btn('应用', 'primary', () => {
-      rows.forEach(x => x.task.enabled = !!x.input.checked);
+      rows.forEach(({ key, r }) => {
+        const exist = have.get(key);
+        if (r.checked){
+          if (!exist) insertTaskRaw(chain.u, key, true);
+          else exist.enabled = true;
+        } else if (exist) exist.enabled = false;
+      });
       dlg.close();
-      markDirty(); renderContent(); toast('批量启用已应用');
+      markDirty(); renderContent(); toast('任务维护已应用');
     }));
   dlg.append(frow);
+  search.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    rows.forEach(x => { x.row.hidden = !!q && !x.row.dataset.hay.includes(q); });
+  });
   dlg.showModal();
+}
+function insertTaskRaw(user, id, enabled){
+  (user.tasks = user.tasks || []).push({ id, enabled: !!enabled });
 }
 function resetUserTasks(){
   const chain = chainObj(); if (!chain) return;
@@ -846,34 +873,6 @@ function insertTask(user, type){
   state.expanded.add(`${state.sel.m}/${state.sel.a}/${state.sel.u}/${tt.id}`);
   markDirty(); renderContent(); toast('已添加 ' + (tt.name_prefix || type));
 }
-function addTaskDialog(){
-  const chain = chainObj(); if (!chain) return;
-  const have = new Set((chain.u.tasks || []).map(t => t.id || t.type));
-  const missing = pkgTypes(curPkg()).filter(t => !have.has(t.id || t.type));
-  if (!missing.length){ toast('所有已定义类型均已添加'); return; }
-  const dlg = $('dlg'); dlg.textContent = '';
-  dlg.append(el('h3', null, '添加任务实例'));
-  const box = el('div', 'picklist');
-  let picked = missing[0].type;
-  missing.forEach((t, i) => {
-    const row = el('label', 'pick');
-    const r = document.createElement('input');
-    r.type = 'radio'; r.name = 'picktype'; r.checked = i === 0;
-    r.onchange = () => { picked = t.type; };
-    row.append(r);
-    const nm = el('span', 'pk-name', t.name_prefix || t.type);
-    const dsc = el('span', 'pk-desc', t.description || '');
-    nm.append(dsc);
-    row.append(nm);
-    box.append(row);
-  });
-  dlg.append(box);
-  const frow = el('div', 'dbtns');
-  frow.append(btn('取消', '', () => dlg.close()),
-              btn('添加', 'primary', () => { dlg.close(); insertTask(chain.u, picked); }));
-  dlg.append(frow);
-  dlg.showModal();
-}
 function chainSelects(){
   const d = state.doc;
   const wrap = el('div');
@@ -905,7 +904,7 @@ function chainSelects(){
   return wrap;
 }
 function queueCard(u){
-  const q = u.queue = u.queue || {};
+  const qu = u.queue = u.queue || {};
   const { card, body } = makeCard({
     iconChar:'队', grad:['#94a3b8','#475569'],
     title:'队列设置', sub:'当前用户的调度器参数（user 级）',
@@ -945,8 +944,6 @@ function renderTaskList(){
     return;
   }
   const nEn = tasks.filter(t => t.enabled).length;
-  const cnt = $('taskCount');
-  if (cnt) cnt.textContent = `${tasks.length} 个任务 · ${nEn} 已启用`;
   let shown = 0;
   tasks.forEach(task => {
     const tt = taskDefOf(task);
@@ -960,6 +957,9 @@ function renderTaskList(){
     shown++;
     list.append(taskCard(task, tt));
   });
+  const cnt = $('taskCount');
+  if (cnt) cnt.textContent = `${tasks.length} 个任务 · ${nEn} 已启用`
+    + (state.filter ? ` · 匹配 ${shown}` : '');
   if (!shown && state.filter){
     const e = el('div', 'empty', `没有匹配「${state.filter}」的任务`);
     list.append(e);
@@ -992,16 +992,14 @@ function renderTasksTab(){
   bar.append(f);
   bar.append(btn('全部展开', '', expandAllTasks));
   bar.append(btn('全部收起', '', collapseAllTasks));
-  const batchB = btn('批量启用', '', batchEnableDialog);
-  batchB.disabled = !chainObj();
-  bar.append(batchB);
+  const maintainB = btn('任务维护', 'primary', maintainDialog);
+  maintainB.disabled = !chainObj();
+  maintainB.title = '勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索';
+  bar.append(maintainB);
   const resetB = btn('重置任务参数', '', resetUserTasks);
   resetB.disabled = !chainObj();
   resetB.title = '把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值';
   bar.append(resetB);
-  const addB = btn('＋ 添加任务', 'primary', addTaskDialog);
-  addB.disabled = !chainObj();
-  bar.append(addB);
   c.append(bar);
 
   const chain = chainObj();
@@ -1089,6 +1087,11 @@ function renderTypesTab(){
   pkgSel.addEventListener('change', () => { state.curTypePkg = pkgSel.value; renderContent(); });
   bar.append(pkgSel);
   bar.append(el('div', 'grow'));
+  const ts = document.createElement('input');
+  ts.className = 'tin'; ts.placeholder = '检索类型 / id / 描述 / 参数…';
+  ts.style.width = '200px'; ts.value = state.typeFilter;
+  ts.addEventListener('input', () => { state.typeFilter = ts.value.trim(); renderTypesTab(); ts.focus(); });
+  bar.append(ts);
   bar.append(btn('＋ 添加类型', 'primary', () => {
     if (!state.curTypePkg){ alert('没有可用的软件分组'); return; }
     dlgForm('添加类型', [{ label:'type', value:'', placeholder:'如 My New Task' }], ([type]) => {
@@ -1110,7 +1113,20 @@ function renderTypesTab(){
   c.append(bar);
   const types = pkgTypes(state.curTypePkg);
   if (!types.length){ c.append(el('div', 'empty', '该软件暂无类型定义')); return; }
-  types.forEach(tt => c.append(typeCard(tt)));
+  const q = state.typeFilter.toLowerCase();
+  let shownT = 0;
+  types.forEach(tt => {
+    if (q && !typeMatches(tt, q)) return;
+    shownT++;
+    c.append(typeCard(tt));
+  });
+  if (q && !shownT) c.append(el('div', 'empty', `没有匹配「${state.typeFilter}」的类型`));
+}
+function typeMatches(tt, q){
+  const hay = [tt.type, tt.id, tt.name_prefix, tt.description,
+    ...(tt.params || []).map(p => `${p.name} ${p.attr}`)]
+    .filter(Boolean).join(' ').toLowerCase();
+  return hay.includes(q);
 }
 function typeRenameInput(tt){
   const i = bindText(() => tt.type, () => {});
@@ -1186,8 +1202,9 @@ function typeCard(tt){
 }
 
 /* ---------------- machines tab ---------------- */
-function userBlock(a, m, ai, u, ui){
+function userBlock(a, m, ai, u, ui, q){
   const fe = firstEnabledChain();
+  if (q && !userHay(a, u).includes(q)) return null;
   const isActive = fe && fe.m === m && fe.a === a && fe.u === u;
   const box = el('div', 'sub');
   const head = el('div', 'subhead');
@@ -1210,19 +1227,19 @@ function userBlock(a, m, ai, u, ui){
     clampSel(); markDirty(); renderContent();
   }));
   box.append(head);
-  const q = u.queue = u.queue || {};
+  const qu = u.queue = u.queue || {};
   const g = el('div', 'grid2');
   g.append(fieldRow('user_id', '', numInput(() => u.user_id, v => { u.user_id = v == null ? 0 : v; }, { step:'1', min:0 }), false));
   g.append(fieldRow('tick 间隔(秒)', '调度器轮询间隔',
-    numInput(() => q.tick_interval, v => { q.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
+    numInput(() => qu.tick_interval, v => { qu.tick_interval = v == null ? 1 : v; }, { step:'0.1', min:0 }), false));
   g.append(fieldRow('失败后继续', '任务失败后是否继续调度',
-    makeSwitch(() => q.continue_after_failure !== false, v => { q.continue_after_failure = !!v; }), false));
+    makeSwitch(() => qu.continue_after_failure !== false, v => { qu.continue_after_failure = !!v; }), false));
   g.append(fieldRow('最大失败次数', '同一任务类型失败达到此次数后不再补建（0 = 不限）',
-    numInput(() => q.max_failures, v => { q.max_failures = v == null ? 0 : v; }, { step:'1', min:0 }), false));
+    numInput(() => qu.max_failures, v => { qu.max_failures = v == null ? 0 : v; }, { step:'1', min:0 }), false));
   box.append(g);
   return box;
 }
-function appBlock(m, a, ai){
+function appBlock(m, a, ai, q){
   const box = el('div', 'sub');
   const head = el('div', 'subhead');
   head.append(el('div', 'subicon', 'A'));
@@ -1239,7 +1256,15 @@ function appBlock(m, a, ai){
   const g = el('div', 'grid2');
   g.append(fieldRow('package', '', bindText(() => a.package || '', v => { a.package = v; }), false));
   box.append(g);
-  (a.users || []).forEach((u, ui) => box.append(userBlock(a, m, ai, u, ui)));
+  if (q && !(a.package || '').toLowerCase().includes(q)){
+    // 包名未命中：仅渲染命中的 user 块
+    (a.users || []).forEach((u, ui) => {
+      const ub = userBlock(a, m, ai, u, ui, q);
+      if (ub) box.append(ub);
+    });
+  } else {
+    (a.users || []).forEach((u, ui) => box.append(userBlock(a, m, ai, u, ui, null)));
+  }
   box.append(btn('＋ 添加用户', '', () => {
     const next = (a.users || []).reduce((mx, u) => Math.max(mx, Number(u.user_id) || 0), 0);
     dlgForm('添加用户', [{ label:'user_id', value:String(next), kind:'number' }], ([v]) => {
@@ -1249,8 +1274,11 @@ function appBlock(m, a, ai){
   }));
   return box;
 }
-function machineCard(m, mi){
+function machineCard(m, mi, q){
   const fe = firstEnabledChain();
+  if (q && !machineHasMatch(m, q)) return null;
+  const qApps = (q && ![m.name, m.adb_serial].filter(Boolean).join(' ').toLowerCase().includes(q))
+    ? q : null;
   const key = 'm' + mi;
   const sw = makeSwitch(() => !!m.enabled, v => { m.enabled = v; });
   const { card, body } = makeCard({
@@ -1268,7 +1296,11 @@ function machineCard(m, mi){
     bindText(() => m.adb_serial || '', v => { m.adb_serial = v; }), false));
   body.append(g);
   body.append(secTitle('应用'));
-  (m.apps || []).forEach((a, ai) => body.append(appBlock(m, a, ai)));
+  (m.apps || []).forEach((a, ai) => {
+    if (qApps && !(a.package || '').toLowerCase().includes(qApps)
+        && !(a.users || []).some(u => userHay(a, u).includes(qApps))) return;
+    body.append(appBlock(m, a, ai, qApps));
+  });
   body.append(btn('＋ 添加应用', '', () => {
     dlgForm('添加应用', [{ label:'包名', value:'com.got.china' }], ([pkg]) => {
       (m.apps = m.apps || []).push({ package:pkg || 'com.got.china', enabled:false, users:[] });
@@ -1306,6 +1338,11 @@ function renderMachinesTab(){
   modeSel.onchange = () => { state.doc.rotation_mode = modeSel.value; markDirty(); };
   modeWrap.append(modeSel);
   bar.append(modeWrap);
+  const ms = document.createElement('input');
+  ms.className = 'tin'; ms.placeholder = '检索机器 / 包名 / user…';
+  ms.style.width = '200px'; ms.value = state.machineFilter;
+  ms.addEventListener('input', () => { state.machineFilter = ms.value.trim(); renderMachinesTab(); ms.focus(); });
+  bar.append(ms);
   bar.append(btn('＋ 添加机器', 'primary', () => {
     const next = 'machine' + ((state.doc.machines || []).length + 1);
     dlgForm('添加机器', [{ label:'名称', value:next }], ([name]) => {
@@ -1318,7 +1355,36 @@ function renderMachinesTab(){
   c.append(bar);
   const list = state.doc.machines || [];
   if (!list.length){ c.append(el('div', 'empty', '暂无机器，点击右上角「＋ 添加机器」')); return; }
-  list.forEach((m, mi) => c.append(machineCard(m, mi)));
+  const q = state.machineFilter.toLowerCase();
+  let shownM = 0;
+  list.forEach((m, mi) => {
+    const card = machineCard(m, mi, q);
+    if (!card) return;
+    shownM++;
+    c.append(card);
+  });
+  if (q && !shownM) c.append(el('div', 'empty', `没有匹配「${state.machineFilter}」的机器 / 应用 / 用户`));
+}
+function userHay(a, u, ui){
+  // user 命中素材：user_id + 任务名（定义段 name_prefix）/ id / type
+  const groups = state.typeGroups[a.package] || [];
+  const defs = new Map(groups.map(tt => [tt.id || tt.type, tt]));
+  const parts = [`user ${u.user_id ?? ui}`];
+  (u.tasks || []).forEach(t => {
+    parts.push(t.id || t.type);
+    const tt = defs.get(t.id || t.type);
+    if (tt) parts.push(tt.name_prefix || '');
+  });
+  return parts.filter(Boolean).join(' ').toLowerCase();
+}
+function machineHasMatch(m, q){
+  if (!q) return true;
+  const mHay = [m.name, m.adb_serial, ''].join(' ').toLowerCase();
+  if (mHay.includes(q)) return true;
+  return (m.apps || []).some(a => {
+    if ((a.package || '').toLowerCase().includes(q)) return true;
+    return (a.users || []).some(u => userHay(a, u).includes(q));
+  });
 }
 
 /* ---------------- source tab ---------------- */
@@ -1771,7 +1837,7 @@ async function fetchTypesText(){
 init();
 
 /* test hook */
-window.__tc = { state, validateDoc, stringifyDoc, loadText, insertTask, chainObj, typeDef };
+window.__tc = { state, validateDoc, stringifyDoc, loadText, insertTask, chainObj, typeDef, maintainDialog, insertTaskRaw };
 </script>
 </body>
 </html>
