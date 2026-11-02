@@ -51,6 +51,11 @@ jobs:
         run: |
           python -m unittest discover -s tests -p "Test*.py" -v
 
+      - name: Verify update repo access
+        run: |
+          git ls-remote https://lifetraveler:${{ secrets.UPDATE_REPO_TOKEN }}@github.com/lifetraveler/supermario-update.git HEAD 2>&1 | sed 's/:\/\/[^@]*@/:\/\/***@/'
+          echo "ls-remote exit: $LASTEXITCODE"
+
       - name: Sync Repositories # 同步 deploy.txt 中的文件到独立更新库, 减小用户更新时的 git 仓库体积
         id: sync
         uses: ok-oldking/partial-sync-repo@master
