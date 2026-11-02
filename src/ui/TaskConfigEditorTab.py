@@ -23,7 +23,7 @@ import re
 import shutil
 from pathlib import Path
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QApplication, QDialog, QFrame, QGridLayout, QHBoxLayout,
@@ -235,8 +235,10 @@ class TaskConfigEditorTab(CustomTab):
         self.expanded_types = set()  # ("T", type)
         self.filter_text = ""
         self._suspend = 0          # >0 时静默 UI 信号（批量刷新）
-        self._card_cache = {}      # type -> 卡片 widget（同链内复用，挪位置不重建）
-        self._card_chain = None
+        self._card_cache = {}      # (pkg, id|type) -> 卡片 widget（跨链复用，切链零重建）
+        self._bad_cache = {}       # (pkg, id|type) -> 未知类型占位卡
+        self._type_meta = []       # 类型页 [(card, hay)] 检索过滤元数据
+        self._machine_meta = []    # 机器页 [(card, m_hay, apps_meta)] 检索过滤元数据
         self._stale_pages = set()  # 懒加载: 尚未构建内容的页
         self._build_ui()
         self._reload_from_disk(show_info=False)
@@ -312,9 +314,11 @@ class TaskConfigEditorTab(CustomTab):
         self.lbl_chain_hint = BodyLabel("")
         bar.addWidget(self.lbl_chain_hint)
         bar.addStretch(1)
-        self.btn_batch_enable = PushButton(FluentIcon.CHECKBOX, "批量启用")
-        self.btn_batch_enable.clicked.connect(self._batch_enable_dialog)
-        bar.addWidget(self.btn_batch_enable)
+        self.btn_maintain = PrimaryPushButton(FluentIcon.CHECKBOX, "任务维护")
+        self.btn_maintain.setToolTip(
+            "勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索")
+        self.btn_maintain.clicked.connect(self._open_task_maintain)
+        bar.addWidget(self.btn_maintain)
         self.btn_reset_user = PushButton(FluentIcon.SYNC, "重置任务参数")
         self.btn_reset_user.setToolTip(
             "把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值")
@@ -326,9 +330,6 @@ class TaskConfigEditorTab(CustomTab):
         self.search.setClearButtonEnabled(True)
         self.search.setFixedWidth(170)
         self.search.textChanged.connect(self._on_filter)
-        self.btn_add_task = PrimaryPushButton(FluentIcon.ADD, "添加任务")
-        self.btn_add_task.clicked.connect(self._add_task_dialog)
-        bar.addWidget(self.btn_add_task)
         lay.addLayout(bar)
 
         # 队列设置（user 级）
@@ -378,6 +379,12 @@ class TaskConfigEditorTab(CustomTab):
         bar = QHBoxLayout()
         bar.addWidget(BodyLabel("类型定义是实例的模板：defaults 兜底覆盖链，params 决定实例页控件"))
         bar.addStretch(1)
+        self.type_search = LineEdit()
+        self.type_search.setPlaceholderText("检索类型 / id / 描述 / 参数…")
+        self.type_search.setClearButtonEnabled(True)
+        self.type_search.setFixedWidth(200)
+        self.type_search.textChanged.connect(self._apply_types_filter)
+        bar.addWidget(self.type_search)
         self.btn_add_type = PrimaryPushButton(FluentIcon.ADD, "添加类型")
         self.btn_add_type.clicked.connect(self._add_type_dialog)
         bar.addWidget(self.btn_add_type)
@@ -404,6 +411,12 @@ class TaskConfigEditorTab(CustomTab):
         bar = QHBoxLayout()
         bar.addWidget(BodyLabel("运行时消费第一条全部启用的 machine → app → user 链"))
         bar.addStretch(1)
+        self.machine_search = LineEdit()
+        self.machine_search.setPlaceholderText("检索机器 / 包名 / user…")
+        self.machine_search.setClearButtonEnabled(True)
+        self.machine_search.setFixedWidth(200)
+        self.machine_search.textChanged.connect(self._apply_machines_filter)
+        bar.addWidget(self.machine_search)
         # 5.7 多用户任务轮转模式（顶层 rotation_mode）
         bar.addWidget(BodyLabel("多用户任务轮转模式:"))
         self.rotation_mode_combo = ComboBox()
@@ -611,6 +624,7 @@ class TaskConfigEditorTab(CustomTab):
         self.types_dirty = False
         self._src_dirty = False
         self._refresh_source()
+        self._flush_cards()
         self._sync_all()
         if show_info and ok:
             InfoBar.success("已加载", f"{cfg_path.name} + {type_path.name}",
@@ -756,16 +770,13 @@ class TaskConfigEditorTab(CustomTab):
         self.btn_save.setEnabled(True)
         self.btn_reload.setEnabled(True)
 
-    def _sync_all(self, keep_cards=False):
-        """文档级变更后的同步：任务页立即刷（当前页），其余页标脏等切换时再建。
-
-        keep_cards=True 时复用任务卡片（同链数据原位更新场景）。
-        """
+    def _sync_all(self):
+        """文档级变更后的同步：任务页立即刷（当前页），其余页标脏等切换时再建。"""
         self._clamp_sel()
         self._refresh_status()
         self._refresh_chain_combos()
         self._stale_pages = {"types", "machines", "source"}
-        self._refresh_tasks_page(keep_cards=keep_cards)
+        self._refresh_tasks_page()
         self._stale_pages.discard("tasks")
 
     # ==================================================== 任务实例页渲染
@@ -822,21 +833,22 @@ class TaskConfigEditorTab(CustomTab):
         self.filter_text = text or ""
         self._refresh_tasks_page()
 
-    def _refresh_tasks_page(self, keep_cards=False):
-        """重建任务列表。keep_cards=True 时复用已构建的卡片（链未变时挪位置用）。"""
+    def _refresh_tasks_page(self):
+        """重建任务列表布局。卡片按 (package, id) 全局缓存跨链复用：
+        切换 user/机器只挪位置 + _bind_card 回填值，零控件重建（防闪）。"""
         with self._suspend_signals():
             chain = self._chain()
             if not chain:
                 self._clear_layout(self.task_list_lay)
-                self._card_cache = {}
+                self._flush_cards()
                 empty = BodyLabel("未找到设备 / 应用 / 用户链，请到「JSON 源码」页编辑 machines")
                 empty.setAlignment(Qt.AlignCenter)
                 self.task_list_lay.addWidget(empty)
-                self.btn_add_task.setEnabled(False)
+                self.btn_maintain.setEnabled(False)
                 self.lbl_queue_title.setText("队列设置")
                 return
             m, a, u = chain
-            self.btn_add_task.setEnabled(True)
+            self.btn_maintain.setEnabled(True)
 
             q = u.get("queue") or {}
             self.lbl_queue_title.setText(
@@ -847,151 +859,246 @@ class TaskConfigEditorTab(CustomTab):
             self.mf_edit.setText(str(q.get("max_failures", 0)))
             self.caf_switch.setChecked(q.get("continue_after_failure") is not False)
 
-            chain_id = (self.sel["m"], self.sel["a"], self.sel["u"])
-            if not keep_cards or self._card_chain != chain_id:
-                self._clear_layout(self.task_list_lay)
-                self._card_cache = {}
-                self._card_chain = chain_id
-
             tasks = u.get("tasks") or []
             n_en = sum(1 for t in tasks if t.get("enabled"))
             self.lbl_count.setText(f"{len(tasks)} 个任务 · {n_en} 已启用")
             self.lbl_count.setVisible(True)
 
-            # take 出当前布局全部 item 分类复用（卡片不销毁，只挪位置）
-            widgets = []
-            spacer = None
-            while self.task_list_lay.count():
-                it = self.task_list_lay.takeAt(0)
-                w = it.widget()
-                if w is not None:
-                    widgets.append(w)
-                elif it.spacerItem() is not None:
-                    spacer = it
-            lbl_count = next((w for w in widgets if getattr(w, "_is_count_label", False)), None)
-            hdr_en = next((w for w in widgets if w.objectName() == "_GroupHeaderEn"), None)
-            hdr_dis = next((w for w in widgets if w.objectName() == "_GroupHeaderDis"), None)
-            cards = {w._task_type: w for w in widgets if hasattr(w, "_task_type")}
-            unknown = [w for w in widgets if w.objectName() == "_UnknownTypeCard"]
+            host = self.task_list
+            host.setUpdatesEnabled(False)
+            try:
+                # take 出当前布局全部 item；卡片不销毁（跨链留在缓存池），只挪位置
+                widgets = []
+                spacer = None
+                while self.task_list_lay.count():
+                    it = self.task_list_lay.takeAt(0)
+                    w = it.widget()
+                    if w is not None:
+                        widgets.append(w)
+                    elif it.spacerItem() is not None:
+                        spacer = it
+                lbl_count = next(
+                    (w for w in widgets if getattr(w, "_is_count_label", False)), None)
+                hdr_en = next(
+                    (w for w in widgets if w.objectName() == "_GroupHeaderEn"), None)
+                hdr_dis = next(
+                    (w for w in widgets if w.objectName() == "_GroupHeaderDis"), None)
 
-            self._card_cache = cards
-            # 重建布局
-            if lbl_count is not None:
-                self.task_list_lay.addWidget(lbl_count)
-            if en_idx := [i for i, t in enumerate(tasks) if t.get("enabled")]:
-                if hdr_en is None:
-                    hdr_en = self._group_header("已启用", "_GroupHeaderEn")
-                self.task_list_lay.addWidget(hdr_en)
-                for i in en_idx:
-                    self.task_list_lay.addWidget(self._card_for(tasks, i, cards))
-            if dis_idx := [i for i, t in enumerate(tasks) if not t.get("enabled")]:
-                if hdr_dis is None:
-                    hdr_dis = self._group_header("未启用", "_GroupHeaderDis")
-                self.task_list_lay.addWidget(hdr_dis)
-                for i in dis_idx:
-                    self.task_list_lay.addWidget(self._card_for(tasks, i, cards))
-            for w in unknown:
-                self.task_list_lay.addWidget(w)
-            if spacer is not None:
-                self.task_list_lay.addItem(spacer)
-            else:
-                self.task_list_lay.addStretch(1)
-            # 挪卡/重建后强制重算（不动卡片几何，宽度仍由布局铺满）
-            self.task_list_lay.activate()
+                readded = set()
+                if lbl_count is not None:
+                    self.task_list_lay.addWidget(lbl_count)
+                    readded.add(id(lbl_count))
+                pkg = self._cur_pkg()
+                used, used_bad = set(), set()
+                if en_idx := [i for i, t in enumerate(tasks) if t.get("enabled")]:
+                    if hdr_en is None:
+                        hdr_en = self._group_header("已启用", "_GroupHeaderEn")
+                    self.task_list_lay.addWidget(hdr_en)
+                    readded.add(id(hdr_en))
+                    for i in en_idx:
+                        w = self._card_for(tasks, i, pkg, used, used_bad)
+                        self.task_list_lay.addWidget(w)
+                        readded.add(id(w))
+                if dis_idx := [i for i, t in enumerate(tasks) if not t.get("enabled")]:
+                    if hdr_dis is None:
+                        hdr_dis = self._group_header("未启用", "_GroupHeaderDis")
+                    self.task_list_lay.addWidget(hdr_dis)
+                    readded.add(id(hdr_dis))
+                    for i in dis_idx:
+                        w = self._card_for(tasks, i, pkg, used, used_bad)
+                        self.task_list_lay.addWidget(w)
+                        readded.add(id(w))
+                if spacer is not None:
+                    self.task_list_lay.addItem(spacer)
+                else:
+                    self.task_list_lay.addStretch(1)
+                # 未复用的卡片隐藏留池（切回该链零重建），已删除实例的卡片销毁
+                for w in widgets:
+                    if id(w) not in readded and (
+                            hasattr(w, "_tid") or w.objectName() == "_UnknownTypeCard"):
+                        w.setVisible(False)
+                for key in [k for k in self._card_cache
+                            if k[0] == pkg and k[1] not in used]:
+                    c = self._card_cache.pop(key)
+                    c.hide()
+                    c.deleteLater()
+                for key in [k for k in self._bad_cache
+                            if k[0] == pkg and k[1] not in used_bad]:
+                    c = self._bad_cache.pop(key)
+                    c.hide()
+                    c.deleteLater()
+                # 挪卡/重建后强制重算（不动卡片几何，宽度仍由布局铺满）
+                self.task_list_lay.activate()
+                if self.filter_text:
+                    first_vis, n_vis = None, 0
+                    for i in range(self.task_list_lay.count()):
+                        it = self.task_list_lay.itemAt(i)
+                        w = it.widget() if it is not None else None
+                        if w is not None and hasattr(w, "_tid") and not w.isHidden():
+                            n_vis += 1
+                            if first_vis is None:
+                                first_vis = w
+                    self.lbl_count.setText(
+                        f"{len(tasks)} 个任务 · {n_en} 已启用 · 匹配 {n_vis}")
+                    if first_vis is not None:
+                        QTimer.singleShot(
+                            0, lambda w=first_vis: self.task_scroll.ensureWidgetVisible(w, 0, 60))
+            finally:
+                host.setUpdatesEnabled(True)
+
+    def _flush_cards(self):
+        """销毁全部缓存卡片（加载/应用源码等整文档替换时刻调用）。"""
+        for c in self._card_cache.values():
+            c.hide()
+            c.deleteLater()
+        for c in self._bad_cache.values():
+            c.hide()
+            c.deleteLater()
+        self._card_cache.clear()
+        self._bad_cache.clear()
+
+    def _def_by_key(self, pkg, key):
+        """(package, id|type) → 定义段；未分组返回 None。"""
+        for t in self._pkg_types(pkg):
+            if isinstance(t, dict) and (t.get("id") or t.get("type")) == key:
+                return t
+        return None
+
+    def _chain_idx(self):
+        return (self.sel["m"], self.sel["a"], self.sel["u"])
 
     def _group_header(self, text, objname):
         h = self._sec_header(text)
         h.setObjectName(objname)
         return h
 
-    def _card_for(self, tasks, i, cards):
+    def _bind_card(self, card, task):
+        """把 task 绑到复用卡上：动态解析定义段 + 回填全部控件值。
+
+        定义段缺失或参数序列变化（增删参数/attr 改名）返回 False，由调用方重建单卡。
+        """
+        tt = self._def_by_key(card._pkg, card._tid)
+        if tt is None:
+            return False
+        attrs = tuple(p.get("attr") for p in tt.get("params") or [])
+        if attrs != card._attr_seq:
+            return False
+        card._task = task
+        card._title.setText(tt.get("name_prefix") or tt.get("type") or "?")
+        card._desc.setText(tt.get("description") or "")
+        card._desc.setVisible(bool(tt.get("description")))
+        card._stats.setText(self._task_stats(task, tt))
+        card._sw.blockSignals(True)
+        card._sw.setChecked(bool(task.get("enabled")))
+        card._sw.blockSignals(False)
+        params = task.get("params") or {}
+        for dkey, fn in card._setters:
+            if dkey == "cron":
+                fn(task.get("cron") or "")
+            elif dkey is not None:
+                fn(params.get(dkey, task.get(dkey, 0)))
+        for fn in card._dots:
+            fn()
+        for gb in getattr(card._body, "_goal_boxes", []):
+            try:
+                gb()
+            except RuntimeError:
+                pass  # 控件已销毁
+        open_ = (*self._chain_idx(), card._tid) in self.expanded
+        card._body.setVisible(open_)
+        card._btn_expand.setIcon(
+            FluentIcon.CARE_UP_SOLID if open_ else FluentIcon.CARE_DOWN_SOLID)
+        return True
+
+    def _card_for(self, tasks, i, pkg, used, used_bad):
         task = tasks[i]
+        key = task.get("id") or task.get("type")
+        ck = (pkg, key)
         tt = self._task_def(task)
         if not tt:
-            bad = CardWidget()
-            bad.setObjectName("_UnknownTypeCard")
-            bl = QHBoxLayout(bad)
-            bl.addWidget(BodyLabel(
-                f'未知任务: id={task.get("id")!r} type={task.get("type")!r}'
-                f'（定义缺失，运行会报错）'))
+            bad = self._bad_cache.get(ck)
+            if bad is None:
+                bad = CardWidget()
+                bad.setObjectName("_UnknownTypeCard")
+                bl = QHBoxLayout(bad)
+                bl.addWidget(BodyLabel(
+                    f'未知任务: id={task.get("id")!r} type={task.get("type")!r}'
+                    f'（定义缺失，运行会报错）'))
+                self._bad_cache[ck] = bad
+            used_bad.add(key)
+            bad.setVisible(not self.filter_text or self._filter_hit(task, None))
             return bad
-        key = task.get("id") or task.get("type")
-        card = cards.get(key)
+        card = self._card_cache.get(ck)
+        if card is not None and not self._bind_card(card, task):
+            # 定义段形状变化：单卡重建
+            card.hide()
+            card.deleteLater()
+            self._card_cache.pop(ck, None)
+            card = None
         if card is None:
-            card = self._task_card(task, tt, i)
-            card._task_type = key
-            cards[key] = card  # 同步进缓存（cards 即 self._card_cache）
-        else:
-            refresh = getattr(card, "_refresh_state", None)
-            if refresh:
-                refresh()
-        # 搜索过滤: 用 setVisible 而不是跳过, 保持缓存完整
-        hay = " ".join(filter(None, [
-            tt.get("name_prefix"), task.get("id"), task.get("type"),
-            tt.get("description")])).lower()
-        card.setVisible(not self.filter_text or self.filter_text.lower() in hay)
+            card = self._task_card(tt, pkg, key)
+            self._card_cache[ck] = card
+            self._bind_card(card, task)
+        used.add(key)
+        card.setVisible(not self.filter_text or self._filter_hit(task, tt))
         return card
 
+    def _filter_hit(self, task, tt):
+        hay = " ".join(filter(None, [
+            (tt or {}).get("name_prefix"), task.get("id"), task.get("type"),
+            (tt or {}).get("description")])).lower()
+        return self.filter_text.lower() in hay
 
-    def _task_card(self, task, tt, index):
-        key = (self.sel["m"], self.sel["a"], self.sel["u"],
-               task.get("id") or task.get("type"))
+
+    def _task_card(self, tt, pkg, key):
+        """构建一张与任何 task 实例无关的任务卡（参数控件按定义段形状）。
+
+        值的读写都经 card._task 动态解析，因此同一张卡可在任意链的
+        同类型任务间复用；bind/refresh 只回填值，绝不重建控件。
+        """
         card = CardWidget()
         lay = QVBoxLayout(card)
         lay.setContentsMargins(12, 10, 12, 10)
         lay.setSpacing(6)
+        card._pkg = pkg
+        card._tid = key
 
         # 头部：标题/描述/统计 + 启用开关 + 展开按钮
         head = QHBoxLayout()
         info = QVBoxLayout()
-        info.addWidget(StrongBodyLabel(tt.get("name_prefix") or tt.get("type") or "?"))
-        if tt.get("description"):
-            desc = BodyLabel(tt["description"])
-            desc.setWordWrap(False)
-            info.addWidget(desc)
-        stats = BodyLabel(self._task_stats(task, tt))
+        title = StrongBodyLabel(tt.get("name_prefix") or tt.get("type") or "?")
+        desc = BodyLabel(tt.get("description") or "")
+        desc.setWordWrap(False)
+        stats = BodyLabel("")
         stats.setWordWrap(False)
+        info.addWidget(title)
+        info.addWidget(desc)
         info.addWidget(stats)
         head.addLayout(info, 1)
         sw = SwitchButton("启用")
-        sw.setChecked(bool(task.get("enabled")))
-        sw.checkedChanged.connect(lambda on, t=task: self._task_enabled(t, on))
+        sw.checkedChanged.connect(
+            lambda on, c=card: self._task_enabled(c._task, on))
         head.addWidget(sw)
-        body = self._task_body(task, tt, index)
-        open_ = key in self.expanded
-        btn = TransparentToolButton(FluentIcon.CARE_UP_SOLID if open_ else FluentIcon.CARE_DOWN_SOLID)
-        btn.clicked.connect(lambda: self._toggle(body, key, btn))
+        body = self._task_body(tt, card)
+        btn = TransparentToolButton(FluentIcon.CARE_DOWN_SOLID)
+        btn.clicked.connect(lambda: self._toggle(body, (*self._chain_idx(), key), btn))
         head.addWidget(btn)
         lay.addLayout(head)
 
-        body.setVisible(open_)
+        card._title, card._desc, card._stats = title, desc, stats
+        card._sw, card._body, card._btn_expand = sw, body, btn
         lay.addWidget(body)
-        # 缓存复用时的刷新钩子：统计行 + 启用开关 + 展开区值控件
-        # (dkey, set_fn) / (attr, set_fn) 对，刷新时按 task 当前值回填显示
-        setters = [(w._dkey, w._ctl_set) for w in body.findChildren(QWidget)
-                   if hasattr(w, "_ctl_set") and hasattr(w, "_dkey")]
-        setters += [(w._attr, w._ctl_set) for w in body.findChildren(QFrame)
-                    if hasattr(w, "_ctl_set") and hasattr(w, "_attr")]
-        dots = [w._dot_refresh for w in body.findChildren(QFrame)
-                if hasattr(w, "_dot_refresh")]
-
-        def _refresh_state(t=task, d=tt, s=stats, w=sw, setters=setters, dots=dots):
-            s.setText(self._task_stats(t, d))
-            w.blockSignals(True)
-            w.setChecked(bool(t.get("enabled")))
-            w.blockSignals(False)
-            params = t.get("params") or {}
-            for key, fn in setters:
-                if key == "cron":
-                    fn(t.get("cron") or "")
-                elif key is not None:
-                    fn(params.get(key, t.get(key, 0)))
-            for fn in dots:
-                fn()
-        card._refresh_state = _refresh_state
+        # 缓存复用时的回填钩子：(dkey, set_fn) / (attr, set_fn) / 差异点刷新
+        card._setters = [(w._dkey, w._ctl_set) for w in body.findChildren(QWidget)
+                         if hasattr(w, "_ctl_set") and hasattr(w, "_dkey")]
+        card._setters += [(w._attr, w._ctl_set) for w in body.findChildren(QFrame)
+                          if hasattr(w, "_ctl_set") and hasattr(w, "_attr")]
+        card._dots = [w._dot_refresh for w in body.findChildren(QFrame)
+                      if hasattr(w, "_dot_refresh")]
+        card._attr_seq = tuple(p.get("attr") for p in tt.get("params") or [])
         return card
 
-    def _task_body(self, task, tt, index):
+    def _task_body(self, tt, card):
         body = QWidget()
         bl = QVBoxLayout(body)
         bl.setContentsMargins(4, 2, 4, 0)
@@ -1004,7 +1111,7 @@ class TaskConfigEditorTab(CustomTab):
         grid.setContentsMargins(0, 0, 0, 0)
         grid.setHorizontalSpacing(24)
         grid.setVerticalSpacing(6)
-        rows = self._defaults_rows(task, defaults)
+        rows = self._defaults_rows(None, defaults, card)
         for i, row in enumerate(rows):
             grid.addWidget(row, i // 2, i % 2)
         grid.setColumnStretch(2, 1)
@@ -1018,7 +1125,7 @@ class TaskConfigEditorTab(CustomTab):
             pgrid.setHorizontalSpacing(8)
             pgrid.setVerticalSpacing(8)
             for i, pd in enumerate(params):
-                pgrid.addWidget(self._param_cell(task, pd), i // 2, i % 2)
+                pgrid.addWidget(self._param_cell(None, pd, card), i // 2, i % 2)
             pgrid.setColumnStretch(2, 1)
             bl.addLayout(pgrid)
             self._style_param_boxes(body)
@@ -1031,17 +1138,52 @@ class TaskConfigEditorTab(CustomTab):
         foot = QHBoxLayout()
         foot.addStretch(1)
         b_up = TransparentPushButton(FluentIcon.UP, "上移")
-        b_up.clicked.connect(lambda _=False, i=index, d=-1: self._move_task(i, d))
+        b_up.clicked.connect(
+            lambda _=False, c=card, d=-1: self._move_card_task(c, d))
         b_down = TransparentPushButton(FluentIcon.DOWN, "下移")
-        b_down.clicked.connect(lambda _=False, i=index, d=1: self._move_task(i, d))
+        b_down.clicked.connect(
+            lambda _=False, c=card, d=1: self._move_card_task(c, d))
         b_reset = TransparentPushButton(FluentIcon.SYNC, "恢复默认")
-        b_reset.clicked.connect(lambda _=False, t=task, d=tt: self._reset_task(t, d))
+        b_reset.clicked.connect(
+            lambda _=False, c=card: self._reset_card_task(c))
         b_del = TransparentPushButton(FluentIcon.DELETE, "删除")
-        b_del.clicked.connect(lambda _=False, t=task: self._remove_task(t))
+        b_del.clicked.connect(
+            lambda _=False, c=card: self._remove_card_task(c))
         for b in (b_up, b_down, b_reset, b_del):
             foot.addWidget(b)
         bl.addLayout(foot)
         return body
+
+    def _move_card_task(self, card, direction):
+        """按卡当前绑定的 task 在数据数组里定位后移动（不吃陈旧 index）。"""
+        task = card._task
+        chain = self._chain()
+        if not chain:
+            return
+        arr = chain[2].setdefault("tasks", [])
+        i = next((k for k, t in enumerate(arr) if t is task), -1)
+        if i < 0:
+            return
+        self._move_task(i, direction)
+
+    def _reset_card_task(self, card):
+        self._reset_task(card._task, self._def_by_key(card._pkg, card._tid) or {})
+
+    def _remove_card_task(self, card):
+        task = card._task
+        chain = self._chain()
+        if not chain:
+            return
+        arr = chain[2].get("tasks") or []
+        if task in arr:
+            arr.remove(task)
+        key = (card._pkg, task.get("id") or task.get("type"))
+        c = self._card_cache.pop(key, None)
+        if c is not None:
+            c.hide()
+            c.deleteLater()
+        self._mark_dirty()
+        self._refresh_tasks_page()
 
     def _task_stats(self, task, tt):
         """卡片头部统计行（瘦身条目缺失字段回退定义段默认）。"""
@@ -1105,6 +1247,8 @@ class TaskConfigEditorTab(CustomTab):
         """
         attr = pd.get("attr")
         static = list((pd.get("widget") or {}).get("options") or [])
+        if task is None:
+            return static
         if attr not in ("exclusive_goals", "public_goals", "public_refresh_goals"):
             return static
         reg_text = (task.get("params") or {}).get("goal_registry")
@@ -1123,19 +1267,21 @@ class TaskConfigEditorTab(CustomTab):
                 return pd.get("default") or ""
         return ""
 
-    def _param_cell(self, task, pd):
+    def _param_cell(self, task, pd, card=None):
         """参数渲染为独立圆角单元格：名称行(含差异圆点) + 控件 + 描述。
 
-        box 挂 _ctl_set（外部值刷新函数），供卡片复用时同步显示。
+        task=None（卡片工厂模式）时读写经 card._task 动态解析，
+        同一张卡可在不同 task 间复用；box 挂 _ctl_set（外部值回填函数）。
         """
         attr = pd.get("attr")
         default = pd.get("default")
-        tparams = task.get("params") or {}
+        tparams = task.get("params") or {} if task is not None else {}
         value = tparams.get(attr, default)
         wtype = (pd.get("widget") or {}).get("type")
 
         def commit(v):
-            task.setdefault("params", {})[attr] = v
+            t = card._task if card is not None else task
+            t.setdefault("params", {})[attr] = v
             self._mark_dirty()
 
         set_fn = None
@@ -1187,16 +1333,21 @@ class TaskConfigEditorTab(CustomTab):
                 e.blockSignals(True), e.setPlainText("" if v is None else str(v)),
                 e.blockSignals(False))
         elif wtype in ("drop_down", "multi_drop_down"):
-            opts = self._effective_options(task, pd)
+            opts = self._effective_options(
+                getattr(card, "_task", None) if card is not None else task, pd)
             if wtype == "multi_drop_down":
                 wrap = QWidget()
                 wl = QHBoxLayout(wrap)
                 wl.setContentsMargins(0, 0, 0, 0)
 
-                def _fill_checks(layout, task=task, attr=attr, pd=pd):
+                def _fill_checks(layout, card=card, attr=attr, pd=pd, task0=task):
                     """按当前 options 重建复选框行（保留已勾选值）。"""
-                    opts = self._effective_options(task, pd)
-                    params = task.get("params") or {}
+                    t = (getattr(card, "_task", None)
+                         if card is not None else task0)
+                    if t is None:
+                        return
+                    opts = self._effective_options(t, pd)
+                    params = t.get("params") or {}
                     cur_raw = params.get(attr)
                     if cur_raw is None:
                         cur_raw = pd.get("default") or []
@@ -1214,7 +1365,9 @@ class TaskConfigEditorTab(CustomTab):
                         ckb = CheckBox(str(opt))
                         ckb.setChecked(str(opt) in cur)
                         ckb.stateChanged.connect(
-                            lambda _s, o=opt, c=ckb: self._multi_toggle(task, attr, o, c.isChecked()))
+                            lambda _s, o=opt, c=ckb, cc=card, t0=task:
+                            self._multi_toggle(cc._task if cc is not None else t0,
+                                               attr, o, c.isChecked()))
                         layout.addWidget(ckb)
                         boxes.append((ckb, str(opt)))
                     layout.addStretch(1)
@@ -1238,8 +1391,8 @@ class TaskConfigEditorTab(CustomTab):
                 ctl.setCurrentText(sval if sval in items
                                    else (sval + "（不在选项中）" if sval else items[0]))
                 ctl.currentTextChanged.connect(
-                    lambda txt, t=task, a=attr, os_=opts:
-                    self._drop_changed(t, a, txt, os_))
+                    lambda txt, c=card, t0=task, a=attr, os_=opts:
+                    self._drop_changed(c._task if c is not None else t0, a, txt, os_))
 
                 def set_fn(v, c=ctl, items=items):
                     sval = str(v) if v is not None else ""
@@ -1251,17 +1404,16 @@ class TaskConfigEditorTab(CustomTab):
                                      else (sval + "（不在选项中）" if sval else items[0]))
             else:
                 ctl = LineEdit()
-                ctl.setText("" if value is None else str(value))
-                ctl.textChanged.connect(lambda v: commit(v))
+                ctl.textChanged.connect(commit)
                 set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
         else:
             ctl = LineEdit()
-            ctl.setText("" if value is None else str(value))
-            ctl.textChanged.connect(lambda v: commit(v))
+            ctl.textChanged.connect(commit)
             set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
 
         desc = pd.get("desc") or ""
-        get = lambda: (task.get("params") or {}).get(attr)
+        get = lambda: ((card._task if card is not None else task).get("params")
+                       or {}).get(attr)
         box = self._param_box(pd.get("name") or attr or "?", ctl, desc,
                               (get, default))
         if set_fn is not None:
@@ -1295,7 +1447,7 @@ class TaskConfigEditorTab(CustomTab):
         params[attr] = cur
         self._mark_dirty()
 
-    def _defaults_rows(self, obj, default_obj):
+    def _defaults_rows(self, obj, default_obj, card=None):
         """六个调度键的编辑行。obj 是任务实例或类型 defaults dict。
 
         每行 host 挂 _ctl_set（外部刷新函数）+ _dkey（键名），
@@ -1305,9 +1457,10 @@ class TaskConfigEditorTab(CustomTab):
 
         def num_row(key):
             e = LineEdit()
-            e.setText(str(obj.get(key, 0)))
+            if obj is not None:
+                e.setText(str(obj.get(key, 0)))
             e.setFixedWidth(140)
-            e.textChanged.connect(lambda v, o=obj, k=key: self._set_num(o, k, v))
+            e.textChanged.connect(lambda v, c=card, k=key: self._set_card_num(c, k, v))
             host = self._field_row(
                 {"count": "执行次数", "max_active": "最大并发",
                  "max_failures": "最大失败次数","next_trigger_delay": "执行完成后到下次触发的间隔秒数"}[key],
@@ -1319,8 +1472,9 @@ class TaskConfigEditorTab(CustomTab):
 
         def bool_row(key, label):
             sw = SwitchButton(label)
-            sw.setChecked(bool(obj.get(key)))
-            sw.checkedChanged.connect(lambda on, o=obj, k=key: self._set_bool(o, k, on))
+            if obj is not None:
+                sw.setChecked(bool(obj.get(key)))
+            sw.checkedChanged.connect(lambda on, c=card, k=key: self._set_card_bool(c, k, on))
             host = self._field_row(
                 label, DKEY_HELP[key], sw,
                 (lambda o=obj, k=key: o.get(k, False), default_obj.get(key, False)))
@@ -1336,10 +1490,11 @@ class TaskConfigEditorTab(CustomTab):
         rows.append(bool_row("one_shot", "单次执行"))
 
         e = LineEdit()
-        e.setText(obj.get("cron") or "")
+        if obj is not None:
+            e.setText(obj.get("cron") or "")
         e.setPlaceholderText("留空 = 不使用")
         e.setFixedWidth(220)
-        e.textChanged.connect(lambda v, o=obj: self._set_str(o, "cron", v))
+        e.textChanged.connect(lambda v, c=card: self._set_card_str(c, "cron", v))
         host = self._field_row(
             "Cron 表达式", DKEY_HELP["cron"], e,
             (lambda o=obj: o.get("cron") or "", default_obj.get("cron") or ""))
@@ -1347,6 +1502,22 @@ class TaskConfigEditorTab(CustomTab):
         host._dkey = "cron"
         rows.append(host)
         return rows
+
+    # ------------------------------------------------ 卡片任务值写入（动态解析 task）
+    def _set_card_num(self, card, key, text):
+        task = card._task if card is not None else None
+        if task is not None:
+            self._set_num(task, key, text)
+
+    def _set_card_bool(self, card, key, on):
+        task = card._task if card is not None else None
+        if task is not None:
+            self._set_bool(task, key, on)
+
+    def _set_card_str(self, card, key, text):
+        task = card._task if card is not None else None
+        if task is not None:
+            self._set_str(task, key, text)
 
     # ------------------------------------------------ 任务实例增删改
     def _task_enabled(self, task, on):
@@ -1366,7 +1537,7 @@ class TaskConfigEditorTab(CustomTab):
                     pos = len(arr)
                 arr.insert(pos, task)
         self._mark_dirty()
-        self._refresh_tasks_page(keep_cards=True)
+        self._refresh_tasks_page()
 
     def _move_task(self, index, direction):
         """组内移动（数据数组顺序即显示顺序）。"""
@@ -1382,7 +1553,7 @@ class TaskConfigEditorTab(CustomTab):
             return
         arr[index], arr[j] = arr[j], arr[index]
         self._mark_dirty()
-        self._refresh_tasks_page(keep_cards=True)
+        self._refresh_tasks_page()
 
     def _queue_changed(self, *_):
         if self._suspended:
@@ -1408,64 +1579,43 @@ class TaskConfigEditorTab(CustomTab):
             task.pop(k, None)
         task["params"] = {}
         self._mark_dirty()
-        self._refresh_tasks_page(keep_cards=True)
-
-    def _remove_task(self, task):
-        chain = self._chain()
-        if not chain:
-            return
-        arr = chain[2].get("tasks") or []
-        if task in arr:
-            arr.remove(task)
-        self._card_cache.pop(task.get("id") or task.get("type"), None)
-        self._mark_dirty()
         self._refresh_tasks_page()
 
-    def _add_task_dialog(self):
+    def _open_task_maintain(self):
+        """任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建）。
+
+        多选/单选/全选/全不选/反选/检索一步到位，替代原「添加任务」+「批量启用」。
+        """
         chain = self._chain()
         if not chain or not self.doc:
             return
-        have = {t.get("id") or t.get("type") for t in chain[2].get("tasks") or []}
-        missing = [t for t in self._pkg_types(self._cur_pkg())
-                   if isinstance(t, dict) and (t.get("id") or t.get("type")) not in have]
-        if not missing:
-            InfoBar.warning("添加任务", "所有已定义类型均已添加",
+        pkg_types = [t for t in self._pkg_types(self._cur_pkg()) if isinstance(t, dict)]
+        if not pkg_types:
+            InfoBar.warning("任务维护", "当前软件（package）没有任务类型定义",
                             parent=self.window(), duration=2500)
             return
-        dlg = _PickTypeDialog(missing, self.window())
-        if dlg.exec() and dlg.picked_type:
-            self._insert_task(chain[2], dlg.picked_type)
-
-    def _insert_task(self, user, type_):
-        tt = self._type_def(type_)
-        if not tt:
-            return
-        user.setdefault("tasks", []).append({
-            "id": tt.get("id"), "enabled": False, "params": {}})
-        self.expanded.add((self.sel["m"], self.sel["a"], self.sel["u"], tt.get("id")))
-        self._mark_dirty()
-        self._refresh_tasks_page()
-
-    def _batch_enable_dialog(self):
-        """批量多选启用/停用当前用户任务（新建用户快速勾选场景）。"""
-        chain = self._chain()
-        if not chain:
-            return
-        tasks = [t for t in chain[2].get("tasks") or [] if isinstance(t, dict)]
-        if not tasks:
-            InfoBar.warning("批量启用", "当前用户还没有任务，先「添加任务」",
-                            parent=self.window(), duration=2500)
-            return
+        have = {t.get("id") or t.get("type"): t
+                for t in chain[2].get("tasks") or [] if isinstance(t, dict)}
         items = []
-        for t in tasks:
-            tt = self._task_def(t)
-            label = (tt.get("name_prefix") if tt else None) or t.get("id") or t.get("type")
-            items.append((t, bool(t.get("enabled")), label))
-        dlg = _BatchEnableDialog(items, self.window())
+        for tt in pkg_types:
+            key = tt.get("id") or tt.get("type")
+            items.append((key, tt.get("name_prefix") or key,
+                          tt.get("description") or "",
+                          key in have and bool(have[key].get("enabled"))))
+        dlg = _TaskMaintainDialog(items, self.window())
         if not dlg.exec():
             return
-        for t, on in dlg.results:
-            t["enabled"] = bool(on)
+        user = chain[2]
+        arr = user.setdefault("tasks", [])
+        for key, on in dlg.results:
+            exist = have.get(key)
+            if on:
+                if exist is None:
+                    arr.append({"id": key, "enabled": True, "params": {}})
+                else:
+                    exist["enabled"] = True
+            elif exist is not None:
+                exist["enabled"] = False
         self._normalize_group_order()
         self._mark_dirty()
         self._refresh_tasks_page()
@@ -1531,9 +1681,18 @@ class TaskConfigEditorTab(CustomTab):
             if not types:
                 self.type_list_lay.addWidget(BodyLabel("该软件暂无类型定义"))
                 return
+            self._type_meta = []
             for tt in types:
-                self.type_list_lay.addWidget(self._type_card(tt))
+                card = self._type_card(tt)
+                self.type_list_lay.addWidget(card)
+                hay = " ".join(filter(None, [
+                    tt.get("type"), tt.get("id"), tt.get("name_prefix"),
+                    tt.get("description"),
+                    " ".join(f'{p.get("name")} {p.get("attr")}'
+                             for p in tt.get("params") or [])])).lower()
+                self._type_meta.append((card, hay))
             self.type_list_lay.addStretch(1)
+            self._apply_types_filter()
 
     def _on_type_pkg_changed(self, idx):
         if self._suspended:
@@ -1542,6 +1701,16 @@ class TaskConfigEditorTab(CustomTab):
         if 0 <= idx < len(pkgs):
             self.cur_type_pkg = pkgs[idx]
             self._refresh_types_page()
+
+    def _apply_types_filter(self, *_):
+        """类型定义页检索：setVisible 过滤，不重建。"""
+        q = (self.type_search.text() if hasattr(self, "type_search") else "").lower()
+        meta = getattr(self, "_type_meta", None) or []
+        for card, hay in meta:
+            try:
+                card.setVisible(not q or q in hay)
+            except RuntimeError:
+                continue
 
     def _type_card(self, tt):
         key = ("T", tt.get("type"))
@@ -1692,11 +1861,24 @@ class TaskConfigEditorTab(CustomTab):
             if not machines:
                 self.machine_list_lay.addWidget(BodyLabel("暂无机器，点击右上角「添加机器」"))
                 return
-            for mi, m in enumerate(machines):
-                self.machine_list_lay.addWidget(self._machine_card(m, mi))
-            self.machine_list_lay.addStretch(1)
+            host = self.machine_list
+            host.setUpdatesEnabled(False)
+            try:
+                self._machine_meta = []
+                for mi, m in enumerate(machines):
+                    card, apps_meta = self._machine_card(m, mi)
+                    self.machine_list_lay.addWidget(card)
+                    m_hay = " ".join(filter(None, [
+                        m.get("name"), m.get("adb_serial"),
+                        f"machine{mi}"])).lower()
+                    self._machine_meta.append((card, m_hay, apps_meta))
+                self.machine_list_lay.addStretch(1)
+                self._apply_machines_filter()
+            finally:
+                host.setUpdatesEnabled(True)
 
     def _machine_card(self, m, mi):
+        """构建机器卡；返回 (card, [(app_box, a_hay, [(user_box, u_hay)])])。"""
         fe = self._first_enabled_idx()
         is_active = fe and fe[0] == mi
         card = CardWidget()
@@ -1734,8 +1916,11 @@ class TaskConfigEditorTab(CustomTab):
         lay.addLayout(grid)
 
         lay.addWidget(self._sec_header("应用"))
+        apps_meta = []
         for ai, a in enumerate(m.get("apps") or []):
-            lay.addWidget(self._app_block(m, a, ai))
+            a_box, a_hay, users_meta = self._app_block(m, a, ai)
+            lay.addWidget(a_box)
+            apps_meta.append((a_box, a_hay, users_meta))
         b_add_app = TransparentPushButton(FluentIcon.ADD, "添加应用")
         b_add_app.clicked.connect(lambda _=False, o=m: self._add_app_dialog(o))
         lay.addWidget(b_add_app)
@@ -1746,9 +1931,10 @@ class TaskConfigEditorTab(CustomTab):
         b_del.clicked.connect(lambda _=False, i=mi: self._remove_machine(i))
         foot.addWidget(b_del)
         lay.addLayout(foot)
-        return card
+        return card, apps_meta
 
     def _app_block(self, m, a, ai):
+        """构建应用块；返回 (box, a_hay, [(user_box, u_hay)])。"""
         fe = self._first_enabled_idx()
         is_active = fe and fe[0] == self.doc["machines"].index(m) and fe[1] == ai
         box = CardWidget()
@@ -1776,14 +1962,19 @@ class TaskConfigEditorTab(CustomTab):
         e_pkg.textChanged.connect(lambda v, o=a: self._set_str(o, "package", v))
         lay.addWidget(self._field_row("package", "", e_pkg))
 
+        users_meta = []
         for ui_, u in enumerate(a.get("users") or []):
-            lay.addWidget(self._user_block(a, u, ui_))
+            u_box, u_hay = self._user_block(a, u, ui_)
+            lay.addWidget(u_box)
+            users_meta.append((u_box, u_hay))
         b_add_user = TransparentPushButton(FluentIcon.ADD, "添加用户")
         b_add_user.clicked.connect(lambda _=False, o=a: self._add_user_dialog(o))
         lay.addWidget(b_add_user)
-        return box
+        a_hay = (a.get("package") or "").lower()
+        return box, a_hay, users_meta
 
     def _user_block(self, a, u, ui_):
+        """构建用户块；返回 (box, u_hay) 供设备链页检索过滤。"""
         fe = self._first_enabled_idx()
         box = CardWidget()
         lay = QVBoxLayout(box)
@@ -1831,7 +2022,33 @@ class TaskConfigEditorTab(CustomTab):
         grid.addWidget(self._field_row("失败后继续", "任务失败后是否继续调度", caf), 1, 0)
         grid.setColumnStretch(2, 1)
         lay.addLayout(grid)
-        return box
+        u_hay = f'user {u.get("user_id", ui_)}'.lower()
+        return box, u_hay
+
+    def _apply_machines_filter(self, *_):
+        """设备链页检索：机器/应用/用户三级 setVisible 级联过滤，不重建。
+
+        命中机器名 → 整机显示；命中包名 → 该应用及其用户显示；
+        命中 user → 仅该用户块显示（父级跟随可见）。
+        """
+        q = (self.machine_search.text() if hasattr(self, "machine_search")
+             else "").lower()
+        meta = getattr(self, "_machine_meta", None) or []
+        for m_card, m_hay, apps in meta:
+            try:
+                any_app = False
+                for a_box, a_hay, users in apps:
+                    any_user = False
+                    for u_box, u_hay in users:
+                        uv = (not q) or q in u_hay or q in a_hay or q in m_hay
+                        u_box.setVisible(uv)
+                        any_user = any_user or uv
+                    av = (not q) or q in a_hay or q in m_hay or any_user
+                    a_box.setVisible(av)
+                    any_app = any_app or av
+                m_card.setVisible((not q) or q in m_hay or any_app)
+            except RuntimeError:
+                continue  # 控件已销毁
 
     def _first_enabled_idx(self):
         """第一条全 enabled 链的 (mi, ai, ui)，无则 None。"""
@@ -1968,7 +2185,7 @@ class TaskConfigEditorTab(CustomTab):
                             tparams[new_attr] = tparams.pop(old)
         self._mark_types_dirty()
         self._mark_dirty()
-        self._card_cache = {}
+        self._flush_cards()
         self._refresh_tasks_page()
 
     def _add_param(self, tt):
@@ -2036,7 +2253,7 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_types_dirty()
         self._mark_dirty()
         self._refresh_types_page()
-        self._card_cache = {}
+        self._flush_cards()
         self._refresh_tasks_page()
         InfoBar.success("已重命名 id", new_id, parent=self.window(), duration=2500)
 
@@ -2068,7 +2285,7 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_types_dirty()
         self._mark_dirty()
         self._refresh_types_page()
-        self._card_cache = {}
+        self._flush_cards()
         self._refresh_tasks_page()
         InfoBar.success("已删除类型", f'{tt.get("type")}（清理 {n} 处实例）',
                         parent=self.window(), duration=2500)
@@ -2170,6 +2387,7 @@ class TaskConfigEditorTab(CustomTab):
         self.type_order = type_order
         self._normalize_group_order()
         self._src_dirty = False
+        self._flush_cards()
         self._sync_all()
         self._mark_dirty()
         self._mark_types_dirty()
@@ -2331,7 +2549,7 @@ class TaskConfigEditorTab(CustomTab):
             else:
                 t["enabled"] = False
         self._normalize_group_order()
-        self._sync_all(keep_cards=True)
+        self._sync_all()
         self._mark_dirty()
         InfoBar.success("方案已切换", f"{name}（覆盖 {applied} 项，记得保存落盘）",
                         parent=self.window(), duration=2500)
@@ -2451,54 +2669,82 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_dirty()
 
 
-class _BatchEnableDialog(QDialog):
-    """批量多选启用/停用任务实例。results: [(task, bool), …]"""
+class _TaskMaintainDialog(QDialog):
+    """任务维护：当前 package 全类型清单多选勾选。results: [(key, bool), …]
+
+    支持 检索过滤 / 全选 / 全不选 / 反选（对未过滤的全部行生效）。
+    """
 
     def __init__(self, items, parent=None):
+        # items: [(key, label, desc, enabled)]
         super().__init__(parent)
-        self.setWindowTitle("批量启用任务")
-        self.results = []
+        self.setWindowTitle("任务维护（勾选=启用，缺失类型自动补建）")
+        self.resize(520, 640)
+        self._rows = []
         lay = QVBoxLayout(self)
-        lay.addWidget(SubtitleLabel("勾选要启用的任务（当前用户）"))
-        self.listw = QListWidget(self)
+        self.search = LineEdit()
+        self.search.setPlaceholderText("检索任务名 / id / 描述…")
+        self.search.setClearButtonEnabled(True)
+        self.search.textChanged.connect(self._apply_filter)
+        lay.addWidget(self.search)
+        self.listw = QListWidget()
         self.listw.setSelectionMode(QAbstractItemView.NoSelection)
-        self._boxes = []
-        for task, enabled, label in items:
-            item = QListWidgetItem()
-            self.listw.addItem(item)
-            row = QWidget()
-            rl = QHBoxLayout(row)
-            rl.setContentsMargins(8, 2, 8, 2)
-            ckb = CheckBox(str(label or "?"))
-            ckb.setChecked(enabled)
-            rl.addWidget(ckb)
-            rl.addStretch(1)
-            item.setSizeHint(row.sizeHint())
-            self.listw.setItemWidget(item, row)
-            self._boxes.append((task, ckb))
-        lay.addWidget(self.listw)
-        bar = QHBoxLayout()
-        bar.addStretch(1)
-        b_all = PushButton("全选")
-        b_all.clicked.connect(lambda: self._set_all(True))
-        b_none = PushButton("全不选")
-        b_none.clicked.connect(lambda: self._set_all(False))
-        cancel = PushButton("取消")
-        cancel.clicked.connect(self.reject)
-        ok = PrimaryPushButton("应用")
-        ok.clicked.connect(self._on_ok)
-        for w in (b_all, b_none, cancel, ok):
-            bar.addWidget(w)
-        lay.addLayout(bar)
-        self.resize(420, 520)
+        lay.addWidget(self.listw, 1)
+        for key, label, desc, enabled in items:
+            it = QListWidgetItem(f"{label}" + (f"　{desc}" if desc else ""))
+            it.setData(Qt.UserRole, (key, label, desc))
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if enabled else Qt.Unchecked)
+            self.listw.addItem(it)
+            self._rows.append(it)
+        btns = QHBoxLayout()
+        for text, fn in (("全选", self._sel_all), ("全不选", self._sel_none),
+                         ("反选", self._sel_inv)):
+            b = PushButton(text)
+            b.clicked.connect(fn)
+            btns.addWidget(b)
+        btns.addStretch(1)
+        b_cancel = PushButton("取消")
+        b_cancel.clicked.connect(self.reject)
+        b_ok = PrimaryPushButton("应用")
+        b_ok.clicked.connect(self.accept)
+        btns.addWidget(b_cancel)
+        btns.addWidget(b_ok)
+        lay.addLayout(btns)
 
-    def _set_all(self, on):
-        for _, ckb in self._boxes:
-            ckb.setChecked(on)
+    def _apply_filter(self, text):
+        text = (text or "").lower()
+        for it in self._rows:
+            key, label, desc = it.data(Qt.UserRole)
+            hay = f"{label} {key} {desc}".lower()
+            it.setHidden(bool(text) and text not in hay)
 
-    def _on_ok(self):
-        self.results = [(task, ckb.isChecked()) for task, ckb in self._boxes]
-        self.accept()
+    def _each_visible(self, fn):
+        for it in self._rows:
+            if not it.isHidden():
+                fn(it)
+
+    def _sel_all(self):
+        self._each_visible(lambda it: it.setCheckState(Qt.Checked))
+
+    def _sel_none(self):
+        self._each_visible(lambda it: it.setCheckState(Qt.Unchecked))
+
+    def _sel_inv(self):
+        def inv(it):
+            it.setCheckState(Qt.Unchecked if it.checkState() == Qt.Checked
+                             else Qt.Checked)
+        self._each_visible(inv)
+
+    @property
+    def results(self):
+        out = []
+        for it in self._rows:
+            key = it.data(Qt.UserRole)[0]
+            out.append((key, it.checkState() == Qt.Checked))
+        return out
+
+
 
 
 class _SaveProfileDialog(QDialog):
