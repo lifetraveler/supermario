@@ -52,19 +52,19 @@ jobs:
           python -m unittest discover -s tests -p "Test*.py" -v
 
       - name: Verify update repo access
+        continue-on-error: true # 只探测并写 summary，不阻断发布
         run: |
           $url = "https://lifetraveler:${{ secrets.UPDATE_REPO_TOKEN }}@github.com/lifetraveler/supermario-update.git"
           $out = git ls-remote $url HEAD 2>&1 | Out-String
           $out = $out -replace '://[^@]*@', '://***@'
           "read: " + $out.Trim() | Add-Content $env:GITHUB_STEP_SUMMARY
-          if ($LASTEXITCODE -ne 0) { exit 1 }
           $pout = git push --dry-run $url HEAD 2>&1 | Out-String
           $pout = $pout -replace '://[^@]*@', '://***@'
           "push-dry: " + $pout.Trim() | Add-Content $env:GITHUB_STEP_SUMMARY
-          if ($LASTEXITCODE -ne 0) { Write-Host "PUSH PERMISSION DENIED"; exit 1 }
 
       - name: Sync Repositories # 同步 deploy.txt 中的文件到独立更新库, 减小用户更新时的 git 仓库体积
         id: sync
+        continue-on-error: true # 更新推送失败不阻断出包发布；修复 token 后下个版本自动恢复
         uses: ok-oldking/partial-sync-repo@master
         with:
           repos: |
