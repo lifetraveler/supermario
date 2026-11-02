@@ -314,11 +314,6 @@ class TaskConfigEditorTab(CustomTab):
         self.lbl_chain_hint = BodyLabel("")
         bar.addWidget(self.lbl_chain_hint)
         bar.addStretch(1)
-        self.btn_maintain = PrimaryPushButton(FluentIcon.CHECKBOX, "任务维护")
-        self.btn_maintain.setToolTip(
-            "勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索")
-        self.btn_maintain.clicked.connect(self._open_task_maintain)
-        bar.addWidget(self.btn_maintain)
         self.btn_reset_user = PushButton(FluentIcon.SYNC, "重置任务参数")
         self.btn_reset_user.setToolTip(
             "把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值")
@@ -844,11 +839,9 @@ class TaskConfigEditorTab(CustomTab):
                 empty = BodyLabel("未找到设备 / 应用 / 用户链，请到「JSON 源码」页编辑 machines")
                 empty.setAlignment(Qt.AlignCenter)
                 self.task_list_lay.addWidget(empty)
-                self.btn_maintain.setEnabled(False)
                 self.lbl_queue_title.setText("队列设置")
                 return
             m, a, u = chain
-            self.btn_maintain.setEnabled(True)
 
             q = u.get("queue") or {}
             self.lbl_queue_title.setText(
@@ -1581,11 +1574,16 @@ class TaskConfigEditorTab(CustomTab):
         self._mark_dirty()
         self._refresh_tasks_page()
 
-    def _open_task_maintain(self):
+    def _open_task_maintain(self, ui_=None):
         """任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建）。
 
-        多选/单选/全选/全不选/反选/检索一步到位，替代原「添加任务」+「批量启用」。
+        多选/单选/全选/全不选/反选/检索一步到位。
+        ui_ 非 None 时来自设备链页的用户块按钮，先定位到该 user 再打开。
         """
+        if ui_ is not None:
+            self.sel["u"] = ui_
+            self._clamp_sel()
+            self._refresh_chain_combos()
         chain = self._chain()
         if not chain or not self.doc:
             return
@@ -1990,13 +1988,16 @@ class TaskConfigEditorTab(CustomTab):
         head.addLayout(info, 1)
         if fe and fe[2] == ui_:
             head.addWidget(BodyLabel("生效链"))
+        b_maintain = TransparentPushButton(FluentIcon.CHECKBOX, "任务维护")
+        b_maintain.setToolTip(
+            "勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索")
+        b_maintain.clicked.connect(
+            lambda _=False, i=ui_: self._open_task_maintain(i))
+        head.addWidget(b_maintain)
         sw = SwitchButton("启用")
         sw.setChecked(bool(u.get("enabled")))
         sw.checkedChanged.connect(lambda on, o=u: self._set_bool(o, "enabled", on))
         head.addWidget(sw)
-        b_edit = TransparentPushButton(FluentIcon.EDIT, "编辑任务")
-        b_edit.clicked.connect(lambda _=False, i=ui_: self._goto_user_tasks(i))
-        head.addWidget(b_edit)
         b_del = TransparentToolButton(FluentIcon.DELETE)
         b_del.setToolTip("删除用户")
         b_del.clicked.connect(lambda _=False, a=a, i=ui_: self._remove_user(a, i))
@@ -2075,13 +2076,6 @@ class TaskConfigEditorTab(CustomTab):
     def _set_caf(self, u, on):
         u.setdefault("queue", {})["continue_after_failure"] = bool(on)
         self._mark_dirty()
-
-    def _goto_user_tasks(self, ui_):
-        self.sel["u"] = ui_
-        self._clamp_sel()
-        self._refresh_chain_combos()
-        self._refresh_tasks_page()
-        self._switch_page("tasks")
 
     def _add_machine_dialog(self):
         if not self.doc:

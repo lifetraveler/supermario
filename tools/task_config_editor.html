@@ -779,8 +779,19 @@ function moveTask(task, dir){
   [arr[i], arr[j]] = [arr[j], arr[i]];
   markDirty(); renderTaskList();
 }
-function maintainDialog(){
+function maintainDialog(targetSel){
   // 任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建），支持全选/反选/检索
+  // targetSel（设备链页用户块入口）：先定位到该 user 再打开
+  if (targetSel){
+    // 设备链页入口：按传入索引钳制到有效范围（不吸附生效链，clampSel 会）
+    const ms = state.doc && state.doc.machines || [];
+    const m = Math.max(0, Math.min(targetSel.m ?? state.sel.m, ms.length - 1));
+    const apps = (ms[m] || {}).apps || [];
+    const a = Math.max(0, Math.min(targetSel.a ?? state.sel.a, apps.length - 1));
+    const users = ((apps[a] || {}).users) || [];
+    const u = Math.max(0, Math.min(targetSel.u ?? state.sel.u, users.length - 1));
+    state.sel = { m, a, u };
+  }
   const chain = chainObj(); if (!chain) return;
   const types = pkgTypes(curPkg());
   if (!types.length){ toast('当前软件（package）没有任务类型定义'); return; }
@@ -989,13 +1000,6 @@ function renderTasksTab(){
   bar.append(el('div', 'grow'));
   const f = bindText(() => state.filter, v => { state.filter = v || ''; renderTaskList(); },
     { placeholder:'搜索任务…', width:'170px' });
-  bar.append(f);
-  bar.append(btn('全部展开', '', expandAllTasks));
-  bar.append(btn('全部收起', '', collapseAllTasks));
-  const maintainB = btn('任务维护', 'primary', maintainDialog);
-  maintainB.disabled = !chainObj();
-  maintainB.title = '勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索';
-  bar.append(maintainB);
   const resetB = btn('重置任务参数', '', resetUserTasks);
   resetB.disabled = !chainObj();
   resetB.title = '把当前包、当前用户下全部任务重置：停用 + 参数回到定义段默认值';
@@ -1213,13 +1217,8 @@ function userBlock(a, m, ai, u, ui, q){
   const title = el('div', 'subtitle', 'user ' + (u.user_id ?? ui));
   meta.append(title);
   head.append(meta);
-  if (isActive) head.append(el('span', 'badge', '生效链'));
-  head.append(el('span', 'badge gray', `${(u.tasks || []).length} 任务 · ${(u.tasks || []).filter(t => t.enabled).length} 启用`));
-  head.append(makeSwitch(() => !!u.enabled, v => { u.enabled = v; }));
-  head.append(btn('编辑任务', 'small', () => {
-    state.sel = { m:state.doc.machines.indexOf(m), a:(m.apps || []).indexOf(a), ui:ui };
-    state.sel.u = ui;
-    clampSel(); setTab('tasks');
+  head.append(btn('任务维护', 'small', () => {
+    maintainDialog({ m: state.doc.machines.indexOf(m), a: (m.apps || []).indexOf(a), u: ui });
   }));
   head.append(btn('✕', 'danger small', () => {
     if (!confirm(`删除 user ${u.user_id ?? ui} 及其全部任务配置？`)) return;
