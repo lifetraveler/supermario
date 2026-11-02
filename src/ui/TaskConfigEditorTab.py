@@ -1302,7 +1302,9 @@ class TaskConfigEditorTab(CustomTab):
                         return
                 commit(v)
             ctl.textChanged.connect(num_changed)
-            set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
+            set_fn = lambda v, e=ctl: (
+                e.blockSignals(True),
+                e.setText("" if v is None else str(v)), e.blockSignals(False))
         elif wtype == "textarea":
             ctl = PlainTextEdit()
             ctl.setPlainText("" if value is None else str(value))
@@ -1356,7 +1358,11 @@ class TaskConfigEditorTab(CustomTab):
                     boxes = []
                     for opt in opts:
                         ckb = CheckBox(str(opt))
+                        # 重建期屏蔽信号：setChecked 只做显示回填，
+                        # 绝不把回退 default 勾选写进刚绑定的 task.params
+                        ckb.blockSignals(True)
                         ckb.setChecked(str(opt) in cur)
+                        ckb.blockSignals(False)
                         ckb.stateChanged.connect(
                             lambda _s, o=opt, c=ckb, cc=card, t0=task:
                             self._multi_toggle(cc._task if cc is not None else t0,
@@ -1398,11 +1404,15 @@ class TaskConfigEditorTab(CustomTab):
             else:
                 ctl = LineEdit()
                 ctl.textChanged.connect(commit)
-                set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
+                set_fn = lambda v, e=ctl: (
+                e.blockSignals(True),
+                e.setText("" if v is None else str(v)), e.blockSignals(False))
         else:
             ctl = LineEdit()
             ctl.textChanged.connect(commit)
-            set_fn = lambda v, e=ctl: e.setText("" if v is None else str(v))
+            set_fn = lambda v, e=ctl: (
+                e.blockSignals(True),
+                e.setText("" if v is None else str(v)), e.blockSignals(False))
 
         desc = pd.get("desc") or ""
         get = lambda: ((card._task if card is not None else task).get("params")
@@ -1459,7 +1469,8 @@ class TaskConfigEditorTab(CustomTab):
                  "max_failures": "最大失败次数","next_trigger_delay": "执行完成后到下次触发的间隔秒数"}[key],
                 DKEY_HELP[key], e,
                 (lambda o=obj, k=key: o.get(k, 0), default_obj.get(key, 0)))
-            host._ctl_set = lambda v, e=e: e.setText(str(v))
+            host._ctl_set = lambda v, e=e: (
+                e.blockSignals(True), e.setText(str(v)), e.blockSignals(False))
             host._dkey = key
             return host
 
@@ -1491,7 +1502,8 @@ class TaskConfigEditorTab(CustomTab):
         host = self._field_row(
             "Cron 表达式", DKEY_HELP["cron"], e,
             (lambda o=obj: o.get("cron") or "", default_obj.get("cron") or ""))
-        host._ctl_set = lambda v, e=e: e.setText(v or "")
+        host._ctl_set = lambda v, e=e: (
+            e.blockSignals(True), e.setText(v or ""), e.blockSignals(False))
         host._dkey = "cron"
         rows.append(host)
         return rows
@@ -1575,10 +1587,12 @@ class TaskConfigEditorTab(CustomTab):
         self._refresh_tasks_page()
 
     def _open_task_maintain(self, ui_=None):
-        """任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建）。
+        """任务维护：维护该 user 的任务范围（task_types → user 的分配）。
 
-        多选/单选/全选/全不选/反选/检索一步到位。
-        ui_ 非 None 时来自设备链页的用户块按钮，先定位到该 user 再打开。
+        勾选=分配给该 user（实例页「已启用/未启用」分组可见，新分配默认
+        未启用，启用交给实例页开关）；取消勾选=移出范围（实例条目删除，
+        两个分组都不再显示）。ui_ 非 None 时来自设备链页的用户块按钮，
+        先定位到该 user 再打开。
         """
         if ui_ is not None:
             self.sel["u"] = ui_
@@ -1598,22 +1612,25 @@ class TaskConfigEditorTab(CustomTab):
         for tt in pkg_types:
             key = tt.get("id") or tt.get("type")
             items.append((key, tt.get("name_prefix") or key,
-                          tt.get("description") or "",
-                          key in have and bool(have[key].get("enabled"))))
+                          tt.get("description") or "", key in have))
         dlg = _TaskMaintainDialog(items, self.window())
         if not dlg.exec():
             return
-        user = chain[2]
-        arr = user.setdefault("tasks", [])
-        for key, on in dlg.results:
-            exist = have.get(key)
+        self._apply_task_maintain(chain, dlg.results)
+
+    def _apply_task_maintain(self, chain, results):
+        """任务维护应用：勾选=分配（缺则补建 enabled=False 条目），
+        取消=移出范围（删除实例条目，含启用中的）。"""
+        arr = chain[2].setdefault("tasks", [])
+        for key, on in results:
+            exist = next((t for t in arr
+                          if isinstance(t, dict) and (t.get("id") or t.get("type")) == key),
+                         None)
             if on:
                 if exist is None:
-                    arr.append({"id": key, "enabled": True, "params": {}})
-                else:
-                    exist["enabled"] = True
+                    arr.append({"id": key, "enabled": False, "params": {}})
             elif exist is not None:
-                exist["enabled"] = False
+                arr.remove(exist)
         self._normalize_group_order()
         self._mark_dirty()
         self._refresh_tasks_page()
@@ -1990,7 +2007,8 @@ class TaskConfigEditorTab(CustomTab):
             head.addWidget(BodyLabel("生效链"))
         b_maintain = TransparentPushButton(FluentIcon.CHECKBOX, "任务维护")
         b_maintain.setToolTip(
-            "勾选即启用（缺失的类型自动补建实例），取消勾选即停用；支持全选/反选/检索")
+            "维护该用户的任务范围：勾选=分配到任务列表（默认未启用），"
+            "取消勾选=移出列表；支持全选/反选/检索")
         b_maintain.clicked.connect(
             lambda _=False, i=ui_: self._open_task_maintain(i))
         head.addWidget(b_maintain)
@@ -2664,15 +2682,15 @@ class TaskConfigEditorTab(CustomTab):
 
 
 class _TaskMaintainDialog(QDialog):
-    """任务维护：当前 package 全类型清单多选勾选。results: [(key, bool), …]
+    """任务维护：维护 user 任务范围——勾选=分配，取消=移出。results: [(key, bool), …]
 
     支持 检索过滤 / 全选 / 全不选 / 反选（对未过滤的全部行生效）。
     """
 
     def __init__(self, items, parent=None):
-        # items: [(key, label, desc, enabled)]
+        # items: [(key, label, desc, assigned)]
         super().__init__(parent)
-        self.setWindowTitle("任务维护（勾选=启用，缺失类型自动补建）")
+        self.setWindowTitle("任务维护（勾选=分配给该用户，取消=移出任务列表）")
         self.resize(520, 640)
         self._rows = []
         lay = QVBoxLayout(self)
@@ -2684,11 +2702,11 @@ class _TaskMaintainDialog(QDialog):
         self.listw = QListWidget()
         self.listw.setSelectionMode(QAbstractItemView.NoSelection)
         lay.addWidget(self.listw, 1)
-        for key, label, desc, enabled in items:
+        for key, label, desc, assigned in items:
             it = QListWidgetItem(f"{label}" + (f"　{desc}" if desc else ""))
             it.setData(Qt.UserRole, (key, label, desc))
             it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
-            it.setCheckState(Qt.Checked if enabled else Qt.Unchecked)
+            it.setCheckState(Qt.Checked if assigned else Qt.Unchecked)
             self.listw.addItem(it)
             self._rows.append(it)
         btns = QHBoxLayout()

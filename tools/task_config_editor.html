@@ -780,7 +780,8 @@ function moveTask(task, dir){
   markDirty(); renderTaskList();
 }
 function maintainDialog(targetSel){
-  // 任务维护：当前 package 全类型清单，勾选=启用（缺失自动补建），支持全选/反选/检索
+  // 任务维护：维护 user 任务范围——勾选=分配（进入任务列表，默认未启用），
+  // 取消勾选=移出列表（实例条目删除）。targetSel：设备链页用户块入口定位用
   // targetSel（设备链页用户块入口）：先定位到该 user 再打开
   if (targetSel){
     // 设备链页入口：按传入索引钳制到有效范围（不吸附生效链，clampSel 会）
@@ -798,7 +799,7 @@ function maintainDialog(targetSel){
   const have = new Map((chain.u.tasks || [])
     .filter(t => t && typeof t === 'object').map(t => [t.id || t.type, t]));
   const dlg = $('dlg'); dlg.textContent = '';
-  dlg.append(el('h3', null, '任务维护（勾选=启用，缺失类型自动补建）'));
+  dlg.append(el('h3', null, '任务维护（勾选=分配给该用户，取消=移出任务列表）'));
   const search = document.createElement('input');
   search.className = 'tin';
   search.placeholder = '检索任务名 / id / 描述…';
@@ -813,7 +814,7 @@ function maintainDialog(targetSel){
     row.dataset.hay = `${label} ${key} ${tt.description || ''}`.toLowerCase();
     const r = document.createElement('input');
     r.type = 'checkbox';
-    r.checked = have.has(key) && !!have.get(key).enabled;
+    r.checked = have.has(key);
     row.append(r);
     row.append(el('span', 'pk-name', label));
     if (tt.description) row.append(el('span', 'pk-desc', tt.description));
@@ -829,13 +830,7 @@ function maintainDialog(targetSel){
     btn('反选', '', () => eachVisible(x => x.r.checked = !x.r.checked)),
     btn('取消', '', () => dlg.close()),
     btn('应用', 'primary', () => {
-      rows.forEach(({ key, r }) => {
-        const exist = have.get(key);
-        if (r.checked){
-          if (!exist) insertTaskRaw(chain.u, key, true);
-          else exist.enabled = true;
-        } else if (exist) exist.enabled = false;
-      });
+      applyMaintainResults(chain, rows.map(({ key, r }) => [key, r.checked]));
       dlg.close();
       markDirty(); renderContent(); toast('任务维护已应用');
     }));
@@ -846,8 +841,16 @@ function maintainDialog(targetSel){
   });
   dlg.showModal();
 }
-function insertTaskRaw(user, id, enabled){
-  (user.tasks = user.tasks || []).push({ id, enabled: !!enabled });
+function applyMaintainResults(chain, results){
+  // 勾选=分配给 user（缺则补建 enabled=false 条目，启用交给实例页开关）；
+  // 取消勾选=移出范围（实例条目整个删除，含启用中的）
+  const arr = chain.u.tasks = chain.u.tasks || [];
+  results.forEach(([key, on]) => {
+    const i = arr.findIndex(t => t && typeof t === 'object' && (t.id || t.type) === key);
+    if (on){
+      if (i < 0) arr.push({ id: key, enabled: false });
+    } else if (i >= 0) arr.splice(i, 1);
+  });
 }
 function resetUserTasks(){
   const chain = chainObj(); if (!chain) return;
@@ -1836,7 +1839,7 @@ async function fetchTypesText(){
 init();
 
 /* test hook */
-window.__tc = { state, validateDoc, stringifyDoc, loadText, insertTask, chainObj, typeDef, maintainDialog, insertTaskRaw };
+window.__tc = { state, validateDoc, stringifyDoc, loadText, insertTask, chainObj, typeDef, maintainDialog, applyMaintainResults };
 </script>
 </body>
 </html>
