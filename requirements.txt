@@ -8,6 +8,10 @@ comtypes==1.4.16
     # via
     #   ok-d3dshot
     #   pycaw
+croniter==6.2.4
+    # via ok-script-app (pyproject.toml)
+python-dateutil==2.9.0.post0
+    # via croniter
 darkdetect==0.8.0
     # via
     #   ok-script
