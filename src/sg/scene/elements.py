@@ -1118,9 +1118,24 @@ GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY = SceneElement(
     resource_id="global_activity_fight_qiesalei_convenient_entry",
     desc="切萨雷征讨：主界面便捷入口",
 )# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_1 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_1",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_1",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_2 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_2",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_2",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
 GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_3 = SceneElement(
     name="global_activity_fight_qiesalei_convenient_entry_3",
     resource_id="global_activity_fight_qiesalei_convenient_entry_3",
+    desc="切萨雷征讨：主界面便捷入口",
+)# 主界面：切萨雷等级三便捷入口（活动开启时直接显示在主界面）
+GLOBAL_ACTIVITY_FIGHT_QIESALEI_CONVENIENT_ENTRY_4 = SceneElement(
+    name="global_activity_fight_qiesalei_convenient_entry_4",
+    resource_id="global_activity_fight_qiesalei_convenient_entry_4",
     desc="切萨雷征讨：主界面便捷入口",
 )
 
@@ -1533,4 +1548,614 @@ ACTIVITY_TAG_WAVE_RIDE_REMAIN_TIME = SceneElement(
     name="踏浪-剩余时间",
     resource_id="踏浪-剩余时间",
     desc="踏浪：剩余时间 OCR 区域",
+)
+
+RECONNECT_SCENCE = SceneElement(
+    name="重新连接",
+    resource_id="重新连接",
+    desc="重新连接"
+)
+
+# ============================================================
+# 英雄招募（Hero Enlist）
+# ============================================================
+
+# 英雄列表界面：招募入口
+HERO_TAG_ENLIST_ENTRY = SceneElement(
+    name="hero_tag_enlist_entry",
+    resource_id="hero_tag_enlist_entry",
+    desc="英雄招募：英雄列表界面的招募入口",
+)
+
+# 招募界面：招募场景掩码（命中 = 当前处于招募场景）
+HERO_ADD_MASK_SCENE = SceneElement(
+    name="hero_add_mask_scene",
+    resource_id="hero_add_mask_scene",
+    desc="英雄招募：招募场景掩码特征（命中=处于招募界面）",
+)
+
+# 招募界面：免费招募按钮（灰度全局匹配，可能命中多个）
+CITY_HERO_BUTTON_ENLIST_1 = SceneElement(
+    name="city_hero_button_enlist_1",
+    resource_id="city_hero_button_enlist_1",
+    desc="英雄招募：免费招募按钮（灰度匹配，可能多个）",
+)
+
+# 招募界面：招募成功后的返回按钮（多次点击直到回到招募场景）
+HERO_ADD_BACK = SceneElement(
+    name="hero_add_back",
+    resource_id="hero_add_back",
+    desc="英雄招募：招募成功界面的返回按钮",
+)
+
+# 招募界面：下次免费时间文字（可能命中多个，向右偏移组成 OCR 区域）
+HERO_ADD_FREE_NEXT_TIME = SceneElement(
+    name="hero_add_free_next_time",
+    resource_id="hero_add_free_next_time",
+    desc="英雄招募：下次免费招募时间文字",
+)
+
+# 招募界面：时间区域（bbox，提供 OCR 区域的 x 偏移与宽度）
+HERO_TIME_AREA = SceneElement(
+    name="hero_time_area",
+    resource_id="hero_time_area",
+    desc="英雄招募：时间区域 bbox（OCR 区域 x 偏移与宽度来源）",
+)
+
+# 招募界面：普通 10 连招募按钮（bbox 直接点击）
+HERO_RECRUIT_NORMAL_TEN = SceneElement(
+    name="英雄招募普通10次",
+    resource_id="英雄招募普通10次",
+    desc="英雄招募：普通 10 连招募按钮（bbox 直接点击）",
+)
+
+# 招募界面：传奇 10 连招募按钮（bbox 直接点击）
+HERO_RECRUIT_LEGEND_TEN = SceneElement(
+    name="英雄招募传奇10次",
+    resource_id="英雄招募传奇10次",
+    desc="英雄招募：传奇 10 连招募按钮（bbox 直接点击）",
+)
+
+# 招募界面：批量招募提醒界面
+HERO_RECRUIT_BATCH_TIP_SCENE = SceneElement(
+    name="英雄招募批量提醒界面",
+    resource_id="英雄招募批量提醒界面",
+    desc="英雄招募：批量招募确认提醒界面",
+)
+
+# 招募界面：批量提醒的"不再提醒"复选框
+HERO_RECRUIT_BATCH_NO_REMIND = SceneElement(
+    name="英雄招募批量不再提醒",
+    resource_id="英雄招募批量不再提醒",
+    desc="英雄招募：批量提醒的不再提醒复选框",
+)
+
+# 招募界面：批量提醒的确认按钮
+HERO_RECRUIT_BATCH_CONFIRM = SceneElement(
+    name="英雄招募批量确认",
+    resource_id="英雄招募批量确认",
+    desc="英雄招募：批量提醒的确认按钮",
+)
+
+# ============================================================
+# 竞技场挑战（Arena Challenge）
+# ============================================================
+
+# 任务列表：城市标签（灰度匹配，命中 = 当前在"城市"分类页）
+GLOBAL_TASK_LIST_CITY_TAG = SceneElement(
+    name="global_task_list_city_tag",
+    resource_id="global_task_list_city_tag",
+    desc="任务列表：城市标签（灰度匹配）",
+)
+
+# 任务列表：训练士兵-弓 条目（点击跳转弓兵营）
+GLOBAL_TASK_LIST_SOLDIER_ARCHER_ENTRY = SceneElement(
+    name="训练士兵-弓",
+    resource_id="训练士兵-弓",
+    desc="任务列表：训练士兵-弓条目（点击跳转弓兵营）",
+)
+
+# 弓兵兵营旁边-竞技场区域（bbox 直接点击，不需要匹配）
+CITY_BARRACKS_ARCANE_AREA = SceneElement(
+    name="弓兵兵营旁边-竞技场",
+    resource_id="弓兵兵营旁边-竞技场",
+    desc="城市：弓兵兵营旁边-竞技场区域（bbox 直接点击）",
+)
+
+# 竞技场界面：挑战按钮（点击弹出挑战列表）
+ARENA_BUTTON_CHALLENGE = SceneElement(
+    name="竞技场挑战",
+    resource_id="竞技场挑战",
+    desc="竞技场：挑战按钮（弹出挑战列表）",
+)
+
+# 竞技场：增加次数按钮（进入购买次数流程）
+ARENA_BUTTON_ADD_TIMES = SceneElement(
+    name="竞技场增加次数",
+    resource_id="竞技场增加次数",
+    desc="竞技场：增加次数按钮（购买次数入口）",
+)
+
+# 购买次数界面：当前购买次数（OCR 区域）
+ARENA_BUY_TIMES_OCR_AREA = SceneElement(
+    name="竞技场-购买次数-识别",
+    resource_id="竞技场-购买次数-识别",
+    desc="竞技场：购买次数界面当前次数 OCR 区域",
+)
+
+# 购买次数界面：增加按钮
+ARENA_BUY_TIMES_BUTTON_ADD = SceneElement(
+    name="竞技场-购买次数-增加",
+    resource_id="竞技场-购买次数-增加",
+    desc="竞技场：购买次数界面增加按钮",
+)
+
+# 购买次数界面：减少按钮
+ARENA_BUY_TIMES_BUTTON_SUB = SceneElement(
+    name="竞技场-购买次数-减少",
+    resource_id="竞技场-购买次数-减少",
+    desc="竞技场：购买次数界面减少按钮",
+)
+
+# 购买次数界面：消耗钻石确认按钮
+ARENA_BUY_TIMES_BUTTON_CONFIRM = SceneElement(
+    name="竞技场购买次数消耗钻石",
+    resource_id="竞技场购买次数消耗钻石",
+    desc="竞技场：购买次数消耗钻石确认按钮",
+)
+
+# 竞技场：挑战剩余次数（OCR 区域）
+ARENA_CHALLENGE_REMAIN_TIMES = SceneElement(
+    name="竞技场挑战剩余次数",
+    resource_id="竞技场挑战剩余次数",
+    desc="竞技场：挑战剩余次数 OCR 区域",
+)
+
+# 竞技场：挑战对手列表区域（绿色对手检索范围）
+ARENA_OPPONENT_LIST_AREA = SceneElement(
+    name="竞技场挑战对手列表",
+    resource_id="竞技场挑战对手列表",
+    desc="竞技场：挑战对手列表区域（绿色对手检索范围）",
+)# 竞技场：挑战对手列表区域（绿色对手检索范围）
+ARENA_FIGHT = SceneElement(
+    name="竞技场-战斗",
+    resource_id="竞技场-战斗",
+    desc="竞技场：竞技场-战斗",
+)
+
+
+
+
+# 竞技场：一键上阵按钮
+ARENA_BUTTON_ONE_KEY_DEPLOY = SceneElement(
+    name="竞技场一键上阵",
+    resource_id="竞技场一键上阵",
+    desc="竞技场：一键上阵按钮",
+)
+
+# 竞技场：战斗按钮（布阵界面）
+ARENA_BUTTON_FIGHT = SceneElement(
+    name="竞技场挑战-战斗",
+    resource_id="竞技场挑战-战斗",
+    desc="竞技场：挑战-战斗按钮（布阵界面）",
+)
+
+# 快速挑战流程：第 1 步按钮
+ARENA_QUICK_PASS_1 = SceneElement(
+    name="竞技场快速通过1",
+    resource_id="竞技场快速通过1",
+    desc="竞技场：快速挑战流程第 1 步按钮",
+)
+
+# 快速挑战流程：第 2 步按钮
+ARENA_QUICK_PASS_2 = SceneElement(
+    name="竞技场快速通过2",
+    resource_id="竞技场快速通过2",
+    desc="竞技场：快速挑战流程第 2 步按钮",
+)
+
+# 快速挑战流程：第 3 步按钮
+ARENA_QUICK_PASS_3 = SceneElement(
+    name="竞技场快速通过3",
+    resource_id="竞技场快速通过3",
+    desc="竞技场：快速挑战流程第 3 步按钮",
+)
+
+
+# ============================================================
+# 黄金科技研究（Golden Tech Research）
+# ============================================================
+
+# 任务列表：科技研究分区标题（定位分区用，不点击）
+TASKLIST_TECH_RESEARCH_SECTION = SceneElement(
+    name="任务列表-科技研究",
+    resource_id="任务列表-科技研究",
+    desc="任务列表内「科技研究」分区标题，用于定位分区",
+)
+
+# 任务列表：黄金科技研究入口
+GOLDEN_TECH_RESEARCH_ENTRY = SceneElement(
+    name="黄金科技研究入口-1",
+    resource_id="黄金科技研究入口-1",
+    desc="任务列表中的黄金科技研究条目，点击进入战争学院",
+)
+
+# 任务列表：黄金科技研究状态判断-空闲（前置门槛）
+GOLDEN_TECH_RESEARCH_STATUS_IDLE = SceneElement(
+    name="黄金科技研究状态-1-状态判断-空闲",
+    resource_id="黄金科技研究状态-1-状态判断-空闲",
+    desc="黄金科技研究入口状态：「空闲中」才继续，否则失败返回",
+)
+
+# 战争学院建筑（跳转后点击打开研究界面）
+GOLDEN_TECH_ACADEMY = SceneElement(
+    name="黄金科技-2",
+    resource_id="黄金科技-2",
+    desc="跳转后点击战争学院建筑，打开黄金科技研究界面",
+)
+
+# 科技树：当前可研究节点
+GOLDEN_TECH_RESEARCH_NODE = SceneElement(
+    name="黄金科技研究-3",
+    resource_id="黄金科技研究-3",
+    desc="科技树中当前可研究节点",
+)
+
+# 科技树：弓兵分支科技节点（三选一）
+GOLDEN_TECH_ARCHER_NODE_1 = SceneElement(
+    name="皇家科技-4-弓-科技1",
+    resource_id="皇家科技-4-弓-科技1",
+    desc="弓兵分支科技节点（第 4 步三选一）",
+)
+
+# 科技树：骑兵分支科技节点（三选一）
+GOLDEN_TECH_CAVALRY_NODE_1 = SceneElement(
+    name="黄金科技-4-骑-科技1",
+    resource_id="黄金科技-4-骑-科技1",
+    desc="骑兵分支科技节点（第 4 步三选一）",
+)
+
+# 科技树：步兵分支科技节点（三选一）
+GOLDEN_TECH_INFANTRY_NODE_1 = SceneElement(
+    name="黄金科技-4-步-科技1",
+    resource_id="黄金科技-4-步-科技1",
+    desc="步兵分支科技节点（第 4 步三选一）",
+)
+
+# 研究确认弹窗：「研究」按钮（框内含预估研究时长，可选 OCR）
+GOLDEN_TECH_CONFIRM_RESEARCH_BUTTON = SceneElement(
+    name="黄金科技研究-5-确认按钮-预估时间框",
+    resource_id="黄金科技研究-5-确认按钮-预估时间框",
+    desc="研究确认弹窗的「研究」按钮，含预估研究时长",
+)
+
+# 研究启动后底栏：剩余时间 + 联盟互助
+GOLDEN_TECH_STATUS_TIME_HELP = SceneElement(
+    name="黄金科技研究-6-状态时间-互助",
+    resource_id="黄金科技研究-6-状态时间-互助",
+    desc="研究中底栏：OCR 剩余研究时间 + 联盟互助按钮",
+)
+
+
+# ============================================================
+# 联盟商店（League Shop）
+# ============================================================
+
+# 联盟商店：确认购买弹窗的购买按钮（币图标+价格，模板取自弹窗按钮中心）
+LEAGUE_SHOP_BUY_CONFIRM = SceneElement(
+    name="联盟商店-4-购买确认",
+    resource_id="联盟商店-4-购买确认",
+    desc="联盟商店：确定购买弹窗的购买确认按钮",
+)
+
+# 联盟商店：「今日」页签选中态（浅底深字，命中 = 当前停留在今日页）
+LEAGUE_SHOP_TAG_TODAY_SELECTED = SceneElement(
+    name="联盟商店-2-今日灰度",
+    resource_id="联盟商店-2-今日灰度",
+    desc="联盟商店：「今日」页签选中态（灰度匹配）",
+)
+
+# 联盟商店：3 折折扣角标（红色 -70%，售完后角标消失，循环匹配实现买空）
+LEAGUE_SHOP_SALE_BADGE = SceneElement(
+    name="联盟商店-3-3折",
+    resource_id="联盟商店-3-3折",
+    desc="联盟商店：3 折折扣角标（灰度匹配，买空循环检索对象）",
+)
+
+# 联盟商店：「本周」页签未选中态（深底白字，命中 = 本周未被选中）
+LEAGUE_SHOP_TAG_WEEK_UNSELECTED = SceneElement(
+    name="联盟商店-2-本周灰度处理",
+    resource_id="联盟商店-2-本周灰度处理",
+    desc="联盟商店：「本周」页签未选中态（灰度匹配）",
+)
+
+# 联盟商店：6 折折扣角标（可选购买折扣档位之一）
+LEAGUE_SHOP_SALE_BADGE_60 = SceneElement(
+    name="联盟商店-3-6折",
+    resource_id="联盟商店-3-6折",
+    desc="联盟商店：6 折折扣角标（灰度匹配，可选购买折扣档位）",
+)
+
+# 联盟商店：原价角标（可选购买折扣档位之一）
+LEAGUE_SHOP_SALE_BADGE_FULL = SceneElement(
+    name="联盟商店-3-原价",
+    resource_id="联盟商店-3-原价",
+    desc="联盟商店：原价角标（灰度匹配，可选购买折扣档位）",
+)
+
+
+# ============================================================
+# 联盟总动员（League Mobilization）
+# ============================================================
+
+LEAGUE_MOB_ENTRY_TAG = SceneElement(
+    name="联盟总动员-1-任务入口-灰度",
+    resource_id="联盟总动员-1-任务入口-灰度",
+    desc="常规活动：联盟总动员页签（顶部奖杯页签，灰度匹配）",
+)
+
+# 联盟总动员界面：剩余可接次数 OCR 区域（"可接次数 x/20"）
+LEAGUE_MOB_TIMES_OCR = SceneElement(
+    name="联盟总动员-2-剩余次数-ocr",
+    resource_id="联盟总动员-2-剩余次数-ocr",
+    desc="联盟总动员：剩余可接次数 OCR 区域",
+)
+
+# 专属卡槽：1.2 倍率角标（仅记录，不作为接取/刷新门槛）
+LEAGUE_MOB_RATE_120 = SceneElement(
+    name="联盟总动员-2-1.2倍率奖励",
+    resource_id="联盟总动员-2-1.2倍率奖励",
+    desc="联盟总动员：1.2 倍率角标（灰度匹配）",
+)
+
+# 任务窗口：接受按钮
+LEAGUE_MOB_ACCEPT_BUTTON = SceneElement(
+    name="联盟总动员-4-接受按钮",
+    resource_id="联盟总动员-4-接受按钮",
+    desc="联盟总动员：任务描述窗口接受按钮",
+)
+
+# 专属卡槽：双倍（200%）角标（仅记录）
+LEAGUE_MOB_RATE_200 = SceneElement(
+    name="联盟总动员-2-双倍奖励标志",
+    resource_id="联盟总动员-2-双倍奖励标志",
+    desc="联盟总动员：双倍（200%）奖励角标",
+)
+
+# 专属卡槽：刷新点击区域（以倍率角标 bbox 偏移的点击区域）
+LEAGUE_MOB_REFRESH_CLICK_AREA = SceneElement(
+    name="联盟总动员-3-刷新点击区域-相对2识别出偏移值",
+    resource_id="联盟总动员-3-刷新点击区域-相对2识别出偏移值",
+    desc="联盟总动员：专属卡槽刷新点击区域（偏移计算用）",
+)
+
+# 刷新确认弹窗：确认按钮
+LEAGUE_MOB_REFRESH_CONFIRM = SceneElement(
+    name="联盟总动员-5-刷新确认按钮",
+    resource_id="联盟总动员-5-刷新确认按钮",
+    desc="联盟总动员：刷新确认弹窗的确认按钮",
+)
+
+# 任务窗口：刷新按钮（专属任务描述窗口内）
+LEAGUE_MOB_REFRESH_BUTTON = SceneElement(
+    name="联盟总动员-4-刷新按钮",
+    resource_id="联盟总动员-4-刷新按钮",
+    desc="联盟总动员：任务描述窗口刷新按钮",
+)
+
+# 刷新确认弹窗：界面特征（弹窗在场的标志）
+LEAGUE_MOB_REFRESH_CONFIRM_SCENE = SceneElement(
+    name="联盟总动员-5-界面-刷新确认界面",
+    resource_id="联盟总动员-5-界面-刷新确认界面",
+    desc="联盟总动员：刷新确认弹窗界面特征",
+)
+
+# 专属卡槽：2 倍标志（旧模板，仅记录）
+LEAGUE_MOB_RATE_2X = SceneElement(
+    name="联盟总动员-任务2倍标志",
+    resource_id="联盟总动员-任务2倍标志",
+    desc="联盟总动员：专属卡槽 2 倍标志（旧模板）",
+)
+
+# 目标奖励角标：黄金奖励 1000
+LEAGUE_MOB_GOAL_GOLD_REWARD_1000 = SceneElement(
+    name="联盟总动员-目标-黄金-奖励-1000",
+    resource_id="联盟总动员-目标-黄金-奖励-1000",
+    desc="联盟总动员：目标卡片黄金奖励 1000 角标",
+)
+
+# 目标奖励角标：黄金 100 块
+LEAGUE_MOB_GOAL_GOLD_100 = SceneElement(
+    name="联盟总动员-目标-黄金-100块",
+    resource_id="联盟总动员-目标-黄金-100块",
+    desc="联盟总动员：目标卡片黄金 100 块角标",
+)
+
+# 目标奖励角标：训练 520
+LEAGUE_MOB_GOAL_TRAIN_520 = SceneElement(
+    name="联盟总动员-目标-训练-520",
+    resource_id="联盟总动员-目标-训练-520",
+    desc="联盟总动员：目标卡片训练 520 角标",
+)
+
+# 目标奖励角标：训练 860
+LEAGUE_MOB_GOAL_TRAIN_860 = SceneElement(
+    name="联盟总动员-目标-训练-860",
+    resource_id="联盟总动员-目标-训练-860",
+    desc="联盟总动员：目标卡片训练 860 角标",
+)
+
+# 购买次数：入口按钮
+LEAGUE_MOB_BUY_TIMES_ENTRY = SceneElement(
+    name="联盟总动员-购买次数入口",
+    resource_id="联盟总动员-购买次数入口",
+    desc="联盟总动员：购买次数入口按钮",
+)
+
+# 购买次数：第一次免费按钮
+LEAGUE_MOB_BUY_FIRST_FREE = SceneElement(
+    name="联盟总动员-购买次数-第一次免费",
+    resource_id="联盟总动员-购买次数-第一次免费",
+    desc="联盟总动员：购买次数第一次免费按钮",
+)
+
+# 钻石购买：次数减少按钮
+LEAGUE_MOB_DIAMOND_BUY_DECREASE = SceneElement(
+    name="联盟总动员-钻石购买-次数-减少",
+    resource_id="联盟总动员-钻石购买-次数-减少",
+    desc="联盟总动员：钻石购买次数减少按钮",
+)
+
+# 钻石购买：消耗钻石面板特征
+LEAGUE_MOB_BUY_DIAMOND_PANEL = SceneElement(
+    name="联盟总动员-购买次数-消耗钻石-界面",
+    resource_id="联盟总动员-购买次数-消耗钻石-界面",
+    desc="联盟总动员：消耗钻石购买面板特征",
+)
+
+# 钻石购买：次数增加按钮
+LEAGUE_MOB_DIAMOND_BUY_INCREASE = SceneElement(
+    name="联盟总动员-钻石购买-次数-增加",
+    resource_id="联盟总动员-钻石购买-次数-增加",
+    desc="联盟总动员：钻石购买次数增加按钮",
+)
+
+# 钻石购买：次数提交按钮
+LEAGUE_MOB_DIAMOND_BUY_SUBMIT = SceneElement(
+    name="联盟总动员-钻石购买-次数-提交",
+    resource_id="联盟总动员-钻石购买-次数-提交",
+    desc="联盟总动员：钻石购买次数提交按钮",
+)
+
+# 钻石购买：取消购买按钮
+LEAGUE_MOB_DIAMOND_BUY_CANCEL = SceneElement(
+    name="联盟总动员-钻石购买-次数-取消购买",
+    resource_id="联盟总动员-钻石购买-次数-取消购买",
+    desc="联盟总动员：钻石购买取消按钮",
+)
+
+# 公共任务：滚动窗口区域
+LEAGUE_MOB_SCROLL_WINDOW = SceneElement(
+    name="联盟总动员-任务滚动窗口",
+    resource_id="联盟总动员-任务滚动窗口",
+    desc="联盟总动员：公共任务滚动窗口区域",
+)
+
+# 专属任务卡槽 1
+LEAGUE_MOB_EXCLUSIVE_SLOT_1 = SceneElement(
+    name="联盟总动员-专属任务1",
+    resource_id="联盟总动员-专属任务1",
+    desc="联盟总动员：专属任务卡槽 1",
+)
+
+# 专属任务卡槽 2
+LEAGUE_MOB_EXCLUSIVE_SLOT_2 = SceneElement(
+    name="联盟总动员-专属任务2",
+    resource_id="联盟总动员-专属任务2",
+    desc="联盟总动员：专属任务卡槽 2",
+)
+
+# 任务描述窗口：描述 OCR 区域
+LEAGUE_MOB_DESC_AREA = SceneElement(
+    name="联盟总动员-任务描述区域",
+    resource_id="联盟总动员-任务描述区域",
+    desc="联盟总动员：任务描述窗口 OCR 区域",
+)
+
+# 公共任务卡片：训练类目标特征
+LEAGUE_MOB_GOAL_TRAIN = SceneElement(
+    name="联盟总动员-任务目标-训练",
+    resource_id="联盟总动员-任务目标-训练",
+    desc="联盟总动员：公共任务训练目标特征",
+)
+
+# 公共任务卡片：黄金类目标特征
+LEAGUE_MOB_GOAL_GOLD = SceneElement(
+    name="联盟总动员-任务目标-黄金",
+    resource_id="联盟总动员-任务目标-黄金",
+    desc="联盟总动员：公共任务黄金目标特征",
+)
+
+# 公共任务卡片：巨兽类目标特征
+LEAGUE_MOB_GOAL_BEAST = SceneElement(
+    name="联盟总动员-任务目标-巨兽",
+    resource_id="联盟总动员-任务目标-巨兽",
+    desc="联盟总动员：公共任务巨兽目标特征",
+)
+
+# 公共任务卡片：野兽类目标特征
+LEAGUE_MOB_GOAL_WILD_BEAST = SceneElement(
+    name="联盟总动员-任务目标-野兽",
+    resource_id="联盟总动员-任务目标-野兽",
+    desc="联盟总动员：公共任务野兽目标特征",
+)
+
+# 公共任务卡片：锤子类目标特征
+LEAGUE_MOB_GOAL_HAMMER = SceneElement(
+    name="联盟总动员-任务目标-锤子",
+    resource_id="联盟总动员-任务目标-锤子",
+    desc="联盟总动员：公共任务锤子目标特征",
+)
+
+# 公共任务卡片：钻石类目标特征
+LEAGUE_MOB_GOAL_DIAMOND = SceneElement(
+    name="联盟总动员-任务目标-钻石",
+    resource_id="联盟总动员-任务目标-钻石",
+    desc="联盟总动员：公共任务钻石目标特征",
+)
+
+# 公共任务列表：基准点（每行卡片定位锚点，可多命中）
+LEAGUE_MOB_PUBLIC_BASE_POINT = SceneElement(
+    name="联盟总动员-公共任务-基准点",
+    resource_id="联盟总动员-公共任务-基准点",
+    desc="联盟总动员：公共任务卡片基准点（多命中）",
+)
+
+# 公共任务列表：偏移区域（宽高模板，决定卡片 bbox 尺寸）
+LEAGUE_MOB_PUBLIC_OFFSET_AREA = SceneElement(
+    name="联盟总动员-公共任务-偏移区域",
+    resource_id="联盟总动员-公共任务-偏移区域",
+    desc="联盟总动员：公共任务偏移区域（宽高模板）",
+)
+
+# 公共任务窗口：关闭按钮
+LEAGUE_MOB_PUBLIC_CLOSE = SceneElement(
+    name="联盟总动员-4-公共任务-关闭",
+    resource_id="联盟总动员-4-公共任务-关闭",
+    desc="联盟总动员：公共任务窗口关闭按钮",
+)
+
+# 公共任务窗口：刷新按钮
+LEAGUE_MOB_PUBLIC_REFRESH = SceneElement(
+    name="联盟总动员-4-公共任务-刷新",
+    resource_id="联盟总动员-4-公共任务-刷新",
+    desc="联盟总动员：公共任务窗口刷新按钮",
+)
+
+# 公共任务窗口：接受按钮
+LEAGUE_MOB_PUBLIC_ACCEPT = SceneElement(
+    name="联盟总动员-4-公共任务-接受",
+    resource_id="联盟总动员-4-公共任务-接受",
+    desc="联盟总动员：公共任务窗口接受按钮",
+)
+
+# 公共任务窗口：描述 OCR 区域
+LEAGUE_MOB_PUBLIC_DESC = SceneElement(
+    name="联盟总动员-4-公共任务-描述",
+    resource_id="联盟总动员-4-公共任务-描述",
+    desc="联盟总动员：公共任务窗口描述 OCR 区域",
+)
+
+# 公共任务列表：滚动区域上沿（回滚到底部的标志）
+LEAGUE_MOB_SCROLL_TOP_EDGE = SceneElement(
+    name="联盟总动员-公共任务-滚动区域-上沿",
+    resource_id="联盟总动员-公共任务-滚动区域-上沿",
+    desc="联盟总动员：公共任务滚动区域上沿标志",
+)
+
+# 公共任务卡片：奖励标志（未接任务的标志）
+LEAGUE_MOB_PUBLIC_REWARD_FLAG = SceneElement(
+    name="联盟总动员-公共任务-奖励标志",
+    resource_id="联盟总动员-公共任务-奖励标志",
+    desc="联盟总动员：公共任务未接任务奖励标志",
 )

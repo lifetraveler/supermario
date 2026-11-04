@@ -1,3 +1,8 @@
+import threading
+import time
+
+from ok import communicate
+
 from src.sg.tasks.SGBaseTask import SGBaseTask
 from src.scheduler.task_queue import TaskQueue
 
@@ -35,16 +40,44 @@ class QueueTaskBase(SGBaseTask):
         # 业务特有的配置（等级、资源类型……）由子类自己追加。
         # ---------------------------------------------------------------------
         self.default_config.update({
+            # 注意："Tick Interval" 只为兼容既有 JSON/GUI 配置保留，
+            # 不再驱动主循环节奏（节奏由 next_wakeup_time 事件驱动，
+            # 见 _run_queue_cycle 第 3 段注释）。
             "Tick Interval": 1.0,
             "Continue After Failure": True,
+            "Max Failures": 0,
+            # 事件驱动等待的上/下限：
+            #   Max Idle Sleep：无明确唤醒点（next_wakeup_time=None）或
+            #     paused 挂起时的兜底休眠上限；
+            #   Min Sleep：防止 wait=0 时空转烧 CPU 的下限。
+            "Max Idle Sleep": 30.0,
+            "Min Sleep": 0.05,
         })
         self.config_description.update({
-            "Tick Interval": "调度间隔秒数。Scheduler tick interval.",
+            "Tick Interval": (
+                "【已废弃，不再驱动节奏】保留仅为兼容旧配置文件。"
+                "[Deprecated] Kept for config compatibility only; "
+                "scheduling is now event-driven."
+            ),
             "Continue After Failure": (
                 "有任务失败时是否继续跑完剩余次数；"
                 "关闭则该类型队列立即停止。"
                 "Continue running remaining count after a failure; "
                 "off = stop that task type."
+            ),
+            "Max Failures": (
+                "同一任务类型最大失败次数，达到后不再补建该类型"
+                "（0 = 不限）。任务级 max_failures > 0 时优先。"
+                "Max failures per task type before it stops being "
+                "replenished; 0 = unlimited."
+            ),
+            "Max Idle Sleep": (
+                "队列空闲时的最长休眠秒数（无待触发任务或暂停时的兜底唤醒间隔）。"
+                "Max seconds to sleep when the queue is idle or paused."
+            ),
+            "Min Sleep": (
+                "两次调度检查之间的最小休眠秒数，防止空转。"
+                "Minimum seconds between scheduling checks to avoid busy-spin."
             ),
         })
         self.name = "Queue Task"
@@ -58,19 +91,86 @@ class QueueTaskBase(SGBaseTask):
         self.queue = None
         self._factories = []
 
+        # ---------------------------------------------------------------------
+        # 事件驱动唤醒基础设施（B2.2）：
+        #   _wake_cond/_wake_flag：自管等待，不用 TaskExecutor.sleep——
+        #   框架的 sleep 被 notify 后无法提前取消，必须用 Condition 自控。
+        #   _last_info_version：UI 刷新节流（B2.4），-1 = 强制刷。
+        # ---------------------------------------------------------------------
+        self._wake_cond = threading.Condition()
+        self._wake_flag = False
+        self._last_info_version = -1
+        self._max_idle_sleep = 30.0
+        self._min_sleep = 0.05
+        # 任务级停止唤醒：GUI 取消勾选 / webui stop-task 走 task.disable()，
+        # 它只发 communicate.task 事件、不设 exit_event，也不通知
+        # _wake_cond。老实现靠框架 sleep 内的 check_enabled 抛
+        # TaskDisabledException 秒停；事件驱动主循环不走框架 sleep，
+        # 缺了这个订阅 disable 后会空转到下一个交互点才停。
+        self._on_task_event = self._handle_framework_task_event
+
+    def _wait_wake(self, timeout):
+        """
+        挂起当前线程最多 timeout 秒；期间任一 _notify_wake() 立即唤醒。
+
+        _wake_flag 是"醒来但还没消费"的凭据：notify 与 wait 之间存在
+        竞态（notify 发生在进入 wait 前），旗标保证这种唤醒不丢失。
+        wait 返回（含超时）都清旗标——超时后旗标即便为真也只是
+        一次未消费的唤醒，丢弃是安全的。
+        """
+        with self._wake_cond:
+            if self._wake_flag:
+                self._wake_flag = False
+                return
+            self._wake_cond.wait(timeout)
+            self._wake_flag = False
+
+    def _notify_wake(self):
+        """唤醒 _wait_wake（可从任意线程调用，notify_all 保险）。"""
+        with self._wake_cond:
+            self._wake_flag = True
+            self._wake_cond.notify_all()
+
+    def _handle_framework_task_event(self, *_args, **_kwargs):
+        """
+        communicate.task 事件的唤醒入口（disable/unpause/pause 都会 emit）。
+        线程语义：Qt 环境下 dispatch 会把跨线程回调转到主线程队列，
+        最坏延迟一拍 UI 事件循环；web/无 dispatcher 环境同步调用即时醒。
+        事件风暴（GUI 列表全量刷新）时 _wake_flag 语义天然合并，无开销。
+        """
+        self._notify_wake()
+
+    def _subscribe_framework_events(self):
+        """
+        挂 communicate.task 订阅（disable 秒停的唤醒源）。
+        在 _run_queue_cycle 构造队列后调用；重复订阅由 connect 内部
+        去重（同 callback 只挂一次），run() 多圈安全。
+        """
+        try:
+            communicate.task.connect(self._on_task_event)
+        except Exception as e:
+            # 事件总线异常不该阻断调度（理论不可达）。
+            self.log_info(f"订阅 task 事件失败（忽略）: {e}")
+
     def _queue_global_params(self):
         """
-        队列全局参数（tick_interval / continue_after_failure）的配置源钩子。
+        队列全局参数的配置源钩子。
 
         默认实现读 ok-script GUI 配置（老行为，薄壳任务不受影响）；
         JSON 驱动的子类覆写本方法，从 TaskConfigLoader 的解析结果取值。
-        返回 dict：{"tick_interval": float, "continue_after_failure": bool}
+        返回 dict：{"tick_interval": float, "continue_after_failure": bool,
+                    "max_failures": int, "max_idle_sleep": float,
+                    "min_sleep": float}
+        tick_interval 仍返回（兼容子类/日志），但主循环不再用它驱动节奏。
         """
         return {
             "tick_interval": float(self.config.get("Tick Interval", 1.0)),
             "continue_after_failure": bool(
                 self.config.get("Continue After Failure", True)
             ),
+            "max_failures": int(self.config.get("Max Failures", 0) or 0),
+            "max_idle_sleep": float(self.config.get("Max Idle Sleep", 30.0)),
+            "min_sleep": float(self.config.get("Min Sleep", 0.05)),
         }
 
     def _after_queue_done(self):
@@ -92,6 +192,15 @@ class QueueTaskBase(SGBaseTask):
         时调用；本钩子是所有停止路径的统一收尾点，适合做
         「运行期统计落盘」这类与停止原因无关的事。
         异常由调用方捕获记日志，不影响 run() 返回值。
+        """
+
+    def _setup_queue_hooks(self):
+        """
+        队列钩子装配点（TaskQueue 构造后、start 前调用），默认空操作。
+
+        5.7 任务间流转：UnifiedQueue 覆写本方法，把「按任务 user_id
+        切应用分身」挂到 queue.before_interaction；常规模式不挂任何
+        钩子，调度行为与老版本完全一致。
         """
 
     # =========================================================================
@@ -147,6 +256,10 @@ class QueueTaskBase(SGBaseTask):
                     continue
                 break
         finally:
+            # finally 强制刷最终态：此时队列可能已stop但最后一次 tick 后
+            # version 又变过（如 stop 路径），version 门控会跳过——
+            # 重置 _last_info_version 保证 UI 显示收敛到终态。
+            self._last_info_version = -1
             self._update_info()
         self.log_info(f"========== {self.name} 结束 ==========")
         return True
@@ -183,11 +296,29 @@ class QueueTaskBase(SGBaseTask):
             app=self._app,
             scene=self.scene,
         )
-        # 全局失败策略 / 调度间隔：默认读 GUI 配置；
-        # 子类可覆写 _queue_global_params() 换配置源（如 JSON 文件）。
         params = self._queue_global_params()
         self.queue.continue_after_failure = bool(params["continue_after_failure"])
+        self.queue.max_failures = int(params.get("max_failures", 0) or 0)
+        # 队列级钩子装配（5.7 任务间流转：子类可在此挂 before_interaction）。
+        # 默认空操作，队列行为与老版本完全一致。
+        self._setup_queue_hooks()
         self.queue.start()
+
+        # ---------------------------------------------------------------------
+        # 1.2 唤醒装配（B2.2）：
+        #   - wake_callback：队列状态变化时反向唤醒主循环的 _wait_wake，
+        #     替代固定轮询。
+        #   - exit_event.bind_condition：用户停止时 ExitEvent.set() 会
+        #     notify_all 本 Condition → _wait_wake 立刻返回 → 主循环
+        #     exit_is_set() 退出。getattr+hasattr 防御：测试环境 executor
+        #     可能是无 exit_event 的 mock。
+        #   - communicate.task 订阅：任务级停止（disable）的即时唤醒源。
+        # ---------------------------------------------------------------------
+        self.queue.wake_callback = self._notify_wake
+        exit_ev = getattr(self.executor, "exit_event", None)
+        if exit_ev is not None and hasattr(exit_ev, "bind_condition"):
+            exit_ev.bind_condition(self._wake_cond)
+        self._subscribe_framework_events()
 
         # ---------------------------------------------------------------------
         # 1.5 配置重载钩子：每圈都给子类机会刷新配置源。
@@ -205,31 +336,60 @@ class QueueTaskBase(SGBaseTask):
             self.queue.add_factory(factory)
         self._log_factories_summary()
 
-        tick_interval = float(self._queue_global_params()["tick_interval"])
+        # 等待时长上下限与 "Tick Interval" 同源读取（_queue_global_params），
+        # 每次 cycle 开头刷新，保证 webui 改配置即生效。
+        # 注意 tick_interval 不再读取：节奏改由 next_wakeup_time 驱动，
+        # "Tick Interval" 键仅为 JSON/GUI 兼容保留。
+        self._max_idle_sleep = max(
+            0.001, float(params.get("max_idle_sleep", 30.0) or 30.0)
+        )
+        self._min_sleep = max(0.0, float(params.get("min_sleep", 0.05) or 0.0))
 
         # ---------------------------------------------------------------------
-        # 3. 主循环
+        # 3. 主循环（事件驱动，B2.3）
         #    - all_done()   ：队列中所有工厂都完成
         #    - exit_is_set()：用户点了停止
-        #    - paused       ：用户暂时挂起，此时不 tick，只 sleep
+        #    - paused       ：用户暂时挂起，此时不 tick，只等唤醒或超时
         #    - _rotation_yield_reason() 非 None：当前 user 无事可做，
         #      提前结束本圈让位给下一个 user（单 user 默认恒 None）
+        #
+        #    节奏控制：每次 tick 后按 next_wakeup_time() 计算下一次需要
+        #    调度的最早时间点，_wait_wake 等到该点或被 wake_callback /
+        #    exit_event 提前唤醒。不再固定 sleep(tick_interval)。
         # ---------------------------------------------------------------------
         while not self.queue.all_done():
             if self.exit_is_set():
                 self.log_info("用户请求停止")
                 break
+            # 框架停止语义：任务被 disable（GUI 取消勾选 / stop-task）时
+            # 抛 TaskDisabledException 终止本圈。老实现靠 sleep 内嵌检查
+            # 覆盖；事件驱动主循环必须显式调，恢复与老版一致的秒停。
+            # 非 executor 线程（测试/脚本直跑）时 check_enabled 的
+            # check_pause 分支会自旋 sleep(1)，所以关掉 pause 检查——
+            # pause 状态由本循环自己的 paused 分支处理。
+            self.executor.check_enabled(check_pause=False)
             if self.paused:
-                self.sleep(tick_interval)
+                # paused 兜底唤醒 = Max Idle Sleep：用户 unpause 走
+                # executor.start() → _wake_executor，不经本类的
+                # _wake_cond，无法即时唤醒；最多 Max Idle Sleep 后
+                # 自然醒来重查 paused，可接受。
+                self._wait_wake(self._max_idle_sleep)
                 continue
 
-            if self._rotation_yield_reason() is not None:      # 让队列补任务、推进状态
-                self._update_info()   
+            if self._rotation_yield_reason() is not None:
+                self._update_info()
                 break
 
             self.queue.tick()          # 让队列补任务、推进状态
             self._update_info()        # 刷新 UI 进度
-            self.sleep(tick_interval)
+            next_ts = self.queue.next_wakeup_time()
+            if next_ts is None:
+                # 无明确唤醒点：全队列忙/无可调度任务，用兜底间隔轮询
+                wait = self._max_idle_sleep
+            else:
+                wait = next_ts - time.time()
+            wait = max(self._min_sleep, min(wait, self._max_idle_sleep))
+            self._wait_wake(wait)
 
         # ---------------------------------------------------------------------
         # 4. 收尾
@@ -278,9 +438,18 @@ class QueueTaskBase(SGBaseTask):
         采用循环展开而非逐项 info_set，是为了：
             - 快照新增字段时无需改这里
             - 与快照字段自动扩展的理念保持一致
+
+        version 门控（B2.4）：队列状态无变化（version 不变）时跳过
+        get_snapshot + info_set 全量刷新。version 属性缺失（老队列
+        对象）回退为每次全量刷新，防御性兼容。
         """
         if self.queue is None:
             return
+        version = getattr(self.queue, "version", None)
+        if version is not None and version == self._last_info_version:
+            return
+        if version is not None:
+            self._last_info_version = version
         snapshot = self.queue.get_snapshot()
         for key, value in snapshot.items():
             label = key.replace("_", " ").title()

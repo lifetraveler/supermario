@@ -12,6 +12,7 @@
 UnifiedQueue 实例通过 __new__ 跳过 __init__ 构造（跳过 Qt / 配置 IO），
 依赖以属性注入，因此真实方法（含 super() 调用）全部可用。
 """
+import threading
 import time
 import unittest
 from unittest import mock
@@ -61,6 +62,7 @@ def make_type_groups():
         "defaults": {
             "count": 1, "max_active": 1, "requires_march_queue": False,
             "next_trigger_delay": 0, "one_shot": False, "cron": "",
+            "max_failures": 0,
         },
         "params": [],
     }]}
@@ -159,6 +161,7 @@ def make_user_cfg(user_id, package="com.test.app", enabled_tasks=1):
              "name_prefix": "Fake", "estimated_seconds": 0,
              "count": 1, "max_active": 1, "requires_march_queue": False,
              "next_trigger_delay": 0, "one_shot": False, "cron": "",
+             "max_failures": 0,
              "params": {}}
             for i in range(2)
         ],
@@ -175,8 +178,8 @@ def make_queue(users):
     q._task_config = users[0]
     q._rotation_users = users
     q._rotation_index = 0
+    q._rotation_mode = "user_rotation"  # 老测试默认完全轮转（5.5 行为）
     q._rotation_started_at = time.time()
-    q._rotation_deadline = None
     q._executor = mock.Mock()          # executor 是只读 property
     q._executor.device_manager = None  # 默认非 ADB 环境
     q.logs = []
@@ -248,7 +251,8 @@ class TestRotationSwitch(unittest.TestCase):
         q.executor.device_manager = dm
         self.assertTrue(q._switch_app_for_user(users[1]))
         self.assertEqual(dm.user_id, 10)
-        dm.adb_stop_package.assert_called_once()
+        # 10.22 起：切用户无需 force-stop，仅 am start --user 即可
+        dm.adb_stop_package.assert_not_called()
 
     def test_all_switch_failures_returns_none(self):
         users = [make_user_cfg(0), make_user_cfg(10)]
@@ -384,17 +388,22 @@ class TestCycleReturnCodes(unittest.TestCase):
         obj.scene = mock.Mock()
         obj.queue = None
         obj._factories = []
+        # B2（事件驱动主循环）需要的 __init__ 属性：__new__ 绕过了
+        # __init__，这里按最小集补齐，语义与真构造一致。
+        obj._wake_cond = threading.Condition()
+        obj._wake_flag = False
+        obj._last_info_version = -1
         obj._queue_global_params = lambda: {
             "tick_interval": 0.0, "continue_after_failure": True}
         obj._reload_config = mock.Mock()
         obj._build_factories = mock.Mock()
-        obj._log_factories_summary = mock.Mock()
-        obj._on_queue_stopped = mock.Mock()
         obj._after_queue_done = mock.Mock()
         obj._update_info = mock.Mock()
         obj._rotation_yield_reason = mock.Mock(
             side_effect=reason_side_effects or None,
             return_value=None)  # side_effect 耗尽后回退 None（继续跑）
+        # B2 主循环会等唤醒；__new__ 构造下 stub 掉真实等待。
+        obj._wait_wake = lambda timeout: None
         return obj, obj._after_queue_done
 
     def _run(self, obj, all_done_side_effects):
@@ -404,6 +413,8 @@ class TestCycleReturnCodes(unittest.TestCase):
         with mock.patch(
                 "src.sg.tasks.queue.QueueTaskBase.TaskQueue") as tq_cls:
             queue = mock.Mock()
+            # B2：主循环 tick 后查 next_wakeup_time；None = 走兜底间隔。
+            queue.next_wakeup_time.return_value = None
             queue.all_done.side_effect = (
                 all_done_side_effects if all_done_side_effects else True)
             tq_cls.return_value = queue

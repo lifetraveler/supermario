@@ -909,3 +909,364 @@ GatherResourceTask 的 TODO：开始采集后做"队列选择出发派遣"。复
 
 ---
 
+
+## [2026-10-27] 英雄招募任务（Hero Enlist）
+
+### 原始需求
+主城界面点击 global_tag_hero 进入英雄列表 → 点击 hero_tag_enlist_entry 进入招募界面 → 匹配 hero_add_mask_scene 确认进入招募场景（未匹配到即失败结束）。招募分两种方式（游戏参数下拉，默认免费）：免费招募（灰度匹配 city_hero_button_enlist_1，可能 2 个，逐个点击进成功页，间隔 1s 点 hero_add_back，每 3 次校验一次 mask 特征，命中即停；找不到按钮则读下次免费时间——匹配 hero_add_free_next_time（可能多个），OCR 区域 = hero_time_area 的 x/width + 命中区域的 y/height，解析出时间回传作为下次触发间隔，失败兜底 86400）与批量招募（按配置次数循环 bbox 直接点击"英雄招募普通10次"/"英雄招募传奇10次"，出现批量提醒界面则点"不再提醒"→"确认"，领取动画期每 1s 按 ESC 直到 mask 特征重新命中，完成后退回主堡）。不占军队队列、不可并行、next_trigger_delay=0（动态间隔全走 SUCCESS wait_seconds）。
+
+### 变更点
+- `src/sg/scene/elements.py` 新增 11 个 SceneElement：HERO_TAG_ENLIST_ENTRY / HERO_ADD_MASK_SCENE / CITY_HERO_BUTTON_ENLIST_1 / HERO_ADD_BACK / HERO_ADD_FREE_NEXT_TIME / HERO_TIME_AREA / HERO_RECRUIT_NORMAL_TEN / HERO_RECRUIT_LEGEND_TEN / HERO_RECRUIT_BATCH_TIP_SCENE / HERO_RECRUIT_BATCH_NO_REMIND / HERO_RECRUIT_BATCH_CONFIRM。GLOBAL_TAG_HERO 复用已有（id:29）。中文命名元素（英雄招募普通10次 等 5 个）resource_id 与需求原文口述名一致，待 coco 标注后核对。
+- 新增 `src/sg/tasks/city/HeroEnlistTask.py`：编排 回主界面 → 进英雄列表 → 进招募界面（mask 校验失败=FAILED）→ 按模式免费/批量 → 回主界面。免费模式 `find_feature(..., use_gray_scale=True)` 拿全部命中框逐个处理；`_back_to_enlist_scene` 间隔 1s 点 back、每 3 次校验 mask；`_read_next_free_time` 多命中从上往下逐个组 OCR 框（Box(area.x, mark.y, w=area.width, h=mark.height)）；批量模式 bbox 直点 + 提醒界面处理 + `send_key("esc")` 每 1s 直发（不走 recovery 版，其 esc_cooldown 冷却满足不了 1s 节奏）。`parse_time_text` 模块级函数（与 WaveRide 同口径：中文单位词配对 > 冒号 > 裸数字）。
+- 注册三动作：`task_type_map.py` 加 `"Hero Enlist": HeroEnlistTask`；`configs/task_type.json` 定义段（type="Hero Enlist"、id=hero_enlist、count=0 无限、max_active=1、requires_march_queue=false、next_trigger_delay=0、params 三项：Enlist Mode drop_down [免费,批量] / Batch Normal Times / Batch Legend Times）；`configs/task_config.json` user0 链实例条目 enabled=true params={}。
+
+### 修复点
+- 编辑过程中 `task_type_map.py` 的 ClaimBuyCenterRewardTask import 行被误覆盖 → 已恢复；`task_config.json` user10 链的 wave_ride 条目被误删部分行 → 已恢复原状。
+
+### 涉及文件
+- src/sg/scene/elements.py（追加 11 元素）
+- src/sg/tasks/city/HeroEnlistTask.py（新增）
+- src/sg/tasks/task_type_map.py（加映射 + 恢复误删 import）
+- configs/task_type.json（定义段）
+- configs/task_config.json（实例条目 + 恢复 user10 wave_ride）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：两个 JSON 解析 OK；config_loader.load() 解析 user0 链，hero_enlist 进调度（enabled/count=0/max_active=1/delay=0/params 三项注入全对）；TASK_TYPE_MAP 与 task_type.json 双向一致（22 types）。
+- `parse_time_text` 单测 7 用例全过（'8小时30分'/'01:23:45'/'12:34'/'90'/'7小时'/空/无数字）。
+- 类级冒烟：11 元素可导入、HeroEnlistTask 接口齐全（run_interaction/_run_once/run/_step/last_error/extra_config）。
+- 独立模式 / 队列模式实机未跑（需游戏前台真实画面）。
+
+### 遗留 / 风险
+- 实机未验证：11 个新特征的截图未标注录入（ok_templates/coco_annotations.json 尚无对应 category），任务在标注完成前无法实际识别；resource_id 需与后续 coco 导出核对。
+- 中文命名元素（英雄招募普通10次 等）的 category name 是否被标注工具保留原样待确认；若 coco 导出为拼音/英文需同步改元素 resource_id。
+- 免费按钮灰度阈值 0.8、mask 特征在招募成功页停留期的表现需真机确认。
+- OCR 下次免费时间的文本格式假设基于其他任务先例（时:分:秒 / 中文单位），真实渲染识别率需实机确认；识别失败已有 86400s 兜底。
+
+---
+
+## [2026-10-28] 竞技场挑战（Arena Challenge）
+
+### 原始需求
+建立新分支（feature/arena-challenge，并把建分支固化进 Skill B 标准流程）。新增竞技场挑战任务：
+- 参数：每次挑战次数（默认 0=不限，以 OCR 剩余次数为准）、无免费次数后购买次数（默认 0=不购买）。
+- 流程：城市主界面 → 任务列表 → 灰度匹配 global_task_list_city_tag → 上滑检索"训练士兵-弓" → 点击跳转弓兵营 → 点击"弓兵兵营旁边-竞技场"（bbox 直点）→ 点击"竞技场挑战"弹挑战列表。
+- 购买次数（参数>0 时）：点"竞技场增加次数"进购买流程 → OCR"竞技场-购买次数-识别" → 与参数对比按差量点增加/减少 → 点"竞技场购买次数消耗钻石"。
+- OCR"竞技场挑战剩余次数"得挑战次数，循环：对手列表区域找绿色 RGB(3,208,111)，多个取第一个点击 → 一键上阵 → 战斗 → 等 2s → 匹配"竞技场快速通过1"命中则快速挑战（快速通过2 → 等 2s → 快速通过3）。
+- 达到 challenge_limit 或剩余次数用尽 → 退出到主堡界面。
+
+### 变更点
+- 新增 16 个 SceneElement（src/sg/scene/elements.py 尾部"竞技场挑战"段）：GLOBAL_TASK_LIST_CITY_TAG / GLOBAL_TASK_LIST_SOLDIER_ARCHER_ENTRY / CITY_BARRACKS_ARCANE_AREA / ARENA_BUTTON_CHALLENGE / ARENA_BUTTON_ADD_TIMES / ARENA_BUY_TIMES_OCR_AREA / ARENA_BUY_TIMES_BUTTON_ADD / ARENA_BUY_TIMES_BUTTON_SUB / ARENA_BUY_TIMES_BUTTON_CONFIRM / ARENA_CHALLENGE_REMAIN_TIMES / ARENA_OPPONENT_LIST_AREA / ARENA_BUTTON_ONE_KEY_DEPLOY / ARENA_BUTTON_FIGHT / ARENA_QUICK_PASS_1 / ARENA_QUICK_PASS_2 / ARENA_QUICK_PASS_3。
+- 新增 src/sg/tasks/city/ArenaChallengeTask.py：SGBaseTask 子类，_step 编排，run_interaction 返回 (InteractionResult, wait_seconds)，保留 _run_once/run 双入口。
+- 绿色对手检索：ok 框架 ok.util.color.find_color_rectangles，color_range={'r':[0,33],'g':[178,238],'b':[81,141]}（RGB(3,208,111)±30），项目内首次引入颜色矩形检索。
+- 滑到底判定：相邻两次滑动后 global_task_list_city_tag 灰度匹配位置不变 → 列表到底，任务视为完成（非失败）。
+- 注册三动作：task_type_map.py 加 "Arena Challenge" 映射；configs/task_type.json 加定义段（id=arena_challenge，count=1/max_active=1/requires_march_queue=false/next_trigger_delay=86400，params: challenge_limit=0、buy_times=0）；configs/task_config.json user0/user10 各加 enabled=true 实例条目。
+- Skill B（.agents/skills/new-task-development/SKILL.md）：流程总览新增第 1 步"建功能分支"，新增 §11.2 功能分支规范，检查清单补分支项，定义段文件名纠正为 task_type.json（defaults 七键含 max_failures）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（16 元素）
+- src/sg/tasks/city/ArenaChallengeTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0 enabled=true / user1 enabled=false 实例条目）
+- .agents/skills/new-task-development/SKILL.md（分支规范）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：两个 JSON 解析 OK；config_loader.parse_document 解析出 arena_challenge 实例（enabled=true/count=1/max_active=1/delay=86400/params 两项注入全对）；TASK_TYPE_MAP 与 task_type.json 双向一致（23 types）；实例段全部 id 有定义。
+- parse_times_text 单测 7 用例全过（'3/5'/'12'/'1,200'/'5 / 10'/'无'/None/'剩余 3 次'）。
+- 类级冒烟：16 元素可导入，ArenaChallengeTask 接口齐全（run_interaction/_run_once/run/check_completed/_step/last_error/extra_config/challenge_limit/buy_times）。
+- 实机已跑一次：task_excute_time.json 记录 arena_challenge 样本 1 次（avg≈33.4s），成功走通加载链；更完整的实机回归待后续观察。
+
+### 遗留 / 风险
+- 实机仅跑通一次，尚未充分回归：16 个特征模板已在 ok_templates/coco_annotations.json 有标注（id 278-288/299/300-303），但识别率与 bbox 精度需真机确认；"弓兵兵营旁边-竞技场"为 bbox 直点，依赖 COCO 标注坐标准确。
+- 绿色 RGB(3,208,111) ±30 容差是对屏幕渲染颜色的假设，实际对手列表若带渐变/暗色滤镜可能漏检，需真机调整 green_color_range。
+- 上滑滑到底判定基于 city_tag 位置不变，若任务列表滑动时标签一起移动（吸顶除外）会误判提前结束。
+- 购买次数 OCR 失败时直接点消耗钻石确认（不做增减），若当前值远大于目标会多买，需真机确认 OCR 稳定性。
+
+---
+
+
+## [2026-10-28] 黄金科技研究（Golden Tech Research）
+
+### 原始需求
+进入城市主界面，点击任务列表，在「科技研究」分区定位黄金科技研究入口-1（必要时在任务列表搜索区域内循环上滑检索）。检索到入口后，先判断其下方状态特征"黄金科技研究状态-1-状态判断-空闲"是否为「空闲中」：不满足（已有研究在进行）则返回失败，不需重试。满足则点击入口，游戏跳转至战争学院建筑，点击黄金科技-2 进入科技树界面，点击黄金科技研究-3 定位当前可研究节点，按配置的兵种优先级在 皇家科技-4-弓-科技1 / 黄金科技-4-骑-科技1 / 黄金科技-4-步-科技1 三个互为备选的分支节点中选择其一点击。弹出研究确认弹窗后，点击黄金科技研究-5-确认按钮-预估时间框中的「研究」按钮开始研究。研究启动后在黄金科技研究-6-状态时间-互助底栏 OCR 剩余研究时间，并点击「联盟互助」，返回主界面，任务返回成功以及研究完成时间。参数：兵种优先级下拉（弓/骑/步）；子项研究特征名（可直接配置 coco 中的对应特征 name）。
+
+### 变更点
+- 新增 10 个 SceneElement 常量（coco id 268-276、304）：TASKLIST_TECH_RESEARCH_SECTION / GOLDEN_TECH_RESEARCH_ENTRY / GOLDEN_TECH_RESEARCH_STATUS_IDLE / GOLDEN_TECH_ACADEMY / GOLDEN_TECH_RESEARCH_NODE / GOLDEN_TECH_ARCHER_NODE_1 / GOLDEN_TECH_CAVALRY_NODE_1 / GOLDEN_TECH_INFANTRY_NODE_1 / GOLDEN_TECH_CONFIRM_RESEARCH_BUTTON / GOLDEN_TECH_STATUS_TIME_HELP。
+- 新增 src/sg/tasks/city/GoldenTechResearchTask.py：开任务列表 → 上滑检索黄金科技研究入口 → 空闲状态门槛判断 → 点击入口 → 战争学院 → 科技树可研究节点 → sub_tech_names 子项特征优先、troop_priority（弓/骑/步）默认分支三选一（优先项未出现时回退其余两个分支）→ 确认弹窗点「研究」→ 状态底栏 OCR 剩余时间 + 点击联盟互助 → 回主界面。
+- 调度语义对齐 ClaimWarehouseReward：SUCCESS 回传 wait_seconds=剩余研究时间，队列置 IN_PROGRESS，check_completed 到点放行；注册 count=1/max_active=1/requires_march_queue=false/next_trigger_delay=0。
+- 入口非「空闲」（研究进行中）或列表滑到底无入口 → FAILED 不重试（需求原文）。
+- 注册三动作：task_type_map.py 加 "Golden Tech Research" 映射；task_type.json 加定义段（id=golden_tech_research，params: troop_priority 下拉、sub_tech_names 文本、default_retry_wait=3600）；task_config.json user0/user10 各加 enabled=true 实例条目（params 留空用默认值）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（10 元素）
+- src/sg/tasks/city/GoldenTechResearchTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0/user10 enabled=true 实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 冒烟通过：elements.py 编译 OK，248 个常量无重名、resource_id 无重复；TASK_TYPE_MAP import OK（24 types），golden_tech_research → GoldenTechResearchTask；config_loader.load() / load_type_document() 解析通过，实例条目与定义段全部装载；TASK_TYPE_MAP 与 task_type.json 按 id 双向一致（全部实例 id 有定义且可映射）。
+- 类级冒烟：任务类 import OK，__init__ 注入 3 个参数字段（troop_priority/sub_tech_names/default_retry_wait），全部引用元素存在；任务类遵循工厂 kwargs→setattr 注入契约（task_queue.py:166-168）。
+- 独立模式/队列模式实机验证：未跑（本机无模拟器会话，特征模板已入库，待真机验证）。
+
+### 遗留 / 风险
+- 10 个特征模板尚未真机验证识别率；黄金科技研究-5 确认按钮在弹窗内，若特征截图为整框而非按钮本体，点击可能落点偏差，需真机确认。
+- sub_tech_names 依赖 get_box_by_name（bbox 直点），子项特征必须是 coco 已标注且有 bbox 的资源。
+- 研究进行中返回 FAILED 走 max_failures 统计（当前 max_failures=0 不停止），若日志噪音明显可改为入口状态判断前置 RETRY 语义，需真机观察后决定。
+- 状态底栏「联盟互助」直接点特征框中心，若框内互助按钮不在中心需真机调整点击偏移。
+
+---
+
+## [2026-10-28] 联盟商店购买（League Shop Buy）
+
+### 原始需求
+进入主界面（城市或世界，不在主界面则先 ESC 退回主界面），点击 global_tag_league 进入联盟界面，点击 league_shop_entry 进入联盟商店界面。先确定本次要处理的页签列表：若系统日期为周一，则处理 [今日, 本周] 两个页签；其余星期仅处理 [今日]。对每个待处理页签执行「买空」循环：在商品列表区域循环灰度检索 联盟商店-3-3折 折扣角标，每匹配到一个即点击其所在商品卡片，弹出「确定购买」弹窗后点击 联盟商店-4-购买确认（数量保持默认 1），弹窗关闭后回到商品列表重新检索，直到该页签下再也匹配不到 3 折角标为止。防御分支：点击角标后若超时未弹出确认弹窗（商品已售完/角标残留），记录其位置不再点击，继续检索其余角标，防止死循环。整个任务从头到尾一次都未匹配到 3 折角标则返回失败，不需要重试。全部买空后返回主界面，任务返回成功；下次触发时间按配置固定间隔（商店顶部「下次刷新」倒计时暂无 coco 特征，不做 OCR）。
+
+### 变更点
+- 新任务 LeagueShopBuyTask（src/sg/tasks/league/LeagueShopBuyTask.py）：回主界面 → GLOBAL_TAG_LEAGUE → LEAGUE_SHOP_ENTRY → 按星期选页签（周一 [今日,本周]，其余 [今日]）→ 逐页签买空 → 回主界面。不占军队队列，next_trigger_delay=86400 每日一次，不可并行 count=1/max_active=1，无 params。
+- 页签状态机（灰度匹配，模板语义已按 coco 裁剪核实）：LEAGUE_SHOP_TAG_TODAY_SELECTED（今日-选中态 浅底深字）命中 或 LEAGUE_SHOP_TAG_WEEK_UNSELECTED（本周-未选中态 深底白字）命中 → 在今日页；两者都不命中 → 在本周页。页签点击热区 coco 无特征（需求允许），用 get_box_by_name 取页签标注 bbox 直接点击；切换成功用状态特征消失/重现验证。
+- 买空循环用 find_feature 多匹配（非 _wait_element 单匹配）：同屏多角标时最高置信度可能恰是已跳过位置，多匹配才能继续选其余角标，避免误判买空。弹窗超时的角标位置记入 _skipped_positions（40px 网格量化去重，上限 32），_find_badge 自动跳过；单页签购买次数上限 60 防异常死循环。
+- 注册三动作：task_type_map.py 加 "League Shop Buy" 映射；task_type.json 加定义段（id=league_shop_buy，params=[]）；task_config.json user0 enabled=true、user10 enabled=false 实例条目。
+- elements.py 追加联盟商店段 4 个特征常量（254/255/259/260）。
+
+### 修复点
+- 无（新任务，无历史缺陷修复）。
+
+### 涉及文件
+- src/sg/scene/elements.py（4 元素：LEAGUE_SHOP_BUY_CONFIRM / LEAGUE_SHOP_TAG_TODAY_SELECTED / LEAGUE_SHOP_SALE_BADGE / LEAGUE_SHOP_TAG_WEEK_UNSELECTED）
+- src/sg/tasks/league/LeagueShopBuyTask.py（新任务类）
+- src/sg/tasks/task_type_map.py（映射）
+- configs/task_type.json（定义段）
+- configs/task_config.json（user0 enabled=true / user10 enabled=false 实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 注册冒烟通过：config_loader.load() 装载 League Shop Buy 定义段与 user0 enabled 实例条目；TASK_TYPE_MAP 与 task_type.json 双向一致（25 types），league_shop_buy → LeagueShopBuyTask，Arena Challenge / Hero Enlist 映射完整无缺。
+- 类级冒烟通过：任务类 import OK（继承 SGBaseTask，14 方法齐全），星期分支逻辑验证（周一=0 → [today,week]，其余 → [today]），4 个特征常量 resource_id 与 coco 一致。
+- 独立模式/队列模式实机验证：未跑（本机无模拟器会话，特征模板已入库，待真机验证）。
+
+### 遗留 / 风险
+- 4 个特征模板未真机验证识别率；尤其 LEAGUE_SHOP_BUY_CONFIRM 模板含币图标+具体价格「7,800」，不同商品价格不同，若匹配率低需换成纯按钮底色特征（需补充 coco 标注）。
+- 3 折角标模板只覆盖 -70% 红色角标；其他折扣档位（如绿色 -40%）不在购买范围，若需求扩大需补特征。
+- 页签切换依赖 get_box_by_name 静态标注 bbox（900x1600 标注分辨率），分辨率适配由框架缩放机制承担，真机需确认点击落点。
+- 「确定购买」弹窗若被其他系统弹窗（如部队抵达通知条）遮挡，确认按钮匹配可能失败走防御分支跳过该商品，下轮重检会再试，不影响买空正确性。
+
+---
+
+
+## [2026-10-28] 联盟商店购买 — 最小折扣多选参数
+
+### 原始需求
+加一个参数「最小折扣」，多选，可选 3 折、6 折、原价，默认勾选 3 折；选择多个则购买多个折扣档位。折扣对应特征：3折=联盟商店-3-3折、6折=联盟商店-3-6折、原价=联盟商店-3-原价（coco id 259/305/306，后两者为本需求新增标注）。
+
+### 变更点
+- elements.py 追加 LEAGUE_SHOP_SALE_BADGE_60（联盟商店-3-6折）/ LEAGUE_SHOP_SALE_BADGE_FULL（联盟商店-3-原价）两个角标常量。
+- LeagueShopBuyTask：新增队列注入字段 min_discount（list，默认 ["3折"]）；类常量 DISCOUNT_BADGE_MAP 档位→特征映射；_active_badge_elements() 按参数解析角标列表（去重保序，非法档位忽略）；_find_badge() 改为逐档位多匹配检索同一帧先到先得；日志/失败文案从「3 折」改为「所选折扣」。
+- task_type.json 定义段 params[] 增加 Min Discount（attr=min_discount，widget=multi_drop_down options=[3折,6折,原价]，default=["3折"]），更新 description。
+- 连带修复 UI 既有 bug：TaskConfigEditorTab._multi_toggle 全仓无定义（multi_drop_down 勾选即 AttributeError），按 _drop_changed 同款契约补实现（勾选加入/取消移除、字符串比较、_mark_dirty）。
+
+### 修复点
+- TaskConfigEditorTab._multi_toggle 缺失（既有 bug，multi_drop_down 控件首次实际使用即暴露）。
+
+### 涉及文件
+- src/sg/scene/elements.py（+2 元素）
+- src/sg/tasks/league/LeagueShopBuyTask.py（min_discount 字段 / DISCOUNT_BADGE_MAP / _active_badge_elements / _find_badge 多档位）
+- configs/task_type.json（定义段 params）
+- src/ui/TaskConfigEditorTab.py（_multi_toggle 补缺）
+- ok_templates/coco_annotations.json（305/306 新特征标注，用户外部新增）
+
+### 测试
+- config_loader.load() 通过：min_discount 默认值 ["3折"] 正确装载；TASK_TYPE_MAP 与 task_type.json 双向一致（25 types）。
+- 任务类逻辑验证（绕开框架构造）：档位映射 resource_id 与 coco 一致；多选保序去重；空选/非法档位返回空；_pos_key 位置键正确。
+- _multi_toggle 逻辑验证（stub _mark_dirty）：勾选/重复勾选/取消、params 写入、dirty 计数全部通过。
+- 实机验证：未跑（待真机确认 6 折/原价角标识别率）。
+
+### 遗留 / 风险
+- 「原价」角标若与商品卡底色对比度不足，灰度匹配率待真机确认；匹配不到原价角标时任务行为与「全部页签无所选折扣 → FAILED」语义一致（勾选原价且全无原价商品时会判 FAILED，属预期但需用户知晓——勾选越多档位，FAILED 越难触发）。
+- _multi_toggle 存 params 为字符串列表（["3折"]），与 drop_down 的字符串值不同型；loader 直接透传无类型校验，UI 回显按 str(x) 比较，闭环成立。
+
+---
+
+
+## [2026-10-29] 联盟总动员（League Mobilization，OCR 文字匹配版）
+
+### 原始需求
+联盟总动员-刷新高效指定-ocr文字匹配版。主界面点 global_entry_common_activity 进常规活动，页签滑动区域循环滑动灰度匹配 联盟总动员-1-任务入口-灰度（顶部奖杯页签）进入。主循环每轮先 OCR 联盟总动员-2-剩余次数-ocr 解析"可接次数 x/20"，x+购买当日次数 y=0 则 FAILED（无多余次数）；y>0 且 x=0 时逐次购买（购买次数入口 → 第一次免费直接点 / 消耗钻石面板提交）。专属任务1/2 依次：点击卡槽 → OCR 任务描述区域（去换行）与 专属任务目标 多选参数（训练12万"通过训练/晋升士兵提升120000点实力"/黄金150/巨兽5/10/15次）包含匹配，命中点 4-接受按钮，未命中点 4-刷新按钮并 OCR 刷新倒计时，两个卡槽取更近时间回传。公共任务：在 任务滚动窗口 向上滑动（幅度=公共任务滚动幅度参数，默认0.3）检索 公共任务目标 多选项；基准点+偏移区域构成卡片 bbox，bbox 内匹配 奖励标志=未接任务，点开 OCR 4-公共任务-描述 校验后 接受/刷新（受 公共任务刷新 开关控制）/关闭；刷新开启时最后向下滑回 滚动区域-上沿，再按基准点行高（最大y+height+5 起点、行高差为距）逐行向下清扫未接卡片：命中 公共任务刷新目标 保留（关闭窗口），未命中刷新。不占军队队列、立即触发、不可并行（count=1）。
+
+### 变更点
+- 新增 `src/sg/element/overall/activity/mobilization.py`：Mobilization 领域对象（进界面滑动灰度检索、剩余次数 OCR、购买次数两分支、专属卡槽处理、公共任务阶段 A 检索 + 阶段 B 逐行清扫、倒计时解析、基准点行高滑动计算）。
+- 新增 `src/sg/tasks/league/LeagueMobilizationTask.py`：聚合任务（编排 + 次数主循环 + 刷新倒计时取更近回传 wait_seconds）。
+- `src/sg/scene/elements.py` 追加 39 个 LEAGUE_MOB_* 元素（与 coco id 247–335 一一对应，双向校验 0 缺失 0 多余）。
+- `src/sg/tasks/task_type_map.py` 加 `"League Mobilization": LeagueMobilizationTask`（第 26 种）。
+- `configs/task_type.json` 加定义段：defaults（count=1/max_active=1/requires_march_queue=false/next_trigger_delay=0），params 6 项——专属任务目标/公共任务刷新目标/公共任务目标均为 multi_drop_down（选项 训练12万/黄金150/巨兽5/巨兽10/巨兽15，默认勾选训练12万），购买当日次数 number 默认 1，公共任务刷新 switch 默认 false，公共任务滚动幅度 number 默认 0.3。
+- `configs/task_config.json` 两个 user 链各追加 `{"id": "league_mobilization", "enabled": true, "params": {}}` 实例条目。
+
+### 修复点
+- 初版领域对象偏移 bbox 误用 `box_of_screen` 的相对比例 width/height（该方法按比例而非像素取参），改为全屏 box 基底覆写像素 x/y/width/height（Box 可变）。
+- 公共任务滑动参数错误落在 swipe 调用尾部造成语法损坏，重写 `_scroll_window_px` 修复。
+
+### 涉及文件
+- src/sg/element/overall/activity/mobilization.py（新增）
+- src/sg/tasks/league/LeagueMobilizationTask.py（新增）
+- src/sg/scene/elements.py（追加 39 元素）
+- src/sg/tasks/task_type_map.py（+1 映射）
+- configs/task_type.json（+1 定义段）
+- configs/task_config.json（2 个实例条目）
+- docs/PROJECT_REQUIREMENTS.md（本节归档）
+
+### 测试
+- 独立模式：未跑（需真机游戏前台；run() 入口已按 HuntScareWolf/HeroEnlist 模式实现）。
+- 队列模式：未跑（真机确认）。
+- 注册冒烟：config_loader.load() 通过；定义段 id ↔ type ↔ TASK_TYPE_MAP 三向一致（26 种）；两条 user 链均解析出 enabled=true 的 league_mobilization 实例且 params 六键齐全；elements.py 39 元素与 coco 全集 0 缺 0 多；4 个改动文件 py_compile 通过。
+
+### 遗留 / 风险
+- 目标关键词匹配按参数顺序首个命中（训练12万→"训练"、黄金150→"黄金"、巨兽5/10/15→"巨兽"）；巨兽三档 OCR 文案若不含具体次数数字，无法区分 5/10/15 次——需真机 OCR "击败巨兽N次" 原文确认后细化关键词。
+- 公共任务卡片图标特征（任务目标-训练/黄金/巨兽等）已入库但当前匹配全走 OCR 文案（需求即为 OCR 版）；若真机描述区域 OCR 不可靠，可在 MOBILITY_GOALS 补 element 字段切回特征匹配。
+- 钻石购买面板按默认数量直接提交（需求：剩余次数>0 时按需增减）；若真机默认数量≠1 需补 增/减 调节逻辑（元素已备好）。
+- 阶段 B 清扫的"保留=关闭窗口"分支：关闭窗口是否影响可接次数待真机确认。
+- 刷新确认弹窗（联盟总动员-5-界面-刷新确认界面 / 5-刷新确认按钮）已入库未接线：专属刷新分支当前点 4-刷新按钮后直接 OCR 倒计时；若真机刷新后必须二次确认，需在 run_exclusive_slot 刷新分支插入确认步骤。
+
+---
+
+
+## [2026-10-29] 联盟总动员 — 修订一轮（接取节奏 / 专属预检 / 优先级与门控）
+
+### 原始需求
+用户实测反馈修订：
+1. 可接次数是"可接任务数"（每次只能接 1 个），不是一轮能接完的总量——去掉轮末重读次数的主循环，一轮流程 = 次数判断 → 专属 → 公共（按门控）→ 结束回传。
+2. 专属任务1/2 点击前先 OCR 卡面：strict 解析出刷新倒计时 = 正在刷新，跳过该卡槽后续操作，倒计时记入下次触发候选。
+3. 公共任务刷新目标 参数未勾选任何值 → 不做公共任务刷新（含清扫）。
+4. 公共任务目标 未配置 → 不做公共任务接受。
+5. 优先级：专属优先；两个专属卡槽预检都在刷新且 刷新完成时刻已到明天（now + 倒计时跨过当日 24 点）才放行公共任务接受；公共任务的刷新操作只受 公共任务刷新 开关控制。
+
+### 变更点
+- `Mobilization.read_refresh_time(text, strict=False)`：strict 模式只认 中文单位（含"天"）/冒号格式，裸数字不视作倒计时——修复任务描述"训练120000点"里的 120000 被误判成 120000s 倒计时的隐患；非 strict 保留裸数字兜底（刷新后 OCR 用）。
+- `Mobilization.check_slot_refreshing(slot_element)`：点击前预检，OCR 卡面 strict 解析，返回倒计时秒数或 None。
+- `Mobilization.run_exclusive_slot`：接入预检，新增 action='refreshing'（卡槽刷新中，直接返回倒计时）。
+- `LeagueMobilizationTask._run_exclusive_slots`：返回 (state, ok)，state='busy'（两卡槽均刷新中）/ 'free'；倒计时取更近者写入 next_wait_seconds。
+- `LeagueMobilizationTask._public_ready`：两卡槽预检均出倒计时且均跨天 → True；任一卡槽可今天内刷完 → False（专属优先）。
+- `LeagueMobilizationTask._run_public_tasks`：门控——公共目标空 → 跳过接受；刷新关 → 不刷新；刷新开但刷新目标空 → 不清扫。
+- `LeagueMobilizationTask.run_interaction`：删除轮末重读次数循环（用户已先行注释），串入 专属 busy/跨天 → 公共 放行链。
+
+### 修复点
+- read_refresh_time 初次编辑残留重复 unit_pairs 块，已清理。
+
+### 涉及文件
+- src/sg/element/overall/activity/mobilization.py
+- src/sg/tasks/league/LeagueMobilizationTask.py
+- docs/PROJECT_REQUIREMENTS.md（本节）
+
+### 测试
+- 行为验证（mock 驱动，9 场景全过）：strict 解析（120000/150 不误判、8小时30分/01:23:45/12:34/1天 正确）；跨天判定（23:00+2h 跨天 / 23:00+30m 不跨 / 09:00+16h 跨天）；专属编排（双 refreshing→busy 且取近值 3600、accepted+refreshed→free、失败传播、refreshing+accepted→free 且倒计时记录）；公共门控矩阵（刷新关→不清扫、刷新开+目标勾选→清扫、刷新开+目标空→不清扫、公共目标空→全跳过）。
+- 独立/队列模式：待真机。
+
+### 遗留 / 风险
+- "已到了明天"判定基于本机时钟 + OCR 倒计时；若游戏刷新时刻与卡面倒计时口径不一致（如领取后有缓冲），边界 ±分钟级误差可接受。
+- 专属目标未配置时 state='free' 且公共任务直接放行（无专属可接 = 不占用专属名额）——如需"未配置专属也要求卡槽空闲才接公共"需再确认。
+
+---
+
+
+## [2026-10-31] 联盟总动员 — 任务目标参数 name:desc 化
+
+### 原始需求
+三个目标参数（专属任务目标 / 公共任务目标 / 公共任务刷新目标）的 options 此前只有 "训练12万/黄金150/巨兽5..." 简单描述，没有每个任务的明确判断文案。要求 option 为 name:desc 结构：下拉/勾选展示 name，desc 作为 OCR 判断值（如 训练12万：通过训练/晋升士兵提升120000点实力）。_match_goal_by_text 用配置值解析出的 desc 做包含匹配。
+
+### 变更点
+- 方案 A（options 自编码），未加"任务目标维护"独立参数：options 直接写成 name:desc 串——勾选值自包含判断值，运行时零反查、编辑器零改动（multi_drop_down 复选框 label 全文展示 name:desc）。
+- task_type.json：三参数 options 换成 5 条 name:desc（训练12万/黄金150/巨兽5/巨兽10/巨兽15 各带完整 OCR 文案），default 同步为新格式。
+- task_config.json 两个 user 链的存量值升级（"训练12万" → "训练12万:通过训练/晋升士兵提升120000点实力"）。
+- mobilization.py：新增模块级 parse_goal_value / goal_names / goal_desc；_match_goal_by_text 重写——desc 包含匹配（空白归一），返回 (name, 原配置值)；两个调用点日志改用 goal[0]。
+- 降级兼容：不含冒号的旧格式值按 LEGACY_KEYWORDS 短词回退（训练12万→"训练"、黄金150→"黄金"、巨兽N→"巨兽"），未知名回退 name 本身。
+
+### 涉及文件
+- configs/task_type.json（options/default）
+- configs/task_config.json（2 处实例存量值）
+- src/sg/element/overall/activity/mobilization.py（解析 + 匹配重写）
+- src/sg/tasks/league/LeagueMobilizationTask.py（默认值/注释同步）
+
+### 测试
+- 行为验证 12 例全过：name:desc 解析、旧格式回退、desc 空白归一匹配（含换行 OCR 文本）、巨兽 N 次区分（10 命中巨兽10、8 不命中）、优先级顺序、空列表。
+- loader 冒烟：load() 通过、26 任务 id↔type↔MAP 一致、两 user 链新值注入正确。
+- TaskConfigEditorTab.py 无需改动（multi_drop_down str(opt) 展示即 name:desc 全文）。
+
+### 遗留 / 风险
+- 选项编辑仍走定义段的"选项,逗号分隔"输入框（逗号分隔 name:desc 串）；desc 内含逗号会被拆断——当前 5 条 desc 无逗号，后续新增目标时 desc 避免用逗号（或改在 JSON 里直接编辑）。
+- desc 判断为包含匹配：若游戏改文案（如"提升120,000点"加千分位），需同步更新 options 的 desc。
+
+---
+
+
+## [2026-10-31] 联盟总动员 — 任务目标维护参数（键值注册表）
+
+### 原始需求
+在 name:desc 内联方案基础上再加一个专门维护键值对关系的参数，避免每个目标参数重复维护 desc。参数名「任务目标维护」，textarea 区域，回车换行区分键值对（每行 key: value）。三个目标参数（专属任务目标/公共任务目标/公共任务刷新目标）的 option 均为该参数的 key 集合；程序里匹配时用各目标参数配置的 key 到该参数反查 value 作为判断值。
+
+### 变更点
+- task_type.json：新增 goal_registry（任务目标维护，widget=textarea，default=5 行键值）；三个目标参数 options 改为纯 key 列表（5 key）、default 恢复 ["训练12万"]。
+- task_config.json：两 user 链实例值同步——目标列表去 desc 只留 key，params 补 goal_registry 默认注册表。
+- task_config_loader.py：PARAM_WIDGETS 白名单加 "textarea"。
+- TaskConfigEditorTab.py：
+  - _param_cell 新增 textarea 分支（PlainTextEdit，textChanged 提交原文， minHeight 110）；
+  - 新增 _parse_goal_registry（每行 key: value，全/半角冒号，# 注释与空行忽略，保持顺序）；
+  - 新增 _effective_options：三个目标参数的 options 动态取本任务 goal_registry 的 key 集合（实例未填回退定义段 default，清空回退定义段静态 options），其余参数不变；
+  - _goal_registry_default 走既有 _task_def 反查定义段。
+- mobilization.py：Mobilization 新增 goal_registry 状态 + parse_goal_registry/goal_value_for；_match_goal_by_text 改为 key → 注册表 value → LEGACY_KEYWORDS → key 本身 的回退链；name:desc 内联解析助手（parse_goal_value/goal_names/goal_desc）删除（不再有调用方）。
+- LeagueMobilizationTask.py：新增 self.goal_registry 字段（默认 5 行注册表），专属/公共流程入口各注入一次 self.mob.goal_registry。
+
+### 修复点
+- matcher 重写编辑中残留重复 LEGACY_KEYWORDS 块与旧实现尾巴导致语法损坏，重读清理后恢复。
+
+### 涉及文件
+- configs/task_type.json / configs/task_config.json
+- src/sg/tasks/config_loader/task_config_loader.py（白名单 +textarea）
+- src/ui/TaskConfigEditorTab.py（textarea 渲染 + 动态 options）
+- src/sg/element/overall/activity/mobilization.py（注册表解析与反查匹配）
+- src/sg/tasks/league/LeagueMobilizationTask.py（注入）
+
+### 测试
+- 注册表匹配行为 9 例：value 匹配（含换行 OCR）、巨兽 N 区分、全角冒号、缺项 LEGACY 回退、空 value 回退、未知名回退 key、空列表；parse_goal_registry 细节（注释/空行/无冒号/首尾空格）。
+- 编辑器逻辑 5 例：目标参数 options 动态取 registry key、非目标参数用静态、实例缺省回退定义段 default、清空回退静态。
+- loader 冒烟：textarea 白名单通过、26 任务加载 OK、两 user 链 goal_registry + key 目标注入正确、4 文件 py_compile 通过。
+
+### 遗留 / 风险
+- 编辑目标注册表后，已展开卡片的三个目标参数复选框选项不会即时刷新（重新展开卡片生效）；如需即时联动需在 textarea textChanged 里刷新兄弟控件（当前按低频编辑处理）。
+- key 重复时后行覆盖前行（dict 语义）；value 建议避免冒号（首个冒号即分隔，后续冒号归入 value，实际上不影响）。
+
+---
+
+
+## [2026-10-31] 联盟总动员 — 任务目标维护编辑即时同步选项
+
+### 原始需求
+「任务目标维护」（goal_registry textarea）新增/删除 key 后，同卡片的三个目标参数（专属任务目标/公共任务目标/公共任务刷新目标）的复选框选项没有更新，需要刷新同步功能。
+
+### 变更点
+- TaskConfigEditorTab._param_cell：
+  - multi_drop_down 分支抽出 _fill_checks(layout) 助手——按 _effective_options 重建复选框行（保留实例已勾选值，缺省回退定义段 default），挂 goal_rebuild 重建钩子到参数 box（_goal_rebuild）；
+  - textarea 分支 textChanged → _ta_changed：先 commit 注册表原文，再向上找挂 _goal_boxes 的卡片 body，逐个调用重建钩子（RuntimeError 容忍已销毁控件）；
+  - 连接顺序保证 commit 先于同步（同一 textChanged 信号内顺序执行）。
+- TaskConfigEditorTab._task_body：参数网格渲染后收集 body._goal_boxes = [box._goal_rebuild ...]。
+- 修复重建叠加：_fill_checks 清空旧 checkbox 时先 setParent(None) 再 deleteLater（仅 deleteLater 是延迟删除，同帧重建会出现新旧两份）。
+
+### 涉及文件
+- src/ui/TaskConfigEditorTab.py（仅编辑器，运行时/配置无改动）
+
+### 测试
+- 离屏 GUI 全链路 7 例：初始渲染、加 key 同步出现、删 key 同步消失、清空回退定义段静态 options、多轮编辑无累积、checkbox click 勾选/取消提交全路径（default 初始勾选→click 取消→click 勾选）、textarea commit 落盘 + dirty 置位。
+- py_compile 通过。
+
+### 遗留 / 风险
+- 重建保留勾选值按"实例 params 里的 key 字符串"匹配；注册表里改 key 名（如 训练12万→训练13万）视为删旧加新，原勾选丢失需重新勾选（符合直觉）。
+
+---
+

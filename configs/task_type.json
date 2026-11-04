@@ -14,7 +14,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -52,7 +53,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -68,7 +70,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -84,7 +87,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -116,7 +120,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -132,7 +137,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -156,7 +162,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 36000,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -172,7 +179,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -196,7 +204,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -220,7 +229,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -251,7 +261,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -298,7 +309,8 @@
           "requires_march_queue": true,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -336,7 +348,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -352,7 +365,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 9000,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -368,7 +382,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -384,7 +399,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -400,7 +416,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -416,7 +433,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 28800,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -440,7 +458,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": true,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -456,7 +475,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 86400,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": []
       },
@@ -472,7 +492,8 @@
           "requires_march_queue": false,
           "next_trigger_delay": 0,
           "one_shot": false,
-          "cron": ""
+          "cron": "",
+          "max_failures": 0
         },
         "params": [
           {
@@ -481,6 +502,273 @@
             "default": 8,
             "widget": null,
             "desc": "派遣船只后的下次触发小时数，默认 8。OCR 剩余时间失败时的兜底。"
+          }
+        ]
+      },
+      {
+        "type": "Hero Enlist",
+        "id": "hero_enlist",
+        "name_prefix": "Hero Enlist英雄招募",
+        "description": "英雄招募：免费招募（OCR 下次免费时间动态回传触发间隔）或批量招募（普通/传奇 10 连次数可配）。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 0,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Enlist Mode",
+            "attr": "enlist_mode",
+            "default": "免费",
+            "widget": {
+              "type": "drop_down",
+              "options": [
+                "免费",
+                "批量"
+              ]
+            },
+            "desc": "招募方式：免费=免费招募（读取下次免费时间安排触发），批量=10 连招募。"
+          },
+          {
+            "name": "Batch Normal Times",
+            "attr": "batch_normal_times",
+            "default": 1,
+            "widget": null,
+            "desc": "批量招募：普通 10 连次数（仅批量模式生效）。"
+          },
+          {
+            "name": "Batch Legend Times",
+            "attr": "batch_legend_times",
+            "default": 1,
+            "widget": null,
+            "desc": "批量招募：传奇 10 连次数（仅批量模式生效）。"
+          }
+        ]
+      },
+      {
+        "type": "Arena Challenge",
+        "id": "arena_challenge",
+        "name_prefix": "Arena Challenge竞技场",
+        "description": "竞技场挑战：任务列表找训练士兵-弓进弓兵营，竞技场购买/免费次数挑战绿色对手，一键上阵+战斗+快速通过，按剩余次数循环。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 86400,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Challenge Limit",
+            "attr": "challenge_limit",
+            "default": 0,
+            "widget": null,
+            "desc": "每次挑战次数。0 = 不限制，以竞技场挑战剩余次数 OCR 为准；大于 0 时取两者较小值。"
+          },
+          {
+            "name": "Buy Times",
+            "attr": "buy_times",
+            "default": 0,
+            "widget": null,
+            "desc": "无免费次数后购买次数。0 = 不购买；大于 0 时先进入购买次数流程，OCR 当前值后按差量点增/减再消耗钻石确认。"
+          }
+        ]
+      },
+      {
+        "type": "Golden Tech Research",
+        "id": "golden_tech_research",
+        "name_prefix": "Golden Tech黄金科技",
+        "description": "黄金科技研究：任务列表找黄金科技研究入口并确认空闲，进战争学院科技树按兵种优先级选分支研究，OCR 剩余时间并联盟互助，按研究完成时间回传下次触发。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Troop Priority",
+            "attr": "troop_priority",
+            "default": "弓",
+            "widget": {
+              "type": "drop_down",
+              "options": [
+                "弓",
+                "骑",
+                "步"
+              ]
+            },
+            "desc": "兵种优先级：优先尝试研究的分支节点（弓/骑/步），命中哪个研究哪个。"
+          },
+          {
+            "name": "Sub Tech Names",
+            "attr": "sub_tech_names",
+            "default": "",
+            "widget": {
+              "type": "text"
+            },
+            "desc": "子项研究特征名（coco 中的 resource_id），逗号分隔多个；留空则只用默认第 4 步三选一节点。"
+          },
+          {
+            "name": "Default Retry Wait",
+            "attr": "default_retry_wait",
+            "default": 3600,
+            "widget": null,
+            "desc": "OCR 剩余研究时间失败时的兜底重试间隔（秒）。"
+          }
+        ]
+      },
+      {
+        "type": "League Shop Buy",
+        "id": "league_shop_buy",
+        "name_prefix": "League Shop联盟商店",
+        "description": "联盟商店购买：进联盟商店，周一处理今日+本周页签、其余仅今日，灰度检索所选折扣角标（最小折扣多选：3折/6折/原价，多选全买）逐个买空（确认弹窗默认数量 1），含售完角标防御分支；全部页签无所选折扣则失败不重试。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 86400,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "Min Discount",
+            "attr": "min_discount",
+            "default": [
+              "3折"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "3折",
+                "6折",
+                "原价"
+              ]
+            },
+            "desc": "最小折扣多选：勾选的档位全部购买（3折=-70%红标，6折，原价）。默认仅勾选 3 折。"
+          }
+        ]
+      },
+      {
+        "type": "League Mobilization",
+        "id": "league_mobilization",
+        "name_prefix": "League Mobilization联盟总动员",
+        "description": "联盟总动员：进入常规活动找联盟总动员页签，OCR 可接次数并按需购买（首次免费/钻石提交），专属任务描述匹配接受/刷新并回传最近刷新倒计时，公共任务滑动检索+奖励标志扫描接受目标；刷新开启时回滚上沿按基准点行高逐行清扫。",
+        "estimated_seconds": 0,
+        "defaults": {
+          "count": 1,
+          "max_active": 1,
+          "requires_march_queue": false,
+          "next_trigger_delay": 0,
+          "one_shot": false,
+          "cron": "",
+          "max_failures": 0
+        },
+        "params": [
+          {
+            "name": "任务目标维护",
+            "attr": "goal_registry",
+            "default": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次",
+            "widget": {
+              "type": "textarea"
+            },
+            "desc": "目标键值注册表：每行一条「key: value」，key 供三个目标参数勾选，value 为 OCR 判断值。修改后目标参数的选项随之更新。"
+          },
+          {
+            "name": "专属任务目标",
+            "attr": "exclusive_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "勾选目标任务 key；OCR 判断值在「任务目标维护」里按 key 反查。"
+          },
+          {
+            "name": "购买当日次数",
+            "attr": "buy_times",
+            "default": 1,
+            "widget": {
+              "type": "number"
+            },
+            "desc": "当天最多购买次数（首次免费自动优先，其后钻石提交）。"
+          },
+          {
+            "name": "公共任务刷新",
+            "attr": "public_refresh",
+            "default": false,
+            "widget": {
+              "type": "switch"
+            },
+            "desc": "开启后不匹配的公共任务会刷新，并在接受阶段后回滚上沿按行高逐行清扫未接任务。"
+          },
+          {
+            "name": "公共任务滚动幅度",
+            "attr": "public_scroll_step",
+            "default": 0.3,
+            "widget": {
+              "type": "number"
+            },
+            "desc": "公共任务列表每次滑动幅度（相对屏高 0-1），默认 0.3。"
+          },
+          {
+            "name": "公共任务刷新目标",
+            "attr": "public_refresh_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "勾选目标任务 key；OCR 判断值在「任务目标维护」里按 key 反查。"
+          },
+          {
+            "name": "公共任务目标",
+            "attr": "public_goals",
+            "default": [
+              "训练12万"
+            ],
+            "widget": {
+              "type": "multi_drop_down",
+              "options": [
+                "训练12万",
+                "黄金150",
+                "巨兽5",
+                "巨兽10",
+                "巨兽15"
+              ]
+            },
+            "desc": "勾选目标任务 key；OCR 判断值在「任务目标维护」里按 key 反查。"
           }
         ]
       }

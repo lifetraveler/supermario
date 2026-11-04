@@ -138,9 +138,9 @@ class CesareFightTask(SGBaseTask):
             return (InteractionResult.FAILED, 0)
 
         # 如果直接进入了资源界面的话，需要跳过一些步骤来处理
-        if not self._wait_element(GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_CHALLENGE,timeout=1,with_recovery=False):
+        if not self._wait_element(GLOBAL_ACTIVITY_FIGHT_QIESALEI_BUTTON_CHALLENGE,timeout=1,with_recovery=False,box=self.box_of_screen(0,0,1,1)):
             # ---- 侦察（False = 体力不足弹出补充界面，本次结束） ----
-            if not self._step(self.cesare.reconnoitre, "侦察"):
+            if not self._step(self.cesare.reconnoitre, "侦察",with_recovery=False):
                 self.last_error = "侦察失败（可能体力不足）"
                 self.log_error(self.last_error)
                 return (InteractionResult.FAILED, self.stamina_wait_seconds)

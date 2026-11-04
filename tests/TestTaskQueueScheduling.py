@@ -222,6 +222,122 @@ class TestCron(unittest.TestCase):
         self.assertEqual(factory.finished_count, 0)
 
 
+class TestMaxFailures(unittest.TestCase):
+    """最大失败次数：任务级 > 队列级 > 不限，达标后 exhausted 收敛。"""
+
+    def _seq(self):
+        # #1 成功 #2 失败 #3 失败：覆盖 follower 与 stalled 两条补建路径
+        return [
+            (InteractionResult.SUCCESS, 0),
+            (InteractionResult.FAILED, 0),
+            (InteractionResult.FAILED, 0),
+        ]
+
+    def test_zero_means_unlimited_end_to_end(self):
+        # 默认（任务级 0 + 队列级 0）：失败照旧补建跑满 count
+        queue, factory, _ = make_queue(self._seq(), count=3)
+        queue.max_failures = 0
+        queue.start()
+        for _ in range(8):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertTrue(queue.all_done())
+        self.assertFalse(factory.exhausted)
+        self.assertEqual(factory.failed_count, 2)
+        self.assertEqual(factory.submitted, 3)
+
+    def test_queue_level_limit_exhausts_factory(self):
+        # 队列级 2：两次失败后标 exhausted，剩余次数作废，all_done 收敛
+        queue, factory, _ = make_queue(self._seq(), count=10)
+        queue.max_failures = 2
+        queue.start()
+        for _ in range(12):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertTrue(factory.exhausted)
+        self.assertEqual(factory.failed_count, 2)
+        self.assertTrue(queue.all_done())  # count=10 未用完也必须收敛
+
+    def test_task_level_limit_overrides_queue(self):
+        # 任务级 1 优先于队列级 5：第一次失败就停
+        queue, factory, _ = make_queue(
+            self._seq(), count=10, max_failures=1)
+        queue.max_failures = 5
+        queue.start()
+        for _ in range(12):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertTrue(factory.exhausted)
+        self.assertEqual(factory.failed_count, 1)
+
+    def test_task_level_zero_falls_back_to_queue(self):
+        # 任务级 0（默认）→ 回落队列级 1
+        queue, factory, _ = make_queue(self._seq(), count=5)
+        queue.max_failures = 1
+        queue.start()
+        for _ in range(12):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertTrue(factory.exhausted)
+        self.assertEqual(factory.failed_count, 1)
+
+    def test_exception_path_counts_as_failure(self):
+        # run_interaction 抛异常同样是失败终态，计入失败次数
+        seq = {"i": 0}
+
+        def take():
+            i = seq["i"]
+            seq["i"] += 1
+            if i == 0:
+                return (InteractionResult.SUCCESS, 0)
+            raise RuntimeError("boom")
+
+        def make(*args, **kwargs):
+            return FakeTask(take, name=f"Fake #{seq['i']}")
+
+        factory = TaskFactory(task_class=make, count=5, name_prefix="Fake")
+        queue = TaskQueue(executor=mock.Mock(), app=mock.Mock(), scene=mock.Mock())
+        queue.max_failures = 1
+        queue.add_factory(factory)
+        queue.start()
+        for _ in range(12):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertTrue(factory.exhausted)
+        self.assertEqual(factory.failed_count, 1)
+
+    def test_one_shot_not_counted(self):
+        # one_shot 失败也消耗次数（finished_count），不走失败计数
+        queue, factory, _ = make_queue(
+            [(InteractionResult.FAILED, 0)], count=3, one_shot=True
+        )
+        queue.max_failures = 1
+        queue.start()
+        for _ in range(12):
+            queue.tick()
+            if queue.all_done():
+                break
+        self.assertFalse(factory.exhausted)
+        self.assertEqual(factory.failed_count, 0)
+        self.assertEqual(factory.finished_count, 3)
+        self.assertTrue(queue.all_done())
+
+    def test_effective_limit_resolution(self):
+        # 解析优先级：工厂级 > 0 用工厂级；否则队列级；均 0 不限
+        f = TaskFactory(task_class=FakeTask, count=1, max_failures=3)
+        self.assertEqual(f._effective_max_failures(None), 3)
+        self.assertEqual(f._effective_max_failures(9), 3)
+        f0 = TaskFactory(task_class=FakeTask, count=1)
+        self.assertEqual(f0._effective_max_failures(7), 7)
+        self.assertEqual(f0._effective_max_failures(0), 0)
+        self.assertEqual(f0._effective_max_failures(None), 0)
+
+
 class TestFactoryQuota(unittest.TestCase):
     """can_submit_more 与 exhausted 的组合语义。"""
 

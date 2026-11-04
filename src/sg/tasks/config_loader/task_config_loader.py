@@ -18,19 +18,22 @@ TaskConfigLoader —— 双配置文件的解析与校验。
 """
 import json
 from pathlib import Path
+# 多用户任务轮转模式（5.7）：task_flow=任务间流转（默认），
+# user_rotation=完全轮转（5.5 老模式）
+ROTATION_MODES = ("task_flow", "user_rotation")
+DEFAULT_ROTATION_MODE = "task_flow"
 
 DEFAULT_CONFIG_PATH = Path("configs") / "task_config.json"
 DEFAULT_TYPE_PATH = Path("configs") / "task_type.json"
-
 # 定义段 defaults 的合法键（缺一不可，防止半截定义悄悄溜进调度）
 DEFAULT_KEYS = (
     "count", "max_active", "requires_march_queue",
-    "next_trigger_delay", "one_shot", "cron",
+    "next_trigger_delay", "one_shot", "cron", "max_failures",
 )
 # 实例条目允许覆盖的定义字段
 OVERRIDABLE_KEYS = DEFAULT_KEYS
 
-PARAM_WIDGETS = {"switch", "number", "text", "drop_down", "multi_drop_down"}
+PARAM_WIDGETS = {"switch", "number", "text", "textarea", "drop_down", "multi_drop_down"}
 
 
 class TaskConfigError(Exception):
@@ -50,6 +53,14 @@ def load_document(path=DEFAULT_CONFIG_PATH):
         raise TaskConfigError("顶层必须是对象")
     if doc.get("version") != 1:
         raise TaskConfigError(f"不支持的 version: {doc.get('version')!r}")
+    mode = doc.get("rotation_mode")
+    if mode is None:
+        # 5.7 新增键：旧配置文件缺省视为任务间流转（task_flow）
+        doc["rotation_mode"] = DEFAULT_ROTATION_MODE
+    elif mode not in ROTATION_MODES:
+        raise TaskConfigError(
+            f"rotation_mode 必须是 {ROTATION_MODES} 之一: {mode!r}"
+        )
     return doc
 
 
@@ -281,6 +292,7 @@ def parse_document(doc, type_groups=None, chain=None):
     queue = {
         "tick_interval": float(queue_in.get("tick_interval", 1.0)),
         "continue_after_failure": bool(queue_in.get("continue_after_failure", True)),
+        "max_failures": int(queue_in.get("max_failures", 0) or 0),
     }
     return {
         "trail": trail,
@@ -288,6 +300,9 @@ def parse_document(doc, type_groups=None, chain=None):
         "queue": queue,
         "task_types": task_types,
         "tasks": tasks_out,
+        # 5.7 多用户任务轮转模式：随链结构透传给 UnifiedQueue
+        "rotation_mode": doc.get(
+            "rotation_mode", DEFAULT_ROTATION_MODE),
     }
 
 

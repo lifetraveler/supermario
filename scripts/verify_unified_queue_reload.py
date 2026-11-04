@@ -55,6 +55,7 @@ def write_cfg(count, level, tick=1.0, enabled=True):
                     "defaults": {
                         "count": 6, "max_active": 2, "requires_march_queue": True,
                         "next_trigger_delay": 0.0, "one_shot": False, "cron": "",
+                        "max_failures": 0,
                     },
                     "params": [
                         {"name": "Monster Level", "attr": "monster_level", "default": 1,

@@ -3,18 +3,10 @@
   "package": "com.got.china",
   "tasks": [
     {
-      "id": "league_tech_donate",
-      "params": {}
-    },
-    {
-      "id": "wave_ride",
+      "id": "watch_tower_event",
       "params": {
-        "dispatch_wait_hours": 0
+        "beast_queue_limit": 0
       }
-    },
-    {
-      "id": "train_soldier",
-      "params": {}
     },
     {
       "id": "league_reward_box",
@@ -33,12 +25,6 @@
       "params": {}
     },
     {
-      "id": "watch_tower_event",
-      "params": {
-        "beast_queue_limit": 0
-      }
-    },
-    {
       "id": "bank_save",
       "params": {
         "bankdays": "7"
@@ -47,6 +33,61 @@
     {
       "id": "golden_refine",
       "params": {}
+    },
+    {
+      "id": "claim_warehouse_reward",
+      "params": {}
+    },
+    {
+      "id": "league_tech_donate",
+      "params": {}
+    },
+    {
+      "id": "pet_treasure_hunt",
+      "params": {}
+    },
+    {
+      "id": "league_shop_buy",
+      "params": {
+        "min_discount": [
+          "3折"
+        ]
+      }
+    },
+    {
+      "id": "arena_challenge",
+      "params": {
+        "challenge_limit": 5
+      }
+    },
+    {
+      "id": "leader_reward",
+      "params": {}
+    },
+    {
+      "id": "claim_buy_center_reward",
+      "params": {}
+    },
+    {
+      "id": "hero_enlist",
+      "params": {
+        "enlist_mode": "0",
+        "batch_normal_times": 0,
+        "batch_legend_times": 0
+      }
+    },
+    {
+      "id": "league_mobilization",
+      "params": {
+        "buy_times": 0,
+        "public_scroll_step": 0,
+        "exclusive_goals": [
+          "训练12万"
+        ],
+        "goal_registry": "训练12万: 通过训练/晋升士兵提升120000点实力\n黄金150: 消耗150块黄金进行建筑升级\n巨兽5: 击败巨兽5次\n巨兽10: 击败巨兽10次\n巨兽15: 击败巨兽15次",
+        "public_refresh_goals": [],
+        "public_goals": []
+      }
     }
   ]
 }

@@ -25,14 +25,15 @@ trigger_keywords:
 ## 一、开发流程总览
 
 ```
-1. 明确业务场景 → 决定任务的三个核心参数 → 补充描述清楚需求，需要确认
-2. 拆解流程 → 列出步骤序列
-3. 识别可复用领域对象 → 决定哪些新写、哪些复用
-4. 编写领域对象（Searcher / 交互领域）
-5. 编写聚合任务类（组合 + 编排）
-6. 注册三动作：TASK_TYPE_MAP 映射 + task_config.json 定义段 + 实例条目（enabled: true）
-7. 测试：独立模式 → 队列模式
-8. 收尾：归档需求 / 变更点 / 修复点到项目需求文档，并提示是否 git commit & push
+1. 建功能分支并切换：feature/<任务主题短横线小写>（见 §11.2 分支规范）
+2. 明确业务场景 → 决定任务的三个核心参数 → 补充描述清楚需求，需要确认
+3. 拆解流程 → 列出步骤序列
+4. 识别可复用领域对象 → 决定哪些新写、哪些复用
+5. 编写领域对象（Searcher / 交互领域）
+6. 编写聚合任务类（组合 + 编排）
+7. 注册三动作：TASK_TYPE_MAP 映射 + task_type.json 定义段 + task_config.json 实例条目（enabled: true）
+8. 测试：独立模式 → 队列模式
+9. 收尾：归档需求 / 变更点 / 修复点到项目需求文档，并提示是否 git commit & push
 ```
 
 ## 二、开工前必答的三个问题
@@ -353,7 +354,7 @@ TASK_TYPE_MAP = {
 }
 ```
 
-**② `configs/task_config.json` —— task_types[] 加定义段**：
+**② `configs/task_type.json` —— task_types[] 加定义段**：
 
 ```json
 {
@@ -591,6 +592,7 @@ def _click_scare_wolf(self) -> bool:
 
 ## 九、新任务开发检查清单
 
+- [ ] **已建功能分支 `feature/<任务主题>` 并切换**（§11.2）
 - [ ] 明确 `requires_march_queue` / `next_trigger_delay` / 是否可并行
 - [ ] 拆解流程为步骤列表，每步有"资源 id + 交互方式"
 - [ ] 判断哪些领域对象可复用，哪些新写
@@ -608,7 +610,7 @@ def _click_scare_wolf(self) -> bool:
 - [ ] 多元素等待用列表传入，不串行两次调用
 - [ ] bbox 兜底逻辑放本文件，不动基类
 - [ ] `TASK_TYPE_MAP` 已加映射，key 与 task_config.json 的 type 完全一致
-- [ ] task_config.json `task_types[]` 定义段 defaults 六键齐全
+- [ ] task_type.json `task_types[]` 定义段 defaults 七键齐全（含 max_failures）
 - [ ] `params[]` 每项有 `attr`，与 Task 注入字段一一对应
 - [ ] 不可并行时 `count=1`，`max_active=1`
 - [ ] **实例段 `machines[].users[].tasks[]` 已加 enabled=true 条目**（新任务开发完必须跟上）
@@ -629,8 +631,9 @@ def _click_scare_wolf(self) -> bool:
 
 需求：<一句话描述新任务>
 
+功能分支：feature/<任务主题短横线小写>（开工第一步，见 §11.2）
 新任务类路径：src/sg/tasks/<category>/<XxxTask>.py
-注册路径：task_type_map.py 加映射 + configs/task_config.json（定义段 + enabled 实例条目）
+注册路径：task_type_map.py 加映射 + configs/task_type.json（定义段）+ configs/task_config.json（enabled 实例条目）
 
 已定：
 - 是否占队列：<是/否>
@@ -662,7 +665,7 @@ def _click_scare_wolf(self) -> bool:
 
 触发时机：
 
-- Skill B 第 8 步测试完成后；
+- Skill B 第 9 步测试完成后；
 - 或用户说“完成 / 结束 / 收尾”。
 
 收尾拆成两个逻辑：
@@ -670,7 +673,7 @@ def _click_scare_wolf(self) -> bool:
 1. 自动总结本次需求、变更点、修复点，写入项目需求文档；
 2. 提示用户是否需要 `git commit & push`。
 
-### 11.1 归档到项目需求文档
+收尾逻辑一：归档到项目需求文档
 
 1. 从本次会话、任务描述、`git diff`、注册文件、测试结果中提取：
    - 原始需求
@@ -708,3 +711,24 @@ def _click_scare_wolf(self) -> bool:
 
 ### 遗留 / 风险
 - ...
+
+---
+```
+
+### 11.2 功能分支规范（开发前置）
+
+每个新任务在**动手写代码前**建独立分支，命名与收尾动作：
+
+```bash
+git checkout -b feature/<任务主题短横线小写>   # 例如：feature/arena-challenge
+```
+
+| 规则 | 说明 |
+|---|---|
+| **命名** | `feature/<任务主题短横线小写>`，取自本次任务主题（如竞技场 → `feature/arena-challenge`） |
+| **时机** | 流程第 1 步，注册/编码之前；避免把多个新任务混在一个分支 |
+| **前置检查** | `git status` 确认工作区；有未提交改动时先告知用户，由用户决定携带还是另处理 |
+| **收尾** | 归档完成后提示用户 `git commit & push`，未确认不执行 |
+
+
+

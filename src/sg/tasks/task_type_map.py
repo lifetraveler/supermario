@@ -22,6 +22,7 @@ from src.sg.tasks.daily.LeaderRewardTask import LeaderRewardTask
 from src.sg.tasks.daily.PunishClaimTask import PunishClaimTask
 from src.sg.tasks.daily.PetTreasureHuntTask import PetTreasureHuntTask
 from src.sg.tasks.league.LeagueRewardBoxTask import LeagueRewardBoxTask
+from src.sg.tasks.league.LeagueShopBuyTask import LeagueShopBuyTask
 from src.sg.tasks.league.LeagueTechDonateTask import LeagueTechDonateTask
 from src.sg.tasks.island.GatherIslandWaterTask import GatherIslandWaterTask
 from src.sg.tasks.world.CesareFightTask import CesareFightTask
@@ -33,6 +34,10 @@ from src.sg.tasks.world.WatchTowerEventTask import WatchTowerEventTask
 from src.sg.tasks.world.HuntScareWolfTask import HuntScareWolfTask
 from src.sg.tasks.city.WaveRideTask import WaveRideTask
 from src.sg.tasks.daily.ClaimBuyCenterRewardTask import ClaimBuyCenterRewardTask
+from src.sg.tasks.city.HeroEnlistTask import HeroEnlistTask
+from src.sg.tasks.city.ArenaChallengeTask import ArenaChallengeTask
+from src.sg.tasks.city.GoldenTechResearchTask import GoldenTechResearchTask
+from src.sg.tasks.league.LeagueMobilizationTask import LeagueMobilizationTask
 
 TASK_TYPE_MAP = {
     "Cesare Fight":          CesareFightTask,
@@ -56,4 +61,9 @@ TASK_TYPE_MAP = {
     "Punish Claim":          PunishClaimTask,
     "Watch Tower Event":     WatchTowerEventTask,
     "Wave Ride":             WaveRideTask,
+    "Hero Enlist":           HeroEnlistTask,
+    "Arena Challenge":       ArenaChallengeTask,
+    "League Shop Buy":       LeagueShopBuyTask,
+    "Golden Tech Research":  GoldenTechResearchTask,
+    "League Mobilization":   LeagueMobilizationTask,
 }

@@ -126,10 +126,14 @@ class RallyConfig:
     # --------------------------------------------------------
 
     def apply(self, team_group_name=None, team_hero=None) -> bool:
+        self.task.sleep(1.0)
         if not self.select_team(team_group_name):
             return False
+        self.task.sleep(1.0)
         if not self.adjust_heroes(team_hero):
             return False
+        self.task.sleep(1.0)
         if not self.adjust_troops():
             return False
+        self.task.sleep(1.0)
         return True
